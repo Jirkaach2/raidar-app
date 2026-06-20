@@ -1,0 +1,48 @@
+.mic {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.mic-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px; border-radius: 9px; cursor: pointer;
+  font-family: var(--font-display); font-size: 10px; font-weight: 700; letter-spacing: 0.7px;
+  background: rgba(14,16,21,0.9); border: 1px solid var(--color-border-strong); color: var(--color-text-dim);
+  backdrop-filter: blur(6px); box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+  transition: all var(--transition-fast);
+}
+.mic-toggle:hover { color: var(--color-text); border-color: var(--color-accent-dim); }
+.mic-toggle svg:first-child { color: var(--color-accent); }
+.mic-chev { transition: transform var(--transition-fast); }
+.mic.open .mic-chev { transform: rotate(180deg); }
+
+.mic-body {
+  width: 210px; padding: 11px; border-radius: 11px;
+  background: rgba(14,16,21,0.97); border: 1px solid var(--color-border-strong);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.mic-seed {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 10px; color: var(--color-text-muted);
+}
+.mic-seed b { color: var(--color-text); }
+
+.mic-bar {
+  display: flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.mic-bar span { height: 100%; }
+
+.mic-legend { display: flex; flex-wrap: wrap; gap: 4px 9px; }
+.mic-leg { display: inline-flex; align-items: center; gap: 4px; font-size: 8.5px; color: var(--color-text-dim); }
+.mic-leg i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+.mic-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.mic-grid > div {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 2px; border-radius: 7px; background: rgba(255,255,255,0.03); border: 1px solid var(--color-border);
+}
+.mic-grid b { font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--color-text); }
+.mic-grid span { font-size: 7.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-muted); text-transform: uppercase; }

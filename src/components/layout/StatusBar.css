@@ -1,0 +1,95 @@
+/* ── StatusBar ────────────────────────────────────── */
+.statusbar {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  gap: var(--space-lg);
+  background: linear-gradient(
+    90deg,
+    rgba(19, 16, 13, 0.96) 0%,
+    rgba(11, 13, 17, 0.96) 100%
+  );
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: var(--z-panel);
+  overflow: hidden;
+}
+
+.statusbar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+
+.statusbar__item--accent {
+  color: var(--color-accent);
+}
+
+.statusbar__item--server-name {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusbar__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusbar__dot--green {
+  background: var(--color-success);
+  box-shadow: var(--glow-success);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+.statusbar__dot--yellow {
+  background: var(--color-warning);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.statusbar__dot--red {
+  background: var(--color-danger);
+}
+
+.statusbar__dot--gray {
+  background: var(--color-text-dim);
+}
+
+.statusbar__spacer {
+  flex: 1;
+}
+
+/* Sweep line */
+.statusbar__sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent-dim),
+    transparent
+  );
+  animation: sweep-horizontal 10s linear infinite;
+  opacity: 0.4;
+}
+
+/* Time display */
+.statusbar__time {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}

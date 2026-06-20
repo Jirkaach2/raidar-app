@@ -1,0 +1,358 @@
+/* ── Tactical Overlays Panel ── */
+.overlays-wrapper {
+  position: absolute;
+  bottom: 60px; /* offset to sit above statusbar */
+  left: var(--space-lg);
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  pointer-events: none; /* Let clicks pass to map except inside panels */
+  animation: slide-in-bottom 500ms var(--ease-out-expo) both;
+}
+
+.tactical-panel, .resource-popover {
+  pointer-events: auto; /* Enable clicks inside panels */
+  background: rgba(11, 13, 17, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.tactical-panel {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.overlays-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.overlays-header-title {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--color-text);
+  text-shadow: var(--text-glow);
+}
+
+.chevron-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+.overlays-body {
+  padding: 8px 16px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overlay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+}
+
+.overlay-row-label {
+  font-family: var(--font-main);
+  font-size: 13px;
+  color: var(--color-text-dim);
+}
+
+.overlay-toggle-btn {
+  width: 36px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.overlay-toggle-btn:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.overlay-toggle-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent-dim);
+  color: #fff;
+  box-shadow: 0 0 8px var(--color-accent-dim);
+}
+
+/* ── Monument Markers Popover ── */
+.resource-popover {
+  width: auto;
+  min-width: 230px;
+  max-width: 80vw;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+}
+
+.resource-popover-header {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--color-text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 6px;
+}
+
+/* Tabs */
+.resource-popover-tabs {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.resource-tab {
+  flex: 1;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.resource-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.resource-tab.active {
+  background: rgba(206, 66, 43, 0.08);
+  border-color: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+/* Density Slider */
+.density-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.density-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.density-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}
+
+.density-val {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-accent);
+}
+
+.density-range {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  outline: none;
+}
+
+.density-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(206, 66, 43, 0.5);
+  transition: transform 0.1s;
+}
+
+.density-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Checklist Grid — flows top→bottom then wraps into more columns to the SIDE
+   so the popover grows wider instead of taller. */
+.resource-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 3px 6px;
+  max-height: 250px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-right: 2px;
+}
+
+.resource-chk-row {
+  width: 200px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 5px 7px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.resource-chk-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.resource-chk-row.is-checked {
+  background: rgba(206, 66, 43, 0.08);
+  border-color: var(--color-accent-dim);
+}
+
+.resource-checkbox {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--color-border-strong);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  margin-right: 9px;
+  position: relative;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.resource-chk-row:hover .resource-checkbox { border-color: var(--color-text-muted); }
+
+.resource-checkbox.checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.resource-checkbox.checked::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.resource-chk-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.resource-chk-row:hover .resource-chk-icon { background: rgba(255, 255, 255, 0.09); }
+
+.resource-chk-label {
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resource-chk-row:hover .resource-chk-label { color: var(--color-text); }
+
+
+/* ── Roster Status (map) ── */
+.overlays-left-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-md);
+}
+.roster-panel {
+  pointer-events: auto;
+  width: 210px;
+  background: rgba(11, 13, 17, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 8px;
+}
+.roster-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.roster-count { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--color-success); }
+.roster-body { padding: 6px 14px 10px; display: flex; flex-direction: column; gap: 7px; max-height: 220px; overflow-y: auto; }
+.roster-row { display: flex; align-items: center; gap: 8px; }
+.roster-row .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.roster-row .status-online { background: var(--color-success); box-shadow: 0 0 5px var(--color-success); }
+.roster-row .status-dead { background: var(--color-danger); }
+.roster-row .status-offline { background: var(--color-text-dim); }
+.roster-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.roster-line { display: flex; align-items: center; gap: 6px; }
+.roster-name { flex: 1; font-size: 11px; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster-name.is-self { color: var(--color-success); font-weight: 700; }
+.roster-grid {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-info);
+  background: rgba(88,198,232,0.12); border: 1px solid rgba(88,198,232,0.25);
+  padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.roster-grid.dead { color: var(--color-danger); background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); }
+.roster-grid.offline { color: var(--color-text-dim); background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+.roster-hp-bar {
+  position: relative; height: 9px; border-radius: 3px;
+  background: rgba(255,255,255,0.06); overflow: hidden;
+}
+.roster-hp-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.3s ease; }
+.roster-hp-text {
+  position: absolute; top: 0; right: 4px; line-height: 9px;
+  font-family: var(--font-mono); font-size: 7px; font-weight: 700;
+  color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.9);
+}

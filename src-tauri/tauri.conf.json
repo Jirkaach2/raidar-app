@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "Raidar",
+  "version": "1.0.0",
+  "identifier": "com.raidar.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Raidar",
+        "width": 400,
+        "height": 700,
+        "resizable": true,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
+    "externalBin": [
+      "binaries/fcm-sidecar"
+    ]
+  },
+  "plugins": {
+    "sql": {
+      "preload": [
+        "sqlite:rustoverlay.db"
+      ]
+    },
+    "updater": {
+      "endpoints": [
+        "https://gitlab.com/supply-pulse-group/RustOverlay/-/releases/permalink/latest/downloads/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREN0RGRUU5QTU2RjVCODkKUldTSlcyK2w2ZjU5VGFlSCtweXArNzVoNUw3MkhQZWFTTnBqcEV3NEpDcGZWczdXaVNoQ05pY2wK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

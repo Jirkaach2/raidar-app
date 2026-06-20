@@ -1,0 +1,94 @@
+/* ── Crate timer control popup (map) ───────────────────────────── */
+.crate-ctrl {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 188px;
+  background: linear-gradient(180deg, rgba(20, 23, 30, 0.98), rgba(13, 15, 20, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.7);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 70;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  color: #e8e2d9;
+  overflow: hidden;
+  animation: crate-ctrl-in 0.14s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes crate-ctrl-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* Header */
+.crate-ctrl-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.crate-ctrl-head .cc-icon { display: inline-flex; }
+.crate-ctrl-title { flex: 1; min-width: 0; }
+.crate-ctrl-title b {
+  display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.4px;
+  color: #f1ebd9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.crate-ctrl-title span {
+  font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px;
+  color: var(--cc-accent, #ff9100); text-transform: uppercase;
+}
+.crate-ctrl-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 5px; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: none; color: #8c95a0; transition: all 0.13s;
+}
+.crate-ctrl-x:hover { background: rgba(239,68,68,0.18); color: #ff6b6b; }
+
+/* Countdown */
+.crate-ctrl-count {
+  display: flex; align-items: baseline; justify-content: center; gap: 5px;
+  padding: 9px 11px 4px;
+}
+.crate-ctrl-count b {
+  font-size: 26px; font-weight: 900; letter-spacing: 1px; line-height: 1;
+  color: var(--cc-accent, #ff9100); text-shadow: 0 0 12px var(--cc-glow, rgba(255,145,0,0.4));
+}
+.crate-ctrl-count small { font-size: 8px; color: #8c95a0; letter-spacing: 0.5px; }
+.crate-ctrl-bar { height: 3px; margin: 0 11px 9px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.crate-ctrl-bar > div { height: 100%; border-radius: 2px; transition: width 0.4s linear; }
+
+/* Body */
+.crate-ctrl-body { padding: 0 11px 11px; display: flex; flex-direction: column; gap: 7px; }
+
+.crate-ctrl-set { display: flex; gap: 5px; }
+.crate-ctrl-set input {
+  flex: 1; min-width: 0; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px; color: #fff; font-size: 12px; font-weight: 700; font-family: var(--font-mono);
+  padding: 6px 9px; outline: none; transition: border-color 0.13s;
+}
+.crate-ctrl-set input:focus { border-color: var(--cc-accent, #ff9100); }
+.crate-ctrl-set-btn {
+  padding: 0 14px; border-radius: 7px; cursor: pointer; font-size: 10px; font-weight: 800;
+  font-family: var(--font-mono); letter-spacing: 0.5px; transition: all 0.13s;
+  background: var(--cc-accent, #ff9100); border: 1px solid var(--cc-accent, #ff9100); color: #0a0c10;
+}
+.crate-ctrl-set-btn:hover { filter: brightness(1.15); }
+
+.crate-ctrl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.cc-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 10px; font-weight: 700; padding: 6px 0; border-radius: 7px; cursor: pointer;
+  font-family: var(--font-mono); letter-spacing: 0.3px; transition: all 0.13s;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #d6d0c6;
+}
+.cc-btn:hover { background: rgba(255,255,255,0.09); }
+.cc-btn--green { background: rgba(111,207,115,0.1); border-color: rgba(111,207,115,0.22); color: #6fcf73; }
+.cc-btn--green:hover { background: rgba(111,207,115,0.2); border-color: #6fcf73; }
+.cc-btn--red { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #ff6b6b; }
+.cc-btn--red:hover { background: rgba(239,68,68,0.18); border-color: #ff6b6b; }
+.cc-btn--info { background: rgba(88,198,232,0.1); border-color: rgba(88,198,232,0.25); color: #58c6e8; }
+.cc-btn--info:hover { background: rgba(88,198,232,0.2); border-color: #58c6e8; }
+.cc-btn--full { grid-column: 1 / -1; }

@@ -1,0 +1,121 @@
+/* ── Titlebar ─────────────────────────────────────── */
+.titlebar {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(19, 16, 13, 0.96) 0%,
+    rgba(11, 13, 17, 0.96) 100%
+  );
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  z-index: var(--z-titlebar);
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+/* Tauri window drag region */
+.titlebar__drag {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.titlebar__icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titlebar__icon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-accent);
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 4px rgba(206,66,43,.4));
+}
+
+.titlebar__title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--color-text);
+}
+
+.titlebar__version {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+  margin-left: 2px;
+}
+
+/* ── Window controls ── */
+.titlebar__controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.titlebar__btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.titlebar__btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.titlebar__btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.titlebar__btn--close:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+/* Sweep animation line */
+.titlebar__sweep {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    transparent
+  );
+  animation: sweep-horizontal 6s linear infinite;
+  opacity: 0.6;
+}

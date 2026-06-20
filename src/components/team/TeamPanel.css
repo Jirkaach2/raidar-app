@@ -1,0 +1,183 @@
+.team-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: rgba(19, 16, 13, 0.4);
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  padding: 16px;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100% - 48px);
+}
+
+/* ── Member List Section (Left) ── */
+.member-list-section {
+  display: flex;
+  flex-direction: column;
+  width: 40%;
+  border-right: 1px solid var(--color-border);
+  padding-right: 16px;
+  height: 100%;
+}
+
+.section-title {
+  margin-bottom: 12px;
+  color: var(--color-text-dim);
+  font-size: 10px;
+}
+
+.member-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.member-list-empty {
+  padding: 24px 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Member Roster Cards ── */
+.member-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  transition: all var(--transition-fast);
+}
+
+.member-card:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--color-border-strong);
+}
+
+.member-card--dead {
+  border-color: rgba(232, 69, 69, 0.2);
+}
+
+.member-card--offline {
+  border-color: rgba(255, 255, 255, 0.03);
+  opacity: 0.6;
+}
+
+.member-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.member-card-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-name-text {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text);
+  letter-spacing: 0.3px;
+}
+
+.leader-tag {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-bg-deep);
+  background: var(--color-warning);
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.grid-location-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-info);
+  background: var(--color-info-dim);
+  border: 1px solid rgba(88, 198, 232, 0.25);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.location-dead {
+  color: var(--color-danger);
+  background: var(--color-danger-dim);
+  border-color: rgba(232, 69, 69, 0.25);
+}
+
+.location-offline {
+  color: var(--color-text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Health Bar ── */
+.member-health-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.health-bar-bg {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.health-alive {
+  background: var(--color-success);
+  box-shadow: 0 0 4px var(--color-success-dim);
+}
+
+.health-dead {
+  background: var(--color-danger);
+}
+
+.health-percentage-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* ── Chat Container Wrap ── */
+.chat-section-wrap {
+  width: 60%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

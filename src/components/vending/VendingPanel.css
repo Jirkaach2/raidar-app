@@ -1,0 +1,673 @@
+/* ── Vending Panel Layout ── */
+.vending-panel {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+  gap: 24px;
+  padding: 24px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(17, 20, 24, 0.4) 0%, rgba(11, 13, 17, 0.6) 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.vending-search-container {
+  flex: 1.6;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0; /* prevent flex overflows */
+}
+
+/* Header & Title */
+.vending-header {
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.vending-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--color-text);
+  margin: 0 0 16px 0;
+  text-shadow: var(--text-glow);
+}
+
+.vending-search-bar-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vending-search-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 40px 12px 16px;
+  color: var(--color-text);
+  font-family: var(--font-main);
+  font-size: 13px;
+  transition: all var(--transition-fast);
+}
+
+.vending-search-input:focus {
+  outline: none;
+  border-color: var(--color-accent-dim);
+  box-shadow: 0 0 15px rgba(206, 66, 43, 0.1);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.clear-search-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.clear-search-btn:hover {
+  color: var(--color-text);
+}
+
+/* Tabs */
+.vending-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.vending-tab-btn {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vending-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.vending-tab-btn.active.buy-tab {
+  background: rgba(88, 198, 232, 0.08);
+  border-color: rgba(88, 198, 232, 0.4);
+  color: #58c6e8;
+  box-shadow: 0 0 10px rgba(88, 198, 232, 0.1);
+}
+
+.vending-tab-btn.active.sell-tab {
+  background: rgba(232, 166, 74, 0.08);
+  border-color: rgba(232, 166, 74, 0.4);
+  color: #e0a64a;
+  box-shadow: 0 0 10px rgba(232, 166, 74, 0.1);
+}
+
+/* Results Scrollable Area */
+.vending-results {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 6px;
+}
+
+.vending-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-dim);
+  opacity: 0.6;
+}
+
+.vending-empty svg {
+  width: 40px;
+  height: 40px;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  margin-bottom: 12px;
+  fill: none;
+}
+
+.vending-empty p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+/* Vending Machine Cards */
+.vending-machine-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color var(--transition-fast);
+}
+
+.vending-machine-card:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.vending-machine-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  padding-bottom: 8px;
+}
+
+.vending-machine-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.vending-grid-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(206, 66, 43, 0.12);
+  border: 1px solid rgba(206, 66, 43, 0.3);
+  color: var(--color-accent);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.5px;
+}
+
+.vending-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vending-order {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.vending-order:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.vending-order-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vending-order-buy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vending-item-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1px;
+}
+
+.vending-qty {
+  color: #58c6e8;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.vending-item {
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vending-order-arrow {
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vending-order-arrow svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vending-order-cost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.vending-cost-val {
+  color: #e0a64a;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vending-cost-cur {
+  color: var(--color-text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vending-order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.stock-indicator {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.stock-indicator.in-stock {
+  color: var(--color-success);
+  opacity: 0.8;
+}
+
+.stock-indicator.no-stock {
+  color: var(--color-danger);
+}
+
+.vending-order.out-of-stock {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+/* ── INTEGRATED TEAM CHAT BOX ── */
+.vending-chat-box {
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  padding-left: 24px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.chat-box-header {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.chat-box-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: var(--glow-success);
+  margin-right: 8px;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.chat-box-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.chat-box-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  font-family: var(--font-main);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.chat-box-message-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.chat-box-time {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  margin-top: 2.5px;
+}
+
+.chat-box-sender {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.chat-box-text {
+  color: var(--color-text);
+}
+
+/* Chat Input Form */
+.chat-box-form {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chat-box-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--color-text);
+  font-family: var(--font-main);
+  font-size: 12px;
+  transition: all var(--transition-fast);
+}
+
+.chat-box-input:focus {
+  outline: none;
+  border-color: var(--color-accent-dim);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.chat-box-send-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.chat-box-send-btn:hover {
+  background: rgba(206, 66, 43, 0.9);
+  box-shadow: 0 0 10px rgba(206, 66, 43, 0.3);
+}
+
+.chat-box-send-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* ── OVERHAULED VENDING PANEL STYLES ── */
+.vending-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.vending-chip {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vending-chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+
+.vending-chip.active {
+  background: rgba(206, 66, 43, 0.12);
+  border-color: var(--color-accent-dim);
+  color: var(--color-accent);
+  box-shadow: 0 0 10px rgba(206, 66, 43, 0.1);
+}
+
+.vending-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  padding-bottom: 12px;
+}
+
+.vending-filter-group {
+  display: flex;
+  gap: 6px;
+}
+
+.vending-filter-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vending-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+}
+
+.vending-filter-btn.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text);
+}
+
+.vending-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.vending-toggle-wrap input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.vending-sort-select {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-xs);
+  padding: 4px 24px 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+  transition: all var(--transition-fast);
+}
+
+.vending-sort-select:focus {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.vending-sort-select option {
+  background: #111;
+  color: var(--color-text);
+}
+
+.vending-distance-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  background: rgba(88, 198, 232, 0.08);
+  border: 1px solid rgba(88, 198, 232, 0.2);
+  color: #58c6e8;
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.vending-show-map-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.01) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.vending-show-map-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-text) !important;
+}
+
+/* Custom glow borders for shop cards */
+.npc-shop-card {
+  border-left: 2px solid rgba(60, 192, 76, 0.4);
+}
+
+.player-shop-card {
+  border-left: 2px solid rgba(88, 198, 232, 0.4);
+}
+
+
+
+/* ── Market / Best Shops view toggle ── */
+.vending-view-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.vending-view-tab {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.vending-view-tab:hover { color: var(--color-text); }
+.vending-view-tab.active {
+  color: #fff;
+  background: rgba(206, 66, 43, 0.16);
+  border-color: var(--color-accent-dim);
+  box-shadow: inset 0 0 0 1px var(--color-accent-dim);
+}

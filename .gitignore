@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
+
+# Tauri / Rust build artifacts
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# ── Secrets — NEVER commit ──
+# Rust+ FCM credentials + Steam auth token (per-user secret)
+src-tauri/rustplus.config.json
+**/rustplus.config.json
+# Local SQLite database (server profiles, pairing)
+src-tauri/*.db
+*.db
+# Updater signing keys, env files, tokens
+*.key
+*.key.pub
+.env
+.env.*
+!.env.example
+
+# The Discord bot and website are their own repositories
+discord-bot/
+raidar-web/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.log
+.claude/

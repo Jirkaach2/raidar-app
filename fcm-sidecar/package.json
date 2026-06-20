@@ -1,0 +1,27 @@
+{
+  "name": "fcm-sidecar",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@liamcottle/push-receiver": "^0.0.4",
+    "@liamcottle/rustplus.js": "^2.5.0"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/**/*.proto",
+      "node_modules/**/*.json"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "../src-tauri/binaries"
+  }
+}
