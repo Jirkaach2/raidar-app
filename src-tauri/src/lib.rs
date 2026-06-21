@@ -59,18 +59,36 @@ fn open_steam_login_window(app_handle: &tauri::AppHandle, url: String) {
         .ok();
 }
 
-/// Called by the frontend when the Raidar (Appwrite) auth state changes. When
-/// the user signs in, any deferred Steam/Rust+ pairing login is opened.
 #[tauri::command]
 async fn set_app_authenticated(app: tauri::AppHandle, state: tauri::State<'_, AppState>, authed: bool) -> Result<(), String> {
     state.authed.store(authed, Ordering::Relaxed);
     if authed {
-        let url = { state.pending_login.lock().await.take() };
+        let url = { state.pending_login.lock().await.clone() };
         if let Some(url) = url {
             open_steam_login_window(&app, url);
         }
     }
     Ok(())
+}
+
+#[tauri::command]
+async fn has_pending_steam_login(state: tauri::State<'_, AppState>) -> Result<bool, String> {
+    let pending = state.pending_login.lock().await;
+    Ok(pending.is_some())
+}
+
+#[tauri::command]
+async fn reopen_steam_login(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let url = {
+        let pending = state.pending_login.lock().await;
+        pending.clone()
+    };
+    if let Some(url) = url {
+        open_steam_login_window(&app, url);
+        Ok(())
+    } else {
+        Err("No pairing URL is currently pending. Please click 'Pair with Server' in Rust in-game settings.".to_string())
+    }
 }
 
 /// Frontend polls this to consume the latest deep-link URL (reliable handoff
@@ -220,16 +238,23 @@ pub fn run() {
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("open_login") {
                                     let url = parsed.get("url").unwrap().as_str().unwrap().to_string();
                                     let state = app_handle.state::<AppState>();
+                                    {
+                                        let mut pending = state.pending_login.lock().await;
+                                        *pending = Some(url.clone());
+                                    }
                                     if state.authed.load(std::sync::atomic::Ordering::Relaxed) {
                                         // Already signed in to Raidar — open the pairing login now.
                                         open_steam_login_window(&app_handle, url);
                                     } else {
                                         // Hold the Steam pairing login until the user signs in with Raidar.
-                                        let mut pending = state.pending_login.lock().await;
-                                        *pending = Some(url);
                                         log::info!("Deferring Steam login until Raidar sign-in");
                                     }
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("login_success") {
+                                    let state = app_handle.state::<AppState>();
+                                    {
+                                        let mut pending = state.pending_login.lock().await;
+                                        *pending = None;
+                                    }
                                     if let Some(window) = app_handle.get_webview_window("steam-login") {
                                         window.close().ok();
                                     }
@@ -252,6 +277,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             set_app_authenticated,
             take_pending_deep_link,
+            has_pending_steam_login,
+            reopen_steam_login,
             commands::connection::connect,
             commands::connection::disconnect,
             commands::connection::get_connection_status,

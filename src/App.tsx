@@ -466,8 +466,12 @@ function App() {
           // The OS/shell can append a trailing slash to the URL — strip it off
           // the secret or the token is rejected as invalid.
           const secret = (u.searchParams.get('secret') || '').replace(/[/\s]+$/, '');
-          if (userId && secret) {
+           if (userId && secret) {
             if (seen.has(secret)) return;
+            if (useAuthStore.getState().busy) {
+              console.log('[App] Deep link received but auth store is busy, ignoring.');
+              return;
+            }
             seen.add(secret);
             useAuthStore.getState().loginWithToken(userId, secret).catch(() => {});
             break;

@@ -81,10 +81,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginWithToken: async (userId, secret) => {
     set({ busy: true, error: '', notice: 'Sign-in link received — signing you in…' });
+    console.log('[loginWithToken] Initiating exchange:', { userId, secret });
     try {
       if (!userId || !secret) throw new Error('Invalid login token.');
       try { await account.deleteSession('current'); } catch { /* none */ }
-      await account.createSession(userId, secret);
+      await account.createSession({ userId, secret });
       const u = await account.get();
       set({ user: u, busy: false, notice: '' });
       get().refreshPlan();

@@ -39,6 +39,27 @@ export function SettingsPanel() {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [allowDraft, setAllowDraft] = useState<Record<string, string>>({});
   const [switchingServerId, setSwitchingServerId] = useState<number | null>(null);
+  const [hasPendingSteam, setHasPendingSteam] = useState(false);
+
+  useEffect(() => {
+    const checkPending = async () => {
+      try {
+        const hasPending = await invoke<boolean>('has_pending_steam_login');
+        setHasPendingSteam(hasPending);
+      } catch {}
+    };
+    checkPending();
+    const interval = setInterval(checkPending, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleReopenSteam = async () => {
+    try {
+      await invoke('reopen_steam_login');
+    } catch (e: any) {
+      useMapStore.getState().addToast('Steam Login', e?.message || e, 'warning');
+    }
+  };
 
   const connectionStatus = useConnectionStore(s => s.status);
   const setConnectionStatus = useConnectionStore(s => s.setStatus);
@@ -351,6 +372,13 @@ export function SettingsPanel() {
               </span>
             </div>
             
+            {hasPendingSteam && (
+              <button onClick={handleReopenSteam} className="btn-accent" style={{ width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+                <Link2 size={13} />
+                Reopen Steam pairing window
+              </button>
+            )}
+
             {connectionStatus === 'connected' && (
               <button onClick={handleDisconnect} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                 <Power size={13} />
