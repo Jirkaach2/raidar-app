@@ -6,7 +6,8 @@ const { v4: uuidv4 } = require('uuid');
 const AndroidFCM = require('@liamcottle/push-receiver/src/android/fcm');
 const PushReceiverClient = require('@liamcottle/push-receiver/src/client');
 
-const CONFIG_PATH = path.join(process.cwd(), 'rustplus.config.json');
+const appDataDir = process.argv[2] || process.cwd();
+const CONFIG_PATH = path.join(appDataDir, 'rustplus.config.json');
 
 function readConfig() {
     try {
