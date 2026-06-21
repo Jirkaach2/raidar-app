@@ -56,9 +56,9 @@
     },
     "updater": {
       "endpoints": [
-        "https://gitlab.com/supply-pulse-group/RustOverlay/-/releases/permalink/latest/downloads/latest.json"
+        "https://github.com/JirkaachS/raidar-app/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREN0RGRUU5QTU2RjVCODkKUldTSlcyK2w2ZjU5VGFlSCtweXArNzVoNUw3MkhQZWFTTnBqcEV3NEpDcGZWczdXaVNoQ05pY2wK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGMDlCQjA2Q0M3RDcyRTMKUldUamNuM01CcnNKdndaZGNGU2ZteFh5SWJ6L29iYUVManhEK3pYejhaWmV5UnFPRzhVZUE1MlEK",
       "windows": {
         "installMode": "passive"
       }
