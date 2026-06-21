@@ -1,5 +1,4 @@
 import './Titlebar.css';
-import AccountButton from './AccountButton';
 
 export default function Titlebar() {
   const handleMinimize = async () => {
@@ -54,7 +53,6 @@ export default function Titlebar() {
       </div>
 
       <div className="titlebar__controls">
-        <AccountButton />
         <button className="titlebar__btn" onClick={handleMinimize} aria-label="Minimize">
           <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" /></svg>
         </button>

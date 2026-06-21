@@ -32,8 +32,10 @@ import { getItemName, getItemIconUrl } from './utils/items';
 import './App.css';
 
 import { useUiStore } from './stores/ui-store';
+import { useAuthStore } from './stores/auth-store';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { UpdateBanner } from './components/common/UpdateBanner';
+import AppShellLogin from './components/layout/LoginGate';
 /**
  * Returns a poll delay that backs off hard when the window is hidden, so the
  * overlay stops hammering CPU while running in the background. `activeMs` is
@@ -412,6 +414,9 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
 function App() {
   const activePage = useUiStore(s => s.activePage);
   const setActivePage = useUiStore(s => s.setActivePage);
+  const authUser = useAuthStore(s => s.user);
+  const authLoading = useAuthStore(s => s.loading);
+  const authInit = useAuthStore(s => s.init);
   const connectionStatus = useConnectionStore(s => s.status);
   const connectEpoch = useConnectionStore(s => s.connectEpoch);
   const addDevice = useDeviceStore(s => s.addDevice);
@@ -428,6 +433,9 @@ function App() {
   useRustPlusEvents();
   useOverlayMode();
   useAutomationRunner();
+
+  // Restore any existing Raidar session on startup (gates the whole app).
+  useEffect(() => { authInit(); }, [authInit]);
 
   // Listen for entity pairing and connection success
   useEffect(() => {
@@ -1385,6 +1393,11 @@ function App() {
 
   return (
     <div className="app-container">
+      {authLoading ? (
+        <div className="app-auth-splash"><div className="app-auth-splash__mark" /></div>
+      ) : !authUser ? (
+        <AppShellLogin />
+      ) : (
       <AppShell activePage={activePage} onNavigate={handleNavigate}>
         {activePage === 'map' && <MapView />}
         {activePage === 'team' && <TeamPanel />}
@@ -1394,6 +1407,7 @@ function App() {
         {activePage === 'spy' && <SpyPanel />}
         {activePage === 'settings' && <SettingsPanel />}
       </AppShell>
+      )}
 
       <ConfirmDialog />
       <UpdateBanner />

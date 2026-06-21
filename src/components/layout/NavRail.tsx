@@ -1,4 +1,5 @@
 import { useTeamStore } from '@/stores/team-store';
+import RailAccount from './RailAccount';
 import './NavRail.css';
 
 export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'settings';
@@ -119,6 +120,7 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
       </button>
 
       <div className="navrail__spacer" />
+      <RailAccount />
     </nav>
   );
 }

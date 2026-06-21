@@ -1,0 +1,50 @@
+.gate {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background:
+    radial-gradient(1000px 500px at 50% -10%, rgba(206,66,43,0.16), transparent 60%),
+    radial-gradient(700px 500px at 90% 110%, rgba(88,198,232,0.05), transparent 55%),
+    #0b0d11;
+  overflow: hidden;
+}
+.gate__scanlines {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+}
+.gate__glow { position: absolute; top: -20%; left: 50%; width: 600px; height: 600px; transform: translateX(-50%); background: radial-gradient(circle, rgba(206,66,43,0.12), transparent 70%); pointer-events: none; }
+
+.gate__card {
+  position: relative; z-index: 1; width: 380px; max-width: calc(100vw - 40px);
+  background: rgba(19, 16, 13, 0.85); border: 1px solid rgba(206,66,43,0.28);
+  border-radius: 16px; padding: 34px 30px; backdrop-filter: blur(10px);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.6), 0 0 80px rgba(206,66,43,0.06);
+  animation: gate-in 420ms cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes gate-in { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.gate__brand { display: flex; align-items: center; justify-content: center; gap: 11px; margin-bottom: 20px; }
+.gate-mark { width: 34px; height: 34px; color: #ce422b; filter: drop-shadow(0 0 8px rgba(206,66,43,0.5)); }
+.gate__title { font-family: 'Oswald', sans-serif; font-weight: 600; letter-spacing: 5px; font-size: 24px; color: #fff; }
+
+.gate__h1 { text-align: center; font-family: 'Oswald', sans-serif; font-size: 22px; letter-spacing: 0.5px; color: #fff; margin: 0 0 6px; }
+.gate__sub { text-align: center; font-size: 13px; color: #8a8177; margin: 0 0 22px; line-height: 1.5; }
+
+.gate__form { display: flex; flex-direction: column; gap: 10px; }
+.gate__field { display: flex; align-items: center; gap: 9px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(206,66,43,0.28); background: rgba(0,0,0,0.4); color: #5a544d; transition: border-color 140ms ease; }
+.gate__field:focus-within { border-color: #ce422b; color: #ce422b; }
+.gate__field input { flex: 1; background: none; border: none; outline: none; color: #e8e2d9; font-size: 14px; padding: 11px 0; }
+.gate__err { font-size: 12px; color: #ff6b6b; background: rgba(232,69,69,0.1); border: 1px solid rgba(232,69,69,0.3); border-radius: 7px; padding: 8px 11px; }
+.gate__submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; padding: 12px; border-radius: 8px; border: none; background: #ce422b; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 18px rgba(206,66,43,0.3); transition: background 140ms ease; }
+.gate__submit:hover { background: #ff6a3d; }
+.gate__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.gate__spin { animation: gate-spin 1s linear infinite; }
+@keyframes gate-spin { to { transform: rotate(360deg); } }
+
+.gate__switch { display: block; width: 100%; margin-top: 16px; background: none; border: none; color: #8a8177; font-size: 12px; cursor: pointer; }
+.gate__switch:hover { color: #e8e2d9; }
+.gate__divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 12px; color: #5a544d; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.gate__divider::before, .gate__divider::after { content: ''; flex: 1; height: 1px; background: rgba(206,66,43,0.18); }
+.gate__web { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(206,66,43,0.28); background: rgba(255,255,255,0.02); color: #e8e2d9; font-size: 12px; cursor: pointer; }
+.gate__web:hover { border-color: #ce422b; }
+
+.gate__foot { position: absolute; bottom: 20px; z-index: 1; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: #5a544d; }
