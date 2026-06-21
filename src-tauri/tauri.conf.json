@@ -41,7 +41,14 @@
     ],
     "externalBin": [
       "binaries/fcm-sidecar"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "installMode": "currentUser"
+      }
+    }
   },
   "plugins": {
     "deep-link": {
