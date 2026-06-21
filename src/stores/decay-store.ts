@@ -87,7 +87,7 @@ interface DecayState {
   removeMarker: (id: string) => void;
 }
 
-const STORAGE_KEY = 'rustoverlay.decayMarkers';
+const STORAGE_KEY = 'raidar.decayMarkers';
 
 function load(): DecayMarker[] {
   try {

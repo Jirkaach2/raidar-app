@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import AppShell from './components/layout/AppShell';
 import MapView from './components/map/MapView';
+import SteamLoginOverlay from './components/common/SteamLoginOverlay';
 import { TeamPanel } from './components/team/TeamPanel';
 import { VendingPanel } from './components/vending/VendingPanel';
 import { DevicePanel } from './components/devices/DevicePanel';
@@ -420,6 +421,31 @@ function App() {
   const connectionStatus = useConnectionStore(s => s.status);
   const connectEpoch = useConnectionStore(s => s.connectEpoch);
   const addDevice = useDeviceStore(s => s.addDevice);
+
+  const [steamUrl, setSteamUrl] = useState<string | null>(null);
+
+  // Listen to open-steam-login from backend sidecar or settings
+  useEffect(() => {
+    let unlistenOpen: (() => void) | undefined;
+    let unlistenSuccess: (() => void) | undefined;
+
+    listen<string>('open-steam-login', (event) => {
+      setSteamUrl(event.payload);
+    }).then((unsub) => {
+      unlistenOpen = unsub;
+    });
+
+    listen('steam-login-success', () => {
+      setSteamUrl(null);
+    }).then((unsub) => {
+      unlistenSuccess = unsub;
+    });
+
+    return () => {
+      if (unlistenOpen) unlistenOpen();
+      if (unlistenSuccess) unlistenSuccess();
+    };
+  }, []);
 
   // Clear the team-chat unread badge as soon as the Team tab is opened.
   const handleNavigate = (page: typeof activePage) => {
@@ -1484,6 +1510,10 @@ function App() {
 
       <ConfirmDialog />
       <UpdateBanner />
+
+      {steamUrl && (
+        <SteamLoginOverlay initialUrl={steamUrl} onClose={() => setSteamUrl(null)} />
+      )}
 
 
       {/* Toast notifications container */}

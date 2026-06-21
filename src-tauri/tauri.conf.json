@@ -15,14 +15,14 @@
       {
         "label": "main",
         "title": "Raidar",
-        "width": 400,
-        "height": 700,
+        "width": 900,
+        "height": 850,
         "resizable": true,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true,
         "skipTaskbar": false,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
@@ -59,7 +59,7 @@
     },
     "sql": {
       "preload": [
-        "sqlite:rustoverlay.db"
+        "sqlite:raidar.db"
       ]
     },
     "updater": {

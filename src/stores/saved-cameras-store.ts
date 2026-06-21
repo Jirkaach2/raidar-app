@@ -51,6 +51,6 @@ export const useSavedCamerasStore = create<SavedCamerasState>()(
       })),
       removeCamera: (id) => set((s) => ({ cameras: s.cameras.filter((c) => c.id !== id) })),
     }),
-    { name: 'rustoverlay.savedCameras' },
+    { name: 'raidar.savedCameras' },
   ),
 );

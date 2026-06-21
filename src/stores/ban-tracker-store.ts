@@ -19,7 +19,7 @@ interface BanTrackerState {
   checkBans: () => Promise<void>;
 }
 
-const STORAGE_KEY = 'rustoverlay.banTracker';
+const STORAGE_KEY = 'raidar.banTracker';
 
 function load(): TrackedBanPlayer[] {
   try {

@@ -38,25 +38,7 @@ fn dlog(app: &tauri::AppHandle, msg: &str) {
 
 /// Opens the Steam/Rust+ pairing login window for the given URL.
 fn open_steam_login_window(app_handle: &tauri::AppHandle, url: String) {
-    let app_handle_clone = app_handle.clone();
-    app_handle
-        .run_on_main_thread(move || {
-            use tauri::WebviewUrl;
-            use tauri::WebviewWindowBuilder;
-            if WebviewWindowBuilder::new(&app_handle_clone, "steam-login", WebviewUrl::External(url.parse().unwrap()))
-                .title("Steam Login")
-                .inner_size(800.0, 600.0)
-                .center()
-                .focused(true)
-                .visible(true)
-                .always_on_top(true)
-                .build()
-                .is_ok()
-            {
-                log::info!("Opened login window");
-            }
-        })
-        .ok();
+    let _ = app_handle.emit("open-steam-login", url);
 }
 
 #[tauri::command]
@@ -160,7 +142,7 @@ pub fn run() {
                     for u in &urls { let _ = h.emit("deep-link-received", u.clone()); }
                 });
             }
-            // Auto-updater (desktop only). Checks GitLab releases on launch and,
+            // Auto-updater (desktop only). Checks GitHub releases on launch and,
             // if a newer signed build exists, downloads + installs it, then relaunches.
             #[cfg(desktop)]
             {
@@ -259,9 +241,13 @@ pub fn run() {
                                         let mut pending = state.pending_login.lock().await;
                                         *pending = None;
                                     }
+                                    if let Some(w) = app_handle.get_webview("steam-login") {
+                                        let _ = w.close();
+                                    }
                                     if let Some(window) = app_handle.get_webview_window("steam-login") {
                                         window.close().ok();
                                     }
+                                    app_handle.emit("steam-login-success", ()).ok();
                                 } else if parsed.get("status").is_some() {
                                     app_handle.emit("fcm-status", parsed).ok();
                                 }
@@ -321,7 +307,75 @@ pub fn run() {
             commands::discord::set_discord_permissions,
             commands::discord::notify_discord_bot,
             commands::discord::unlink_discord,
+            commands::discord::check_bot_health,
+            open_steam_in_app_webview,
+            close_steam_in_app_webview,
+            resize_steam_webview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[tauri::command]
+fn open_steam_in_app_webview(
+    app: tauri::AppHandle,
+    url: String,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    let main_window = app.get_window("main").ok_or("Failed to get main window")?;
+    let parsed_url = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
+    let webview_url = tauri::WebviewUrl::External(parsed_url);
+
+    // If it already exists, close it first
+    if let Some(w) = app.get_webview("steam-login") {
+        let _ = w.close();
+    }
+
+    let app_handle_clone = app.clone();
+    let builder = tauri::WebviewBuilder::new("steam-login", webview_url)
+        .on_navigation(move |nav_url| {
+            let domain = nav_url.host_str().unwrap_or(nav_url.as_str());
+            let _ = app_handle_clone.emit("steam-webview-navigated", serde_json::json!({
+                "url": nav_url.as_str(),
+                "domain": domain,
+            }));
+            true
+        });
+
+    let _child = main_window.add_child(
+        builder,
+        tauri::LogicalPosition::new(x, y),
+        tauri::LogicalSize::new(width, height),
+    ).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn close_steam_in_app_webview(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview("steam-login") {
+        let _ = w.close();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn resize_steam_webview(
+    app: tauri::AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if let Some(w) = app.get_webview("steam-login") {
+        w.set_position(tauri::LogicalPosition::new(x, y)).map_err(|e| e.to_string())?;
+        w.set_size(tauri::LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+
+

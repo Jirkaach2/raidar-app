@@ -18,7 +18,7 @@ interface AvatarState {
   getAvatar: (steamId?: string | null) => string | undefined;
 }
 
-const STORAGE_KEY = 'rustoverlay.avatars';
+const STORAGE_KEY = 'raidar.avatars';
 
 function load(): Record<string, string> {
   try {

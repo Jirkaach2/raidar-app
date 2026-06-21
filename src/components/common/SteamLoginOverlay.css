@@ -1,0 +1,170 @@
+.steam-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  animation: steam-fade-in 0.2s ease-out;
+}
+
+@keyframes steam-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.steam-overlay-card {
+  width: 800px;
+  max-width: 95vw;
+  background: #0f1115;
+  border: 1px solid rgba(206, 66, 43, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(206, 66, 43, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: steam-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes steam-slide-up {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Browser Header */
+.steam-browser-header {
+  height: 44px;
+  padding: 0 16px;
+  background: #15181e;
+  border-bottom: 1px solid #1f242d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.steam-browser-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--color-text-muted, #8a909a);
+}
+
+.text-secure {
+  color: #10b981; /* secure green */
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.3));
+}
+
+.secure-badge-text {
+  font-weight: 700;
+  color: #10b981;
+}
+
+.partner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #10b981;
+  margin-left: 8px;
+}
+
+.steam-browser-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #8a909a);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.steam-browser-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Address Row */
+.steam-browser-address-row {
+  padding: 8px 16px;
+  background: #111419;
+  border-bottom: 1px solid #1a1f27;
+}
+
+.steam-browser-address-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #080a0c;
+  border: 1px solid #202733;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: var(--font-mono), Consolas, monospace;
+  font-size: 11px;
+  color: #8c9ba5;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.text-secure-lock {
+  color: #10b981;
+}
+
+.address-protocol {
+  color: #52636f;
+  user-select: none;
+}
+
+.address-domain {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.address-path {
+  color: #52636f;
+}
+
+/* Security Warning Banner */
+.steam-browser-security-banner {
+  background: rgba(16, 185, 129, 0.04);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  padding: 10px 16px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.banner-content p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.banner-content b {
+  color: #e2e8f0;
+}
+
+/* Webview Container */
+.steam-webview-container {
+  width: 100%;
+  height: 520px;
+  background: #171a21; /* Steam dark grey background */
+  position: relative;
+}

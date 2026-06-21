@@ -22,6 +22,7 @@ src-tauri/*.db
 # Updater signing keys, env files, tokens
 *.key
 *.key.pub
+*.pfx
 .env
 .env.*
 !.env.example

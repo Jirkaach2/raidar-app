@@ -267,3 +267,22 @@ pub async fn unlink_discord(app: tauri::AppHandle, guild_id: String) -> Result<S
     }
 }
 
+/// Ping the Discord bot's health endpoint to check availability.
+#[tauri::command]
+pub async fn check_bot_health() -> Result<bool, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(3))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(format!("{}/health", BOT_BASE_URL))
+        .send()
+        .await;
+
+    match resp {
+        Ok(r) => Ok(r.status().is_success()),
+        Err(_) => Ok(false),
+    }
+}
+
+

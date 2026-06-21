@@ -32,7 +32,7 @@ interface UpkeepRecord {
   ratePerDay: Record<number, number>;
 }
 
-const STORE_KEY = 'rustoverlay.upkeep';
+const STORE_KEY = 'raidar.upkeep';
 
 function load(): Record<string, UpkeepRecord> {
   try {

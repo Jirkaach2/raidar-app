@@ -31,7 +31,7 @@ fn get_db_path() -> std::path::PathBuf {
     };
     path = path.join("com.raidar.desktop");
     let _ = std::fs::create_dir_all(&path);
-    path.join("rustoverlay.db")
+    path.join("raidar.db")
 }
 
 impl Database {

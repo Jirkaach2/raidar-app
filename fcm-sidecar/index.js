@@ -47,7 +47,7 @@ function getPairHtml(port) {
 <!DOCTYPE html>
 <html>
 <body>
-    <h1>Pairing RustOverlay...</h1>
+    <h1>Pairing Raidar...</h1>
     <p>Please log in with Steam to continue.</p>
     <a href="https://companion-rust.facepunch.com/login?returnUrl=http%3A%2F%2Flocalhost%3A${port}%2Fcallback">Log in with Steam</a>
     <script>

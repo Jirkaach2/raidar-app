@@ -194,7 +194,7 @@ export const useSpyStore = create<SpyState>()(
         return transition;
       },
     }),
-    { name: 'rustoverlay.spy' },
+    { name: 'raidar.spy' },
   ),
 );
 

@@ -58,7 +58,7 @@ interface MarkerState {
   removeMarker: (id: string) => void;
 }
 
-const STORAGE_KEY = 'rustoverlay.customMarkers';
+const STORAGE_KEY = 'raidar.customMarkers';
 
 function load(): CustomMarker[] {
   try {

@@ -26,7 +26,7 @@ interface RustMapsState {
   clear: () => void;
 }
 
-const CACHE_PREFIX = 'rustoverlay.rustmaps.';
+const CACHE_PREFIX = 'raidar.rustmaps.';
 
 function cacheGet(key: string): Cached | null {
   try {

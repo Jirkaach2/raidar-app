@@ -37,6 +37,7 @@ export function SettingsPanel() {
   const [linking, setLinking] = useState(false);
   const [botLinks, setBotLinks] = useState<{ guildId: string; guildName: string; serverName: string; allowedUserIds: string[] }[]>([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
+  const [botAvailable, setBotAvailable] = useState<boolean | null>(null);
   const [allowDraft, setAllowDraft] = useState<Record<string, string>>({});
   const [switchingServerId, setSwitchingServerId] = useState<number | null>(null);
   const [hasPendingSteam, setHasPendingSteam] = useState(false);
@@ -182,10 +183,17 @@ export function SettingsPanel() {
   const refreshLinks = async () => {
     setLoadingLinks(true);
     try {
-      const links = await invoke<{ guildId: string; guildName: string; serverName: string; allowedUserIds: string[] }[]>('get_discord_links');
-      setBotLinks(links);
+      const online = await invoke<boolean>('check_bot_health');
+      setBotAvailable(online);
+      if (online) {
+        const links = await invoke<{ guildId: string; guildName: string; serverName: string; allowedUserIds: string[] }[]>('get_discord_links');
+        setBotLinks(links);
+      } else {
+        setBotLinks([]);
+      }
     } catch {
       setBotLinks([]);
+      setBotAvailable(false);
     } finally {
       setLoadingLinks(false);
     }
@@ -373,7 +381,7 @@ export function SettingsPanel() {
             </div>
             
             {hasPendingSteam && (
-              <button onClick={handleReopenSteam} className="btn-accent" style={{ width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+              <button onClick={handleReopenSteam} className="hud-btn hud-btn--accent" style={{ width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Link2 size={13} />
                 Reopen Steam pairing window
               </button>
@@ -652,6 +660,22 @@ export function SettingsPanel() {
       {/* Discord Webhooks Tab */}
       {activeTab === 'discord' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {botAvailable === false && (
+            <div style={{
+              background: 'rgba(232, 69, 69, 0.1)',
+              border: '1px solid rgba(232, 69, 69, 0.35)',
+              padding: '12px 16px',
+              borderRadius: 8,
+              color: '#f87171',
+              fontSize: '11.5px',
+              lineHeight: '1.5'
+            }}>
+              <strong style={{ display: 'block', marginBottom: 4, color: '#ef4444', fontSize: '12px' }}>
+                ⚠️ DISCORD BOT OFFLINE
+              </strong>
+              The Raidar companion bot is currently offline or unreachable. Discord integration features (linking new servers, configuring whitelist permissions, and pushing notifications) are temporarily unavailable.
+            </div>
+          )}
 
           {/* ── Raidar Bot link ── */}
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
@@ -703,7 +727,7 @@ export function SettingsPanel() {
                         {(l.allowedUserIds.length ? l.allowedUserIds : []).map((id) => (
                           <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 6px 3px 9px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border)', borderRadius: 14, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>
                             {id}
-                            <button onClick={() => handleRemoveAllowed(l.guildId, id)} title="Remove" style={{ display: 'flex', background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', padding: 0 }}>
+                            <button onClick={() => handleRemoveAllowed(l.guildId, id)} disabled={botAvailable === false} title="Remove" style={{ display: 'flex', background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: botAvailable === false ? 'default' : 'pointer', padding: 0, opacity: botAvailable === false ? 0.3 : 1 }}>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 11, height: 11 }}><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
                             </button>
                           </span>
@@ -719,11 +743,13 @@ export function SettingsPanel() {
                           value={allowDraft[l.guildId] || ''}
                           onChange={(e) => setAllowDraft((d) => ({ ...d, [l.guildId]: e.target.value.replace(/\D/g, '') }))}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleAddAllowed(l.guildId); }}
-                          style={{ flex: 1, padding: '6px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text)', fontSize: 11.5, fontFamily: 'var(--font-mono)', outline: 'none' }}
+                          disabled={botAvailable === false}
+                          style={{ flex: 1, padding: '6px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text)', fontSize: 11.5, fontFamily: 'var(--font-mono)', outline: 'none', opacity: botAvailable === false ? 0.5 : 1 }}
                         />
                         <button
                           onClick={() => handleAddAllowed(l.guildId)}
-                          style={{ padding: '6px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          disabled={botAvailable === false || !(allowDraft[l.guildId] || '').trim()}
+                          style={{ padding: '6px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: (botAvailable === false || !(allowDraft[l.guildId] || '').trim()) ? 'default' : 'pointer', opacity: (botAvailable === false || !(allowDraft[l.guildId] || '').trim()) ? 0.5 : 1 }}
                         >
                           Add
                         </button>
@@ -751,12 +777,13 @@ export function SettingsPanel() {
                   value={linkCode}
                   onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
                   maxLength={6}
-                  style={{ flex: 1, padding: '9px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 15, letterSpacing: '4px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', outline: 'none' }}
+                  disabled={botAvailable === false}
+                  style={{ flex: 1, padding: '9px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 15, letterSpacing: '4px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', outline: 'none', opacity: botAvailable === false ? 0.5 : 1 }}
                 />
                 <button
                   onClick={handleLinkBot}
-                  disabled={linking || linkCode.trim().length < 6}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 700, cursor: (linking || linkCode.trim().length < 6) ? 'default' : 'pointer', opacity: (linking || linkCode.trim().length < 6) ? 0.5 : 1 }}
+                  disabled={linking || linkCode.trim().length < 6 || botAvailable === false}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 700, cursor: (linking || linkCode.trim().length < 6 || botAvailable === false) ? 'default' : 'pointer', opacity: (linking || linkCode.trim().length < 6 || botAvailable === false) ? 0.5 : 1 }}
                 >
                   <Link2 size={13} /> {linking ? 'Linking…' : 'Link'}
                 </button>
@@ -766,7 +793,8 @@ export function SettingsPanel() {
             {botLinks.length > 0 && (
               <button
                 onClick={handleTestNotify}
-                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
+                disabled={botAvailable === false}
+                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 11.5, fontWeight: 600, cursor: botAvailable === false ? 'default' : 'pointer', opacity: botAvailable === false ? 0.4 : 1 }}
               >
                 🔔 Send test notification
               </button>

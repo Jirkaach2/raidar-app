@@ -48,7 +48,7 @@ interface CrateState {
   removeMarker: (id: string) => void;
 }
 
-const STORAGE_KEY = 'rustoverlay.crateMarkers';
+const STORAGE_KEY = 'raidar.crateMarkers';
 
 function load(): CrateMarker[] {
   try {

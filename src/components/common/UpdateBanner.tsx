@@ -71,7 +71,7 @@ export function UpdateBanner() {
           style={{
             width: 13, height: 13, borderRadius: '50%', flexShrink: 0,
             border: '2px solid rgba(206,66,43,0.35)', borderTopColor: 'var(--color-accent)',
-            animation: 'rustoverlay-update-spin 0.8s linear infinite',
+            animation: 'raidar-update-spin 0.8s linear infinite',
           }}
         />
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.3px' }}>{label}</span>
@@ -81,7 +81,7 @@ export function UpdateBanner() {
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--color-accent)', transition: 'width 0.2s' }} />
         </div>
       )}
-      <style>{`@keyframes rustoverlay-update-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes raidar-update-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

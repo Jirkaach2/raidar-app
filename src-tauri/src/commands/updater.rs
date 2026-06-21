@@ -1,6 +1,6 @@
 //! Auto-update support backed by `tauri-plugin-updater`.
 //!
-//! On launch we check the configured GitLab release endpoint for a newer,
+//! On launch we check the configured GitHub release endpoint for a newer,
 //! signed build. If one exists we emit progress events to the frontend (so the
 //! UI can show a small "Updating…" banner) then download, install and relaunch
 //! automatically. The frontend can also drive the flow manually via the two

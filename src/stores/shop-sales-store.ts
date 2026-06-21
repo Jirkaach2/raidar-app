@@ -57,7 +57,7 @@ interface ShopSalesState {
   removeShop: (key: string) => void;
 }
 
-const STORAGE_KEY = 'rustoverlay.shopSales';
+const STORAGE_KEY = 'raidar.shopSales';
 
 function load(): Record<string, ShopSales> {
   try {

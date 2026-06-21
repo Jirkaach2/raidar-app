@@ -25,7 +25,7 @@ pub async fn get_steam_avatar(steam_id: String) -> Result<String, String> {
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(8))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) RustOverlay/1.0")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Raidar/1.0")
         .build()
         .map_err(|e| format!("client build failed: {}", e))?;
 

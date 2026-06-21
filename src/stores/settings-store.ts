@@ -217,7 +217,7 @@ export const useSettingsStore = create<SettingsState>()(
         discordWebhooks: { ...s.discordWebhooks, [feature]: url },
       })),
     }),
-    { name: 'rustoverlay.settings' },
+    { name: 'raidar.settings' },
   ),
 );
 
@@ -390,13 +390,13 @@ export async function sendDiscordWebhook(content: string, feature?: string, fiel
   const niceDesc = embedDesc ? `>>> ${embedDesc}` : undefined;
 
   const embed: any = {
-    author: { name: style?.author || 'RustOverlay Alert' },
+    author: { name: style?.author || 'Raidar Alert' },
     title: embedTitle,
     description: niceDesc,
     color,
     fields: embedFields.length > 0 ? embedFields : undefined,
     timestamp: new Date().toISOString(),
-    footer: { text: 'RustOverlay · Tactical Intelligence' },
+    footer: { text: 'Raidar · Tactical Intelligence' },
   };
   if (style?.thumb) embed.thumbnail = { url: style.thumb };
 
@@ -406,7 +406,7 @@ export async function sendDiscordWebhook(content: string, feature?: string, fiel
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content: prefix || undefined,
-        username: 'RustOverlay',
+        username: 'Raidar',
         embeds: [embed],
         allowed_mentions: { parse: ['everyone', 'roles'] },
       }),
