@@ -439,6 +439,9 @@ function App() {
 
   // Listen for entity pairing and connection success
   useEffect(() => {
+    // Nothing runs until the user is signed in — no listeners, no connection
+    // polling, no alarms/notifications before authentication.
+    if (!authUser) return;
     let unlistenEntity: () => void;
     let unlistenConnection: () => void;
     let unlistenAlarm: () => void;
@@ -534,10 +537,11 @@ function App() {
       if (unlistenAlarm) unlistenAlarm();
       clearInterval(interval);
     };
-  }, []);
+  }, [authUser]);
 
   // 1. Fetch Map once on connection
   useEffect(() => {
+    if (!authUser) return;
     if (connectionStatus === 'connected') {
       let active = true;
       const fetchMap = async (retries = 3) => {
@@ -606,11 +610,11 @@ function App() {
       fetchMap();
       return () => { active = false; };
     }
-  }, [connectionStatus, connectEpoch]);
+  }, [authUser, connectionStatus, connectEpoch]);
 
   // 2. Server Info & Ping Polling (every 5 seconds)
   useEffect(() => {
-    if (connectionStatus !== 'connected') return;
+    if (!authUser || connectionStatus !== 'connected') return;
 
     let active = true;
     let timer: any = null;
@@ -674,11 +678,11 @@ function App() {
       if (timer) clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [connectionStatus]);
+  }, [authUser, connectionStatus]);
 
   // 3. Map Markers & Team Info Polling (every 2 seconds)
   useEffect(() => {
-    if (connectionStatus !== 'connected') return;
+    if (!authUser || connectionStatus !== 'connected') return;
 
     let active = true;
     let timer: any = null;
@@ -1106,7 +1110,7 @@ function App() {
       if (timer) clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [connectionStatus]);
+  }, [authUser, connectionStatus]);
 
   function mapMarkerType(typeId: number): any {
     // Rust+ AppMarkerType. NOTE: on most servers the chinook-dropped Locked
@@ -1144,6 +1148,7 @@ function App() {
   // base finishes decaying.
   useEffect(() => {
     const id = setInterval(() => {
+      if (!useAuthStore.getState().user) return;
       const { markers } = useDecayStore.getState();
       const fired = (window as any).__decayFired || ((window as any).__decayFired = new Set());
       const now = Date.now();
@@ -1171,6 +1176,7 @@ function App() {
   // crate's hack timer hits zero. Checks every second for second-accuracy.
   useEffect(() => {
     const id = setInterval(() => {
+      if (!useAuthStore.getState().user) return;
       const { markers } = useCrateStore.getState();
       const fired = (window as any).__crateFired || ((window as any).__crateFired = new Set());
       const now = Date.now();
@@ -1214,6 +1220,7 @@ function App() {
   // out (protected → decaying), via entity protection data.
   useEffect(() => {
     const id = setInterval(() => {
+      if (!useAuthStore.getState().user) return;
       const devices = useDeviceStore.getState().devices;
       const prev = (window as any).__tcProt || ((window as any).__tcProt = new Map<number, boolean>());
       const nowSec = Math.floor(Date.now() / 1000);
@@ -1251,11 +1258,11 @@ function App() {
   const serverSeed = useConnectionStore(s => s.serverInfo?.seed);
   const serverMapSize = useConnectionStore(s => s.serverInfo?.map_size);
   useEffect(() => {
-    if (connectionStatus !== 'connected' || !serverSeed || !serverMapSize) return;
+    if (!authUser || connectionStatus !== 'connected' || !serverSeed || !serverMapSize) return;
     import('./stores/rustmaps-store').then(({ useRustMapsStore }) => {
       useRustMapsStore.getState().load(rustmapsKey, serverMapSize, serverSeed);
     });
-  }, [connectionStatus, rustmapsKey, serverSeed, serverMapSize]);
+  }, [authUser, connectionStatus, rustmapsKey, serverSeed, serverMapSize]);
 
   // Keep the linked Discord bot pointed at whatever server the app is on.
   // When the connected server changes, push the new server + its devices to the
@@ -1263,7 +1270,7 @@ function App() {
   const syncServerIp = useConnectionStore(s => s.serverInfo?.ip);
   const syncServerPort = useConnectionStore(s => s.serverInfo?.port);
   useEffect(() => {
-    if (connectionStatus !== 'connected' || !syncServerIp || !syncServerPort) return;
+    if (!authUser || connectionStatus !== 'connected' || !syncServerIp || !syncServerPort) return;
     const serverId = `${syncServerIp}:${syncServerPort}`;
     const devices = Object.values(useDeviceStore.getState().devices)
       .filter((d) => d.serverId === serverId && !d.destroyed)
@@ -1274,7 +1281,7 @@ function App() {
         .catch(() => { /* not linked / bot unreachable — ignore */ });
     }, 1500); // small delay so server name is saved first
     return () => clearTimeout(t);
-  }, [connectionStatus, syncServerIp, syncServerPort]);
+  }, [authUser, connectionStatus, syncServerIp, syncServerPort]);
 
   // Periodically refresh tracked BattleMetrics enemies' online state so the
   // "online now" indicator is accurate, and notify on online→offline.
