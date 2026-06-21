@@ -1,7 +1,7 @@
 import { useTeamStore } from '@/stores/team-store';
 import './NavRail.css';
 
-export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'settings';
+export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'settings' | 'fishing';
 
 interface NavRailProps {
   active: NavPage;
@@ -89,6 +89,21 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
       >
         <svg viewBox="0 0 24 24">
           <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-2 2.5-2.5z" />
+        </svg>
+      </button>
+
+      {/* Fishing & Fish Traps */}
+      <button
+        className={`navrail__item ${active === 'fishing' ? 'navrail__item--active' : ''}`}
+        onClick={() => onNavigate('fishing')}
+        data-tooltip="Fishing & Fish Traps"
+        aria-label="Fishing & Fish Traps"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M2 16s9-15 20-4C11 23 2 16 2 16Z" />
+          <path d="M19.002 8.5a2.5 2.5 0 1 1-1-1" />
+          <path d="M22 12h-4" />
+          <path d="M12 18c-1.5-1.5-1.5-3.5 0-5" />
         </svg>
       </button>
 

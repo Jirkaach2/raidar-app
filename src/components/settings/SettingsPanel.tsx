@@ -10,7 +10,8 @@ import { useSettingsStore } from '../../stores/settings-store';
 import Toggle from '../ui/Toggle';
 import {
   Link2, Bell, MessageSquare, Shield, HelpCircle,
-  Database, RefreshCw, Check, Power, Trash2
+  Database, RefreshCw, Check, Power, Trash2,
+  Volume2, VolumeX, Play, Upload, TrendingUp
 } from 'lucide-react';
 import { confirmDialog } from '../../stores/confirm-store';
 import './SettingsPanel.css';
@@ -654,6 +655,115 @@ export function SettingsPanel() {
               </div>
             </div>
           </div>
+
+          {/* Sound Settings Card */}
+          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
+            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Volume2 size={15} />
+              SOUND ALERTS & NOTIFICATIONS
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>ENABLE SOUNDS</h4>
+                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Toggle audio feedback for events, alarms, and deaths.</p>
+                </div>
+                <Toggle checked={settings.soundEnabled} onChange={settings.setSoundEnabled} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
+                <div>
+                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>ALERT VOLUME</h4>
+                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Adjust sound effect loudness level.</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <VolumeX size={12} className="text-dim" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={settings.soundVolume}
+                    onChange={(e) => settings.setSoundVolume(parseFloat(e.target.value))}
+                    style={{ width: 100, accentColor: 'var(--color-accent)', cursor: 'pointer' }}
+                  />
+                  <Volume2 size={12} className="text-dim" />
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', minWidth: 32, textAlign: 'right' }}>
+                    {Math.round(settings.soundVolume * 100)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Sound Actions List */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
+                <h4 style={{ color: 'var(--color-text-muted)', fontSize: 11, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.5px' }}>Configure Sound Events</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { id: 'teammate_death', label: 'Teammate Died (Online)' },
+                    { id: 'teammate_offline_death', label: 'Teammate Died (Offline)' },
+                    { id: 'smart_alarm', label: 'Smart Alarm Triggered' },
+                    { id: 'event_spawn', label: 'Event Spawned (Heli/Cargo/Crate)' },
+                    { id: 'fish_catch', label: 'Fish Caught (Trap Splash)' },
+                  ].map((act) => {
+                    const hasCustom = !!settings.customSounds?.[act.id];
+                    return (
+                      <div key={act.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.02)', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11, color: '#e8e2d9' }}>{act.label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {/* Test Play */}
+                          <button
+                            onClick={() => {
+                              import('../../utils/sounds').then(({ triggerSound }) => triggerSound(act.id));
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
+                            title="Test Sound"
+                          >
+                            <Play size={10} /> Test
+                          </button>
+                          
+                          {/* Custom Upload */}
+                          <label
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: hasCustom ? 'rgba(110,207,115,0.1)' : 'rgba(255,255,255,0.05)', border: hasCustom ? '1px solid rgba(110,207,115,0.3)' : '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: hasCustom ? 'var(--color-success)' : 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
+                            title="Upload custom WAV/MP3 sound"
+                          >
+                            <Upload size={10} /> {hasCustom ? 'Custom' : 'Upload'}
+                            <input
+                              type="file"
+                              accept="audio/*"
+                              style={{ display: 'none' }}
+                              onChange={(ev) => {
+                                const file = ev.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  if (typeof reader.result === 'string') {
+                                    settings.setCustomSound(act.id, reader.result);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+
+                          {/* Delete Custom */}
+                          {hasCustom && (
+                            <button
+                              onClick={() => settings.setCustomSound(act.id, null)}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, background: 'rgba(232,69,69,0.1)', border: '1px solid rgba(232,69,69,0.2)', borderRadius: 3, color: 'var(--color-danger)', cursor: 'pointer' }}
+                              title="Reset to default sound"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1024,6 +1134,29 @@ export function SettingsPanel() {
                   min={1}
                   value={settings.recyclerMultiplier}
                   onChange={(e) => { settings.setRecyclerAutoDetect(false); settings.setRecyclerMultiplier(parseInt(e.target.value) || 1); }}
+                  style={{ width: 60, padding: '6px 8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Vending Sales Multiplier card */}
+          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
+            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <TrendingUp size={15} />
+              VENDING SALES MULTIPLIER
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SALES MULTIPLIER</h4>
+                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Scale tracked sales quantities by this rate for modded servers.</p>
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  value={settings.vendingMultiplier}
+                  onChange={(e) => settings.setVendingMultiplier(parseInt(e.target.value) || 1)}
                   style={{ width: 60, padding: '6px 8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
                 />
               </div>

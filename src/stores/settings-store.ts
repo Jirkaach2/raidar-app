@@ -78,6 +78,14 @@ interface SettingsState {
   /** Optional per-feature webhook overrides (feature key → URL). */
   discordWebhooks: Record<string, string>;
 
+  // Sounds settings
+  soundEnabled: boolean;
+  soundVolume: number;
+  customSounds: Record<string, string | null>;
+
+  // Vending sales rate multiplier
+  vendingMultiplier: number;
+
   setBroadcastEvents: (v: boolean) => void;
   setBroadcastNewShops: (v: boolean) => void;
   setBroadcastDecay: (v: boolean) => void;
@@ -120,6 +128,11 @@ interface SettingsState {
   setTcDecayNotifyChat: (v: boolean) => void;
   setTcDecayNotifyDiscord: (v: boolean) => void;
   setDiscordWebhookFor: (feature: string, url: string) => void;
+
+  setSoundEnabled: (v: boolean) => void;
+  setSoundVolume: (v: number) => void;
+  setCustomSound: (action: string, base64: string | null) => void;
+  setVendingMultiplier: (v: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -150,8 +163,6 @@ export const useSettingsStore = create<SettingsState>()(
       overlayMode: false,
       overlayHotkey: 'F8',
 
-
-
       crossServerAlarms: true,
       recyclerMultiplier: 1,
       recyclerAutoDetect: true,
@@ -171,6 +182,11 @@ export const useSettingsStore = create<SettingsState>()(
       tcDecayNotifyChat: true,
       tcDecayNotifyDiscord: false,
       discordWebhooks: {},
+
+      soundEnabled: true,
+      soundVolume: 0.5,
+      customSounds: {},
+      vendingMultiplier: 1,
 
       setBroadcastEvents: (v) => set({ broadcastEvents: v }),
       setBroadcastNewShops: (v) => set({ broadcastNewShops: v }),
@@ -216,6 +232,13 @@ export const useSettingsStore = create<SettingsState>()(
       setDiscordWebhookFor: (feature, url) => set((s) => ({
         discordWebhooks: { ...s.discordWebhooks, [feature]: url },
       })),
+
+      setSoundEnabled: (v) => set({ soundEnabled: v }),
+      setSoundVolume: (v) => set({ soundVolume: v }),
+      setCustomSound: (action, base64) => set((s) => ({
+        customSounds: { ...s.customSounds, [action]: base64 },
+      })),
+      setVendingMultiplier: (v) => set({ vendingMultiplier: Math.max(1, v) }),
     }),
     { name: 'raidar.settings' },
   ),

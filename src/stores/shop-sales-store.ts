@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useSettingsStore } from './settings-store';
 
 /**
  * Shop sales tracker.
@@ -36,6 +37,15 @@ export interface ShopMeta {
   isNpc?: boolean;
 }
 
+export interface SaleTransaction {
+  timestamp: number;
+  item_id: number;
+  quantity: number;      // total units sold in this event
+  currency_id: number;
+  earned: number;        // total currency earned in this event
+  purchases: number;     // number of transaction counts
+}
+
 export interface ShopSales extends ShopMeta {
   key: string;
   firstSeen: number;
@@ -47,6 +57,8 @@ export interface ShopSales extends ShopMeta {
   names: Record<number, string>;
   /** Last seen stock per order signature (to diff next poll). */
   lastStock: Record<string, number>;
+  /** History of individual transactions for custom timestamp filtering. */
+  transactions?: SaleTransaction[];
 }
 
 interface ShopSalesState {
@@ -98,10 +110,18 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
     const prev = shops[key];
 
     const shop: ShopSales = prev
-      ? { ...prev, ...meta, key, soldUnits: { ...prev.soldUnits }, earned: { ...prev.earned }, names: { ...prev.names }, lastStock: { ...prev.lastStock } }
+      ? {
+          ...prev, ...meta, key,
+          soldUnits: { ...prev.soldUnits },
+          earned: { ...prev.earned },
+          names: { ...prev.names },
+          lastStock: { ...prev.lastStock },
+          transactions: prev.transactions ? [...prev.transactions] : [],
+        }
       : {
           ...meta, key, firstSeen: now, lastSale: 0, saleEvents: 0,
           soldUnits: {}, earned: {}, names: {}, lastStock: {},
+          transactions: [],
         };
 
     const nextStock: Record<string, number> = {};
@@ -129,16 +149,39 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
       const stock = nextStock[sig];
       const prevStock = shop.lastStock[sig];
       if (prevStock !== undefined && stock < prevStock) {
-        const purchases = prevStock - stock;
-        if (purchases > 0 && purchases <= MAX_PLAUSIBLE_DROP) {
+        const rawDrop = prevStock - stock;
+        if (rawDrop > 0 && rawDrop <= MAX_PLAUSIBLE_DROP) {
           const o = metaBySig[sig];
-          shop.soldUnits[o.item_id] = (shop.soldUnits[o.item_id] || 0) + purchases * o.quantity;
-          shop.earned[o.currency_id] = (shop.earned[o.currency_id] || 0) + purchases * o.cost_per_item;
-          shop.saleEvents += purchases;
-          shop.names[o.item_id] = o.item_name;
-          shop.names[o.currency_id] = o.currency_name;
-          shop.lastSale = now;
-          sawSale = true;
+          const qty = o.quantity || 1;
+          const transactionCount = Math.round(rawDrop / qty);
+
+          if (transactionCount > 0) {
+            const salesMultiplier = useSettingsStore.getState().vendingMultiplier || 1;
+            const tQty = transactionCount * qty * salesMultiplier;
+            const tEarned = transactionCount * o.cost_per_item;
+
+            shop.soldUnits[o.item_id] = (shop.soldUnits[o.item_id] || 0) + tQty;
+            shop.earned[o.currency_id] = (shop.earned[o.currency_id] || 0) + tEarned;
+            shop.saleEvents += transactionCount;
+            shop.names[o.item_id] = o.item_name;
+            shop.names[o.currency_id] = o.currency_name;
+            shop.lastSale = now;
+            sawSale = true;
+
+            if (!shop.transactions) shop.transactions = [];
+            shop.transactions.push({
+              timestamp: now,
+              item_id: o.item_id,
+              quantity: tQty,
+              currency_id: o.currency_id,
+              earned: tEarned,
+              purchases: transactionCount
+            });
+
+            if (shop.transactions.length > 500) {
+              shop.transactions.shift();
+            }
+          }
         }
       }
     }

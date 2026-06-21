@@ -30,15 +30,70 @@ export function BestShops() {
   const clear = useShopSalesStore((s) => s.clear);
   const removeShop = useShopSalesStore((s) => s.removeShop);
   const [sortBy, setSortBy] = useState<'revenue' | 'sales' | 'recent'>('revenue');
+  const [sliderVal, setSliderVal] = useState<number>(8); // Default to 8 (All Time)
+
+  const FILTER_OPTIONS = useMemo(() => [
+    { label: 'Last 15m', dur: 15 * 60 * 1000 },
+    { label: 'Last 30m', dur: 30 * 60 * 1000 },
+    { label: 'Last 1h', dur: 60 * 60 * 1000 },
+    { label: 'Last 3h', dur: 3 * 3600 * 1000 },
+    { label: 'Last 6h', dur: 6 * 3600 * 1000 },
+    { label: 'Last 12h', dur: 12 * 3600 * 1000 },
+    { label: 'Last 24h', dur: 24 * 3600 * 1000 },
+    { label: 'Last 3d', dur: 3 * 24 * 3600 * 1000 },
+    { label: 'All Time', dur: 0 },
+  ], []);
 
   const ranked = useMemo(() => {
-    const list = Object.values(shops).filter((s) => isCurrentServer(s.serverId) && s.saleEvents > 0);
+    const activeOption = FILTER_OPTIONS[sliderVal] || FILTER_OPTIONS[8];
+    const cutoff = activeOption.dur > 0 ? Date.now() - activeOption.dur : 0;
+
+    const list = Object.values(shops)
+      .filter((s) => isCurrentServer(s.serverId))
+      .map((s) => {
+        // If "All Time", or no transactions array is present, return as-is.
+        // Also if transactions is empty but pre-aggregated sales exist, fall back to as-is for compatibility.
+        if (cutoff === 0 || !s.transactions || s.transactions.length === 0) {
+          if (cutoff > 0) {
+            // Filter is active but there are no logged transaction records; return empty stats
+            return { ...s, soldUnits: {}, earned: {}, saleEvents: 0, lastSale: 0 };
+          }
+          return s;
+        }
+
+        const activeTxs = s.transactions.filter((t) => t.timestamp >= cutoff);
+        if (activeTxs.length === 0) {
+          return { ...s, soldUnits: {}, earned: {}, saleEvents: 0, lastSale: 0 };
+        }
+
+        const soldUnits: Record<number, number> = {};
+        const earned: Record<number, number> = {};
+        let saleEvents = 0;
+        let lastSale = 0;
+
+        for (const t of activeTxs) {
+          soldUnits[t.item_id] = (soldUnits[t.item_id] || 0) + t.quantity;
+          earned[t.currency_id] = (earned[t.currency_id] || 0) + t.earned;
+          saleEvents += t.purchases;
+          if (t.timestamp > lastSale) lastSale = t.timestamp;
+        }
+
+        return {
+          ...s,
+          soldUnits,
+          earned,
+          saleEvents,
+          lastSale
+        };
+      })
+      .filter((s) => s.saleEvents > 0);
+
     return list.sort((a, b) => {
       if (sortBy === 'sales') return b.saleEvents - a.saleEvents;
       if (sortBy === 'recent') return b.lastSale - a.lastSale;
       return totalRevenue(b) - totalRevenue(a);
     });
-  }, [shops, sortBy]);
+  }, [shops, sortBy, sliderVal, FILTER_OPTIONS]);
 
   const locate = (s: ShopSales) => {
     useMapStore.getState().setViewport({ x: -(s.x - 0.5) * 800 * 2, y: -(s.y - 0.5) * 800 * 2, zoom: 2.0 });
@@ -57,7 +112,7 @@ export function BestShops() {
         Live-tracked while you're connected. Each shop's stock drop = a sale; we tally what every store has sold and earned.
       </p>
 
-      {ranked.length === 0 ? (
+      {Object.values(shops).filter((s) => isCurrentServer(s.serverId) && s.saleEvents > 0).length === 0 ? (
         <div className="bs-empty">
           <TrendingUp size={20} />
           <p>No sales tracked yet. Keep the app connected — when a shop's stock drops, its sales show up here ranked by revenue.</p>
@@ -70,7 +125,36 @@ export function BestShops() {
             <button className={sortBy === 'recent' ? 'active' : ''} onClick={() => setSortBy('recent')}>Most recent</button>
           </div>
 
-          <div className="bs-list">
+          <div className="bs-time-slider">
+            <div className="bs-slider-header">
+              <span>TIME WINDOW</span>
+              <span className="bs-slider-label">{FILTER_OPTIONS[sliderVal]?.label}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="8"
+              value={sliderVal}
+              onChange={(e) => setSliderVal(parseInt(e.target.value))}
+              className="bs-range-input"
+            />
+            <div className="bs-slider-ticks">
+              <span>15m</span>
+              <span>1h</span>
+              <span>6h</span>
+              <span>12h</span>
+              <span>24h</span>
+              <span>All</span>
+            </div>
+          </div>
+
+          {ranked.length === 0 ? (
+            <div className="bs-empty" style={{ borderStyle: 'solid', background: 'transparent', padding: '16px' }}>
+              <TrendingUp size={16} />
+              <p>No sales recorded in the selected time window ({FILTER_OPTIONS[sliderVal]?.label}). Slide to view a wider window.</p>
+            </div>
+          ) : (
+            <div className="bs-list">
             {ranked.map((s, i) => {
               const soldItems = Object.entries(s.soldUnits)
                 .map(([id, qty]) => ({ id: Number(id), qty, name: s.names[Number(id)] || `Item ${id}` }))
@@ -119,6 +203,7 @@ export function BestShops() {
               );
             })}
           </div>
+          )}
         </>
       )}
     </div>

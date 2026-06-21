@@ -11,6 +11,7 @@ import { DevicePanel } from './components/devices/DevicePanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { ToolsPanel } from './components/tools/ToolsPanel';
 import { SpyPanel } from './components/spy/SpyPanel';
+import { FishingPanel } from './components/fishing/FishingPanel';
 import { useRustPlusEvents } from './hooks/useRustPlusEvents';
 import { useOverlayMode } from './hooks/useOverlayMode';
 import { useAutomationRunner, fireAutomationEvent } from './hooks/useAutomationRunner';
@@ -31,6 +32,7 @@ import { isCurrentServer, getCurrentServer } from './utils/server';
 import { getMonumentInfo, normalizeMonumentKey } from './utils/monuments';
 import { getItemName, getItemIconUrl } from './utils/items';
 import './App.css';
+import { triggerSound } from './utils/sounds';
 
 import { useUiStore } from './stores/ui-store';
 import { useAuthStore } from './stores/auth-store';
@@ -588,6 +590,7 @@ function App() {
             message,
             'warning',
           );
+          triggerSound('smart_alarm');
         }
         if (settings.broadcastAlarms) {
           // Use a separator both the app and Rust chat read cleanly.
@@ -838,19 +841,27 @@ function App() {
             const prevAlive = (window as any).__teamAlive || ((window as any).__teamAlive = new Map<string, boolean>());
             const sid = String(m.steam_id);
             const wasAlive = prevAlive.get(sid);
-            if (wasAlive === true && !m.is_alive && m.is_online) {
+            if (wasAlive === true && !m.is_alive) {
               const settings = useSettingsStore.getState();
               const isSelf = sid === useTeamStore.getState().selfSteamId;
               const who = isSelf ? 'You' : m.name;
+              const isOffline = !m.is_online;
+              
               if (settings.notifyDeaths) {
-                useMapStore.getState().addToast('Teammate Died', `${who} died at ${grid}`, 'warning');
+                const title = isOffline ? 'Teammate Died (OFFLINE)' : 'Teammate Died';
+                const msg = isOffline ? `${who} died while offline` : `${who} died at ${grid}`;
+                useMapStore.getState().addToast(title, msg, 'warning');
               }
               if (settings.broadcastDeaths) {
-                broadcastToTeam(`${who} died @ ${grid}`);
+                const msg = isOffline ? `${who} died while OFFLINE` : `${who} died @ ${grid}`;
+                broadcastToTeam(msg);
               }
+              
+              // Trigger sound!
+              triggerSound(isOffline ? 'teammate_offline_death' : 'teammate_death');
             }
-            // Update alive snapshot only while online (offline players keep last state).
-            if (m.is_online) prevAlive.set(sid, !!m.is_alive);
+            // Update alive snapshot for all players (online & offline)
+            prevAlive.set(sid, !!m.is_alive);
             
             return {
               id: String(m.steam_id),
@@ -1140,6 +1151,9 @@ function App() {
           eventMarkers.forEach((e: any) => {
             if (seen.has(e.id)) return;
             seen.add(e.id);
+
+            // Play event spawn sound
+            triggerSound('event_spawn');
 
             // Fire automation triggers for newly-seen events (independent of
             // notification settings).
@@ -1505,6 +1519,7 @@ function App() {
         {activePage === 'tools' && <ToolsPanel />}
         {activePage === 'spy' && <SpyPanel />}
         {activePage === 'settings' && <SettingsPanel />}
+        {activePage === 'fishing' && <FishingPanel />}
       </AppShell>
       )}
 

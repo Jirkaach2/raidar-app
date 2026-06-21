@@ -95,7 +95,9 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
         if (!online && prev.online) log = push(log, 'offline', `${m.name} went offline`, grid);
         // Death/respawn transitions (only count while we knew them)
         if (!alive && prev.alive) {
-          log = push(log, 'death', `${m.name} died`, grid);
+          const isOfflineDeath = !online;
+          const label = isOfflineDeath ? `${m.name} DIED OFFLINE` : `${m.name} died`;
+          log = push(log, 'death', label, grid);
           stat.deaths += 1;
         }
         if (alive && !prev.alive) log = push(log, 'respawn', `${m.name} respawned`, grid);

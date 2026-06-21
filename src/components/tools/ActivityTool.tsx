@@ -94,13 +94,32 @@ export function ActivityTool() {
       ) : (
         <div className="activity-log">
           {log.map((e) => {
+            const isDeath = e.kind === 'death';
+            const isOffline = e.label.includes('OFFLINE');
             return (
-              <div key={e.id} className="activity-log-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div 
+                key={e.id} 
+                className="activity-log-row" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  padding: isDeath ? '6px 10px' : '4px 6px',
+                  background: isDeath ? (isOffline ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.06)') : 'transparent',
+                  borderLeft: isDeath ? '2px solid var(--color-danger)' : '2px solid transparent',
+                  borderRadius: '3px',
+                  margin: isDeath ? '4px 0' : '2px 0',
+                  fontWeight: isDeath ? '600' : 'normal',
+                }}
+              >
                 <span className="activity-log-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}>
                   {renderActivityIcon(e.kind)}
                 </span>
-                <span className="activity-log-label" style={{ flex: 1 }}>{e.label}{e.detail ? <span className="activity-dim"> · {e.detail}</span> : null}</span>
-                <span className="activity-log-time" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>{ago(e.timestamp)}</span>
+                <span className="activity-log-label" style={{ flex: 1, color: isOffline ? '#ef4444' : 'inherit' }}>
+                  {e.label}
+                  {e.detail ? <span className="activity-dim"> · {e.detail}</span> : null}
+                </span>
+                <span className="activity-log-time" style={{ fontSize: '10px', color: 'var(--color-text-dim)', whiteSpace: 'nowrap' }}>{ago(e.timestamp)}</span>
               </div>
             );
           })}
