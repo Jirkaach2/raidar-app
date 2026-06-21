@@ -15,6 +15,8 @@ interface AuthState {
   refreshPlan: () => Promise<void>;
   /** Sign in using a one-time code minted from the web session (web → app). */
   loginWithCode: (code: string) => Promise<void>;
+  /** Sign in directly from a one-time token (deep-link handoff). */
+  loginWithToken: (userId: string, secret: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -75,23 +77,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, planName: 'Scout' });
   },
 
-  loginWithCode: async (code) => {
+  loginWithToken: async (userId, secret) => {
     set({ busy: true, error: '' });
     try {
-      let decoded = '';
-      try { decoded = atob(code.trim()); } catch { throw new Error('That code is not valid.'); }
-      const sep = decoded.indexOf(':');
-      const userId = sep > -1 ? decoded.slice(0, sep) : '';
-      const secret = sep > -1 ? decoded.slice(sep + 1) : '';
-      if (!userId || !secret) throw new Error('That code is not valid.');
+      if (!userId || !secret) throw new Error('Invalid login token.');
       try { await account.deleteSession('current'); } catch { /* none */ }
       await account.createSession(userId, secret);
       const u = await account.get();
       set({ user: u, busy: false });
       get().refreshPlan();
     } catch (e) {
-      set({ busy: false, error: e instanceof Error ? e.message : 'Could not sign in with that code.' });
+      set({ busy: false, error: e instanceof Error ? e.message : 'Could not sign in.' });
       throw e;
     }
+  },
+
+  loginWithCode: async (code) => {
+    let decoded = '';
+    try { decoded = atob(code.trim()); } catch { set({ error: 'That code is not valid.' }); throw new Error('invalid'); }
+    const sep = decoded.indexOf(':');
+    await get().loginWithToken(sep > -1 ? decoded.slice(0, sep) : '', sep > -1 ? decoded.slice(sep + 1) : '');
   },
 }));

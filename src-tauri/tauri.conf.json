@@ -42,6 +42,11 @@
     ]
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["raidar"]
+      }
+    },
     "sql": {
       "preload": [
         "sqlite:rustoverlay.db"

@@ -437,6 +437,33 @@ function App() {
   // Restore any existing Raidar session on startup (gates the whole app).
   useEffect(() => { authInit(); }, [authInit]);
 
+  // Seamless web → app sign-in: handle `raidar://auth?userId=..&secret=..`
+  // deep links (both cold-start launch and while running).
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const handle = (urls: string[] | null | undefined) => {
+      if (!urls) return;
+      for (const raw of urls) {
+        try {
+          const u = new URL(raw);
+          if (u.protocol.replace(':', '') !== 'raidar') continue;
+          const userId = u.searchParams.get('userId');
+          const secret = u.searchParams.get('secret');
+          if (userId && secret) { useAuthStore.getState().loginWithToken(userId, secret).catch(() => {}); break; }
+        } catch { /* not a parseable url */ }
+      }
+    };
+    (async () => {
+      try {
+        const dl = await import('@tauri-apps/plugin-deep-link');
+        unlisten = await dl.onOpenUrl(handle);
+        const current = await dl.getCurrent().catch(() => null);
+        if (current) handle(current);
+      } catch { /* plugin unavailable (browser dev) */ }
+    })();
+    return () => { if (unlisten) unlisten(); };
+  }, []);
+
   // Listen for entity pairing and connection success
   useEffect(() => {
     // Nothing runs until the user is signed in — no listeners, no connection

@@ -29,10 +29,27 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        // Single-instance must be the FIRST plugin. With the deep-link feature
+        // it forwards `raidar://` links to the already-running instance.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            use tauri::Manager;
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_focus();
+                let _ = w.show();
+            }
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
+            // Register the raidar:// scheme at runtime (needed for dev on
+            // Windows/Linux; production registration is handled by the bundler).
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let _ = app.deep_link().register_all();
+            }
             // Auto-updater (desktop only). Checks GitLab releases on launch and,
             // if a newer signed build exists, downloads + installs it, then relaunches.
             #[cfg(desktop)]
