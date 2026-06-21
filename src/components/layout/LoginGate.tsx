@@ -1,7 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { useAuthStore } from '../../stores/auth-store';
-import { Mail, Lock, User as UserIcon, ShieldCheck, Globe, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ShieldCheck, Globe, Link as LinkIcon, Loader2, Minus, X } from 'lucide-react';
 import './LoginGate.css';
+
+async function winCtl(action: 'minimize' | 'close') {
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    const w = getCurrentWindow();
+    if (action === 'minimize') await w.minimize(); else await w.close();
+  } catch { /* browser dev */ }
+}
 
 /** Raidar radar-scope mark, matching the title bar / web branding. */
 function RadarMark() {
@@ -18,7 +26,7 @@ function RadarMark() {
 }
 
 export default function LoginGate() {
-  const { busy, error, login, register, loginWithCode } = useAuthStore();
+  const { busy, error, notice, login, register, loginWithCode } = useAuthStore();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,7 +55,15 @@ export default function LoginGate() {
   };
 
   return (
-    <div className="gate" data-tauri-drag-region>
+    <div className="gate">
+      {/* Draggable title bar so the window can be moved/closed before login. */}
+      <div className="gate__titlebar" data-tauri-drag-region>
+        <span className="gate__tb-title" data-tauri-drag-region>RAIDAR</span>
+        <div className="gate__tb-controls">
+          <button className="gate__tb-btn" onClick={() => winCtl('minimize')} aria-label="Minimize"><Minus size={15} /></button>
+          <button className="gate__tb-btn gate__tb-close" onClick={() => winCtl('close')} aria-label="Close"><X size={15} /></button>
+        </div>
+      </div>
       <div className="gate__scanlines" />
       <div className="gate__glow" />
 
@@ -64,6 +80,8 @@ export default function LoginGate() {
               ? 'Make a Raidar account to use the desktop app.'
               : 'A Raidar account is required to use the app.'}
         </p>
+
+        {notice && <div className="gate__notice"><Loader2 size={14} className="gate__spin" /> {notice}</div>}
 
         {webMode ? (
           <>

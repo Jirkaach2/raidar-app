@@ -7,6 +7,7 @@ interface AuthState {
   loading: boolean;
   busy: boolean;
   error: string;
+  notice: string;
   /** Restore an existing session (call once on startup). */
   init: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   busy: false,
   error: '',
+  notice: '',
 
   init: async () => {
     try {
@@ -78,16 +80,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginWithToken: async (userId, secret) => {
-    set({ busy: true, error: '' });
+    set({ busy: true, error: '', notice: 'Sign-in link received — signing you in…' });
     try {
       if (!userId || !secret) throw new Error('Invalid login token.');
       try { await account.deleteSession('current'); } catch { /* none */ }
       await account.createSession(userId, secret);
       const u = await account.get();
-      set({ user: u, busy: false });
+      set({ user: u, busy: false, notice: '' });
       get().refreshPlan();
     } catch (e) {
-      set({ busy: false, error: e instanceof Error ? e.message : 'Could not sign in.' });
+      set({ busy: false, notice: '', error: e instanceof Error ? e.message : 'Could not sign in.' });
       throw e;
     }
   },

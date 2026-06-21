@@ -48,3 +48,13 @@
 .gate__web:hover { border-color: #ce422b; }
 
 .gate__foot { position: absolute; bottom: 20px; z-index: 1; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: #5a544d; }
+
+/* Title bar (drag + window controls) for the pre-login gate. */
+.gate__titlebar { position: absolute; top: 0; left: 0; right: 0; height: 36px; z-index: 3; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 14px; }
+.gate__tb-title { font-family: 'Oswald', sans-serif; font-weight: 600; letter-spacing: 3px; font-size: 12px; color: #8a8177; }
+.gate__tb-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; app-region: no-drag; }
+.gate__tb-btn { display: grid; place-items: center; width: 34px; height: 28px; border: none; background: none; color: #8a8177; cursor: pointer; border-radius: 5px; }
+.gate__tb-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.gate__tb-close:hover { background: #e84545; color: #fff; }
+
+.gate__notice { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; color: #58c6e8; background: rgba(88,198,232,0.1); border: 1px solid rgba(88,198,232,0.3); }
