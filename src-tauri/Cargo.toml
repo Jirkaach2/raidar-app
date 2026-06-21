@@ -15,7 +15,7 @@ prost-build = "0.13"
 protoc-bin-vendored = "3.0.0"
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "devtools"] }
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-shell = "2.0.0"
 tauri-plugin-global-shortcut = "2"
