@@ -64,7 +64,7 @@
     },
     "updater": {
       "endpoints": [
-        "https://github.com/JirkaachS/raidar-app/releases/latest/download/latest.json"
+        "https://tauri-updater.appwrite.network"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGMDlCQjA2Q0M3RDcyRTMKUldUamNuM01CcnNKdndaZGNGU2ZteFh5SWJ6L29iYUVManhEK3pYejhaWmV5UnFPRzhVZUE1MlEK",
       "windows": {
