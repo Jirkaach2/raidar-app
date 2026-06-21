@@ -445,13 +445,21 @@ function App() {
     const handle = (urls: string[] | string | null | undefined) => {
       if (!urls) return;
       const list = Array.isArray(urls) ? urls : [urls];
+      const seen: Set<string> = (window as any).__dlSeen || ((window as any).__dlSeen = new Set());
       for (const raw of list) {
         try {
           const u = new URL(raw);
           if (u.protocol.replace(':', '') !== 'raidar') continue;
           const userId = u.searchParams.get('userId');
           const secret = u.searchParams.get('secret');
-          if (userId && secret) { useAuthStore.getState().loginWithToken(userId, secret).catch(() => {}); break; }
+          if (userId && secret) {
+            // The token is one-time use — multiple deep-link channels can fire
+            // for the same URL, so only ever exchange a given secret once.
+            if (seen.has(secret)) return;
+            seen.add(secret);
+            useAuthStore.getState().loginWithToken(userId, secret).catch(() => {});
+            break;
+          }
         } catch { /* not a parseable url */ }
       }
     };
