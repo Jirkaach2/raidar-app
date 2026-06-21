@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuthStore } from '../../stores/auth-store';
-import { Mail, Lock, User as UserIcon, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ShieldCheck, Globe, Link as LinkIcon, Loader2 } from 'lucide-react';
 import './LoginGate.css';
 
 /** Raidar radar-scope mark, matching the title bar / web branding. */
@@ -18,11 +18,13 @@ function RadarMark() {
 }
 
 export default function LoginGate() {
-  const { busy, error, login, register } = useAuthStore();
+  const { busy, error, login, register, loginWithCode } = useAuthStore();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [webMode, setWebMode] = useState(false);
+  const [code, setCode] = useState('');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,8 +34,14 @@ export default function LoginGate() {
     } catch { /* error surfaced by store */ }
   };
 
+  const submitCode = async (e: FormEvent) => {
+    e.preventDefault();
+    try { await loginWithCode(code); } catch { /* error surfaced by store */ }
+  };
+
   const openWeb = async () => {
-    const url = 'https://raidar.tech/login';
+    const url = 'https://raidar.tech/link-app';
+    setWebMode(true);
     try { const { invoke } = await import('@tauri-apps/api/core'); await invoke('open_external_url', { url }); }
     catch { try { window.open(url, '_blank'); } catch { /* ignore */ } }
   };
@@ -48,44 +56,68 @@ export default function LoginGate() {
           <RadarMark />
           <span className="gate__title">RAIDAR</span>
         </div>
-        <h1 className="gate__h1">{mode === 'register' ? 'Create your account' : 'Sign in to continue'}</h1>
+        <h1 className="gate__h1">{webMode ? 'Sign in with raidar.tech' : mode === 'register' ? 'Create your account' : 'Sign in to continue'}</h1>
         <p className="gate__sub">
-          {mode === 'register'
-            ? 'Make a Raidar account to use the desktop app.'
-            : 'A Raidar account is required to use the app.'}
+          {webMode
+            ? 'A browser tab opened on raidar.tech. Copy the code shown there and paste it below.'
+            : mode === 'register'
+              ? 'Make a Raidar account to use the desktop app.'
+              : 'A Raidar account is required to use the app.'}
         </p>
 
-        <form className="gate__form" onSubmit={submit}>
-          {mode === 'register' && (
-            <label className="gate__field">
-              <UserIcon size={15} />
-              <input placeholder="Display name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </label>
-          )}
-          <label className="gate__field">
-            <Mail size={15} />
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-          </label>
-          <label className="gate__field">
-            <Lock size={15} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
-          </label>
+        {webMode ? (
+          <>
+            <form className="gate__form" onSubmit={submitCode}>
+              <label className="gate__field">
+                <LinkIcon size={15} />
+                <input placeholder="Paste your code" value={code} onChange={(e) => setCode(e.target.value)} required autoFocus />
+              </label>
+              {error && <div className="gate__err">{error}</div>}
+              <button className="gate__submit" type="submit" disabled={busy || !code.trim()}>
+                {busy ? <><Loader2 size={16} className="gate__spin" /> Signing in…</> : <><ShieldCheck size={16} /> Sign in</>}
+              </button>
+            </form>
+            <button type="button" className="gate__switch" onClick={openWeb}>Didn’t get a code? Open raidar.tech again</button>
+            <div className="gate__divider"><span>or</span></div>
+            <button type="button" className="gate__web" onClick={() => { setWebMode(false); setCode(''); }}>
+              Use email &amp; password instead
+            </button>
+          </>
+        ) : (
+          <>
+            <form className="gate__form" onSubmit={submit}>
+              {mode === 'register' && (
+                <label className="gate__field">
+                  <UserIcon size={15} />
+                  <input placeholder="Display name" value={name} onChange={(e) => setName(e.target.value)} required />
+                </label>
+              )}
+              <label className="gate__field">
+                <Mail size={15} />
+                <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+              </label>
+              <label className="gate__field">
+                <Lock size={15} />
+                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
+              </label>
 
-          {error && <div className="gate__err">{error}</div>}
+              {error && <div className="gate__err">{error}</div>}
 
-          <button className="gate__submit" type="submit" disabled={busy}>
-            {busy ? <><Loader2 size={16} className="gate__spin" /> Please wait…</> : <><ShieldCheck size={16} /> {mode === 'register' ? 'Create account' : 'Sign in'}</>}
-          </button>
-        </form>
+              <button className="gate__submit" type="submit" disabled={busy}>
+                {busy ? <><Loader2 size={16} className="gate__spin" /> Please wait…</> : <><ShieldCheck size={16} /> {mode === 'register' ? 'Create account' : 'Sign in'}</>}
+              </button>
+            </form>
 
-        <button type="button" className="gate__switch" onClick={() => setMode((m) => (m === 'login' ? 'register' : 'login'))}>
-          {mode === 'login' ? 'New to Raidar? Create an account' : 'Already have an account? Sign in'}
-        </button>
+            <button type="button" className="gate__switch" onClick={() => setMode((m) => (m === 'login' ? 'register' : 'login'))}>
+              {mode === 'login' ? 'New to Raidar? Create an account' : 'Already have an account? Sign in'}
+            </button>
 
-        <div className="gate__divider"><span>or</span></div>
-        <button type="button" className="gate__web" onClick={openWeb}>
-          Manage your account on raidar.tech <ExternalLink size={13} />
-        </button>
+            <div className="gate__divider"><span>or</span></div>
+            <button type="button" className="gate__web" onClick={openWeb}>
+              <Globe size={14} /> Sign in with raidar.tech
+            </button>
+          </>
+        )}
       </div>
 
       <span className="gate__foot">Raidar · Tactical intelligence for Rust</span>

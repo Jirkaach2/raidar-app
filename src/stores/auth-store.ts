@@ -13,6 +13,8 @@ interface AuthState {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshPlan: () => Promise<void>;
+  /** Sign in using a one-time code minted from the web session (web → app). */
+  loginWithCode: (code: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -71,5 +73,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try { await account.deleteSession('current'); } catch { /* ignore */ }
     set({ user: null, planName: 'Scout' });
+  },
+
+  loginWithCode: async (code) => {
+    set({ busy: true, error: '' });
+    try {
+      let decoded = '';
+      try { decoded = atob(code.trim()); } catch { throw new Error('That code is not valid.'); }
+      const sep = decoded.indexOf(':');
+      const userId = sep > -1 ? decoded.slice(0, sep) : '';
+      const secret = sep > -1 ? decoded.slice(sep + 1) : '';
+      if (!userId || !secret) throw new Error('That code is not valid.');
+      try { await account.deleteSession('current'); } catch { /* none */ }
+      await account.createSession(userId, secret);
+      const u = await account.get();
+      set({ user: u, busy: false });
+      get().refreshPlan();
+    } catch (e) {
+      set({ busy: false, error: e instanceof Error ? e.message : 'Could not sign in with that code.' });
+      throw e;
+    }
   },
 }));
