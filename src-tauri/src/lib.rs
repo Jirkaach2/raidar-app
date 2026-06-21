@@ -78,9 +78,11 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             use tauri::Manager;
             use tauri::Emitter;
+            log::info!("single-instance argv: {:?}", argv);
             // On Windows the deep link arrives as a launch argument of the
             // second instance — pull it out and hand it to the running app.
             if let Some(url) = argv.iter().find(|a| a.starts_with("raidar://")) {
+                log::info!("forwarding deep link to running instance: {}", url);
                 let _ = app.emit("deep-link-received", url.clone());
             }
             if let Some(w) = app.get_webview_window("main") {
