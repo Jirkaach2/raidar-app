@@ -1,5 +1,4 @@
 import { useTeamStore } from '@/stores/team-store';
-import { useConnectionStore } from '@/stores/connection-store';
 import './NavRail.css';
 
 export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'settings';
@@ -11,7 +10,6 @@ interface NavRailProps {
 
 export default function NavRail({ active, onNavigate }: NavRailProps) {
   const unreadCount = useTeamStore((s) => s.unreadCount);
-  const status = useConnectionStore((s) => s.status);
 
   return (
     <nav className="navrail no-select">
@@ -121,21 +119,6 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
       </button>
 
       <div className="navrail__spacer" />
-
-      {/* Connection indicator */}
-      <div className="navrail__item" data-tooltip={status} style={{ cursor: 'default' }}>
-        <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
-          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-          <circle 
-            cx="12" 
-            cy="20" 
-            r="2" 
-            fill={status === 'connected' ? 'var(--success)' : status === 'error' ? 'var(--accent)' : 'currentColor'} 
-          />
-        </svg>
-      </div>
     </nav>
   );
 }
