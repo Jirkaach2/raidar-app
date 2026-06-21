@@ -11,10 +11,11 @@ import { RichBaseTool } from './RichBaseTool';
 import { RaidCostTool } from './RaidCostTool';
 import { PlayerLookupTool } from './PlayerLookupTool';
 import { LoadoutTool } from './LoadoutTool';
+import { MarketIndexTool } from './MarketIndexTool';
 import {
   Home, Clock, Lock, Flame, RefreshCw,
   DollarSign, Calculator, Compass, Video,
-  Activity, Search, Shield, LucideIcon
+  Activity, Search, Shield, BarChart3, LucideIcon
 } from 'lucide-react';
 import './ToolsPanel.css';
 
@@ -54,6 +55,7 @@ export function ToolsPanel() {
       label: 'INTEL',
       tabs: [
         { id: 'pricewatch', name: 'PRICE WATCH', icon: DollarSign },
+        { id: 'marketindex', name: 'MARKET INDEX', icon: BarChart3 },
         { id: 'profit', name: 'PROFIT SCAN', icon: Calculator },
         { id: 'richbase', name: 'RICH BASES', icon: Compass },
         { id: 'cctv', name: 'CCTV CODES', icon: Video },
@@ -96,6 +98,7 @@ export function ToolsPanel() {
       <div className="tools-content-area scrollable">
         {tab === 'recycler' && <RecyclerTool />}
         {tab === 'pricewatch' && <PriceWatchTool />}
+        {tab === 'marketindex' && <MarketIndexTool />}
         {tab === 'cctv' && <CctvTool />}
         {tab === 'decay' && <DecayTool />}
         {tab === 'crates' && <CrateTool />}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'settings';
-export type ToolsTab = 'recycler' | 'cctv' | 'decay' | 'activity' | 'pricewatch' | 'cupboard' | 'crates' | 'profit' | 'richbase' | 'raidcost' | 'lookup' | 'loadout';
+export type ToolsTab = 'recycler' | 'cctv' | 'decay' | 'activity' | 'pricewatch' | 'cupboard' | 'crates' | 'profit' | 'richbase' | 'raidcost' | 'lookup' | 'loadout' | 'marketindex';
 
 interface UiState {
   activePage: NavPage;

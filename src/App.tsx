@@ -24,6 +24,7 @@ import { useDeviceStore } from './stores/device-store';
 import { useEventsStore } from './stores/events-store';
 import { useCrateStore } from './stores/crate-store';
 import { useShopSalesStore } from './stores/shop-sales-store';
+import { usePriceHistoryStore } from './stores/price-history-store';
 import { getGridCoordinate, getNormalizedCoordinates } from './utils/grid';
 import { isCurrentServer, getCurrentServer } from './utils/server';
 import { getMonumentInfo, normalizeMonumentKey } from './utils/monuments';
@@ -968,6 +969,8 @@ function App() {
                 },
                 orders,
               );
+              // Record price observations for the market index.
+              usePriceHistoryStore.getState().ingest(srv?.id, orders);
             });
           }
 

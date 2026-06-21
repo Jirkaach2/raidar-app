@@ -1,0 +1,44 @@
+.mkt { display: flex; flex-direction: column; gap: 10px; }
+.mkt-head { display: flex; align-items: center; justify-content: space-between; }
+.mkt-head h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 13px; letter-spacing: 1px; }
+.mkt-clear { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border); color: var(--color-text-dim); font-size: 10px; padding: 3px 8px; border-radius: 5px; cursor: pointer; }
+.mkt-clear:hover { color: var(--color-danger); border-color: var(--color-danger); }
+.mkt-sub { margin: 0; font-size: 11px; line-height: 1.4; color: var(--color-text-dim); }
+
+.mkt-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 30px 16px; color: var(--color-text-dim); }
+.mkt-empty p { font-size: 12px; max-width: 320px; line-height: 1.5; }
+
+.mkt-section-h { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--color-text-muted); }
+.mkt-section-h svg { color: var(--color-accent); }
+
+.mkt-sold { display: flex; flex-direction: column; gap: 4px; }
+.mkt-sold-row { display: grid; grid-template-columns: 22px 26px 1fr 80px 52px; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: 6px; background: rgba(0,0,0,0.22); }
+.mkt-sold-row img { width: 24px; height: 24px; object-fit: contain; }
+.mkt-rank { font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700; color: var(--color-text-dim); text-align: center; }
+.mkt-rank.r1 { color: #ffd54a; } .mkt-rank.r2 { color: #d8d8d8; } .mkt-rank.r3 { color: #d2864a; }
+.mkt-sold-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mkt-sold-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.mkt-sold-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--color-accent), var(--color-accent-bright, #ff6a3d)); }
+.mkt-sold-units { font-family: var(--font-mono, monospace); font-size: 12px; text-align: right; color: var(--color-text); }
+.mkt-none { font-size: 11px; color: var(--color-text-dim); padding: 8px; }
+
+.mkt-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mkt-search { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px; padding: 6px 9px; border: 1px solid var(--color-border); border-radius: 6px; background: rgba(0,0,0,0.3); color: var(--color-text-dim); }
+.mkt-search input { flex: 1; background: none; border: none; outline: none; color: var(--color-text); font-size: 12px; }
+.mkt-sort { display: flex; gap: 4px; }
+.mkt-sort button { font-size: 10px; font-weight: 600; padding: 5px 9px; border-radius: 5px; border: 1px solid var(--color-border); background: rgba(0,0,0,0.3); color: var(--color-text-dim); cursor: pointer; }
+.mkt-sort button.on { border-color: var(--color-accent); background: rgba(206,66,43,0.12); color: var(--color-text); }
+
+.mkt-table { display: flex; flex-direction: column; gap: 3px; }
+.mkt-row { display: grid; grid-template-columns: 1fr 52px 52px 52px 52px; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid var(--color-border); border-radius: 6px; background: rgba(0,0,0,0.2); font-size: 12px; }
+.mkt-row-h { background: none; border: none; padding: 2px 9px; color: var(--color-text-dim); font-family: var(--font-mono, monospace); font-size: 9px; letter-spacing: 1px; }
+.mkt-row-h span { display: inline-flex; align-items: center; gap: 3px; }
+.mkt-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mkt-item img { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+.mkt-item-name { display: flex; flex-direction: column; overflow: hidden; }
+.mkt-item-name { font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.mkt-item-name small { font-family: var(--font-mono, monospace); font-size: 9px; color: var(--color-text-dim); }
+.mkt-low { color: #6fcf73; font-family: var(--font-mono, monospace); text-align: center; }
+.mkt-avg { color: var(--color-text); font-family: var(--font-mono, monospace); text-align: center; }
+.mkt-high { color: var(--color-accent-bright, #ff6a3d); font-family: var(--font-mono, monospace); text-align: center; }
+.mkt-last { color: var(--color-text-muted); font-family: var(--font-mono, monospace); text-align: center; }
