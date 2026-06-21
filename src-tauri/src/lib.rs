@@ -31,8 +31,14 @@ pub fn run() {
     tauri::Builder::default()
         // Single-instance must be the FIRST plugin. With the deep-link feature
         // it forwards `raidar://` links to the already-running instance.
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             use tauri::Manager;
+            use tauri::Emitter;
+            // On Windows the deep link arrives as a launch argument of the
+            // second instance — pull it out and hand it to the running app.
+            if let Some(url) = argv.iter().find(|a| a.starts_with("raidar://")) {
+                let _ = app.emit("deep-link-received", url.clone());
+            }
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_focus();
                 let _ = w.show();

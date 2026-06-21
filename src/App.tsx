@@ -441,9 +441,11 @@ function App() {
   // deep links (both cold-start launch and while running).
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-    const handle = (urls: string[] | null | undefined) => {
+    let unlistenEvent: (() => void) | undefined;
+    const handle = (urls: string[] | string | null | undefined) => {
       if (!urls) return;
-      for (const raw of urls) {
+      const list = Array.isArray(urls) ? urls : [urls];
+      for (const raw of list) {
         try {
           const u = new URL(raw);
           if (u.protocol.replace(':', '') !== 'raidar') continue;
@@ -460,8 +462,13 @@ function App() {
         const current = await dl.getCurrent().catch(() => null);
         if (current) handle(current);
       } catch { /* plugin unavailable (browser dev) */ }
+      // Explicit fallback: the single-instance handler emits the launch URL.
+      try {
+        const { listen } = await import('@tauri-apps/api/event');
+        unlistenEvent = await listen<string>('deep-link-received', (e) => handle(e.payload));
+      } catch { /* not in tauri */ }
     })();
-    return () => { if (unlisten) unlisten(); };
+    return () => { if (unlisten) unlisten(); if (unlistenEvent) unlistenEvent(); };
   }, []);
 
   // Listen for entity pairing and connection success
