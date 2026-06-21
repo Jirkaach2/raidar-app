@@ -7,15 +7,57 @@ mod generated {
 }
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 
 /// Shared application state accessible from Tauri commands.
 pub struct AppState {
     pub connection: Arc<Mutex<Option<rustplus::connection::RustPlusConnection>>>,
     pub db: Arc<Mutex<db::Database>>,
+    /// True once the user has signed in with their Raidar (Appwrite) account.
+    pub authed: Arc<AtomicBool>,
+    /// A Steam/Rust+ pairing login URL queued until the user is authed.
+    pub pending_login: Arc<Mutex<Option<String>>>,
 }
 
 use tauri::{Manager, Emitter};
+
+/// Opens the Steam/Rust+ pairing login window for the given URL.
+fn open_steam_login_window(app_handle: &tauri::AppHandle, url: String) {
+    let app_handle_clone = app_handle.clone();
+    app_handle
+        .run_on_main_thread(move || {
+            use tauri::WebviewUrl;
+            use tauri::WebviewWindowBuilder;
+            if WebviewWindowBuilder::new(&app_handle_clone, "steam-login", WebviewUrl::External(url.parse().unwrap()))
+                .title("Steam Login")
+                .inner_size(800.0, 600.0)
+                .center()
+                .focused(true)
+                .visible(true)
+                .always_on_top(true)
+                .build()
+                .is_ok()
+            {
+                log::info!("Opened login window");
+            }
+        })
+        .ok();
+}
+
+/// Called by the frontend when the Raidar (Appwrite) auth state changes. When
+/// the user signs in, any deferred Steam/Rust+ pairing login is opened.
+#[tauri::command]
+async fn set_app_authenticated(app: tauri::AppHandle, state: tauri::State<'_, AppState>, authed: bool) -> Result<(), String> {
+    state.authed.store(authed, Ordering::Relaxed);
+    if authed {
+        let url = { state.pending_login.lock().await.take() };
+        if let Some(url) = url {
+            open_steam_login_window(&app, url);
+        }
+    }
+    Ok(())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,6 +68,8 @@ pub fn run() {
     let state = AppState {
         connection: Arc::new(Mutex::new(None)),
         db: Arc::new(Mutex::new(db)),
+        authed: Arc::new(AtomicBool::new(false)),
+        pending_login: Arc::new(Mutex::new(None)),
     };
 
     tauri::Builder::default()
@@ -133,21 +177,16 @@ pub fn run() {
                                     app_handle.emit("smart-alarm", parsed).ok();
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("open_login") {
                                     let url = parsed.get("url").unwrap().as_str().unwrap().to_string();
-                                    let app_handle_clone = app_handle.clone();
-                                    app_handle.run_on_main_thread(move || {
-                                        use tauri::WebviewUrl;
-                                        use tauri::WebviewWindowBuilder;
-                                        if let Ok(_window) = WebviewWindowBuilder::new(&app_handle_clone, "steam-login", WebviewUrl::External(url.parse().unwrap()))
-                                            .title("Steam Login")
-                                            .inner_size(800.0, 600.0)
-                                            .center()
-                                            .focused(true)
-                                            .visible(true)
-                                            .always_on_top(true)
-                                            .build() {
-                                                log::info!("Opened login window");
-                                        }
-                                    }).ok();
+                                    let state = app_handle.state::<AppState>();
+                                    if state.authed.load(std::sync::atomic::Ordering::Relaxed) {
+                                        // Already signed in to Raidar — open the pairing login now.
+                                        open_steam_login_window(&app_handle, url);
+                                    } else {
+                                        // Hold the Steam pairing login until the user signs in with Raidar.
+                                        let mut pending = state.pending_login.lock().await;
+                                        *pending = Some(url);
+                                        log::info!("Deferring Steam login until Raidar sign-in");
+                                    }
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("login_success") {
                                     if let Some(window) = app_handle.get_webview_window("steam-login") {
                                         window.close().ok();
@@ -169,6 +208,7 @@ pub fn run() {
         })
         .manage(state)
         .invoke_handler(tauri::generate_handler![
+            set_app_authenticated,
             commands::connection::connect,
             commands::connection::disconnect,
             commands::connection::get_connection_status,

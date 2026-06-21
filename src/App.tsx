@@ -437,6 +437,17 @@ function App() {
   // Restore any existing Raidar session on startup (gates the whole app).
   useEffect(() => { authInit(); }, [authInit]);
 
+  // Tell the backend when we're signed in so it can release the deferred
+  // Steam/Rust+ pairing login (it's held until Raidar sign-in).
+  useEffect(() => {
+    (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('set_app_authenticated', { authed: !!authUser });
+      } catch { /* not in tauri */ }
+    })();
+  }, [authUser]);
+
   // Seamless web → app sign-in: handle `raidar://auth?userId=..&secret=..`
   // deep links (both cold-start launch and while running).
   useEffect(() => {
