@@ -22,6 +22,18 @@ pub struct AppState {
 
 use tauri::{Manager, Emitter};
 
+/// Append a line to a deep-link debug log in the app data dir, so issues can be
+/// diagnosed from an installed build without a console.
+fn dlog(app: &tauri::AppHandle, msg: &str) {
+    use std::io::Write;
+    if let Ok(dir) = app.path().app_data_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("deeplink.log")) {
+            let _ = writeln!(f, "[{}] {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
+        }
+    }
+}
+
 /// Opens the Steam/Rust+ pairing login window for the given URL.
 fn open_steam_login_window(app_handle: &tauri::AppHandle, url: String) {
     let app_handle_clone = app_handle.clone();
@@ -78,12 +90,14 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             use tauri::Manager;
             use tauri::Emitter;
-            log::info!("single-instance argv: {:?}", argv);
+            dlog(app, &format!("single-instance fired, argv={:?}", argv));
             // On Windows the deep link arrives as a launch argument of the
             // second instance — pull it out and hand it to the running app.
             if let Some(url) = argv.iter().find(|a| a.starts_with("raidar://")) {
-                log::info!("forwarding deep link to running instance: {}", url);
+                dlog(app, &format!("forwarding deep link: {}", url));
                 let _ = app.emit("deep-link-received", url.clone());
+            } else {
+                dlog(app, "no raidar:// arg found in argv");
             }
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_focus();
@@ -95,12 +109,24 @@ pub fn run() {
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
+            dlog(&app.handle().clone(), "app setup started");
             // Register the raidar:// scheme at runtime (needed for dev on
             // Windows/Linux; production registration is handled by the bundler).
             #[cfg(any(windows, target_os = "linux"))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 let _ = app.deep_link().register_all();
+            }
+            // Official Rust-side deep-link handler — fires for cold-start and
+            // forwarded URLs. Logs and re-emits to the frontend.
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let h = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
+                    dlog(&h, &format!("on_open_url: {:?}", urls));
+                    for u in &urls { let _ = h.emit("deep-link-received", u.clone()); }
+                });
             }
             // Auto-updater (desktop only). Checks GitLab releases on launch and,
             // if a newer signed build exists, downloads + installs it, then relaunches.
