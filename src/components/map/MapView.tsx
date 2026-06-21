@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { Link2 } from 'lucide-react';
 import { useMapStore } from '@/stores/map-store';
 import { useConnectionStore } from '@/stores/connection-store';
 import MapCanvas from './MapCanvas';
@@ -18,6 +21,28 @@ export default function MapView() {
   const showEventTimers = useMapStore(s => s.showEventTimers);
   const showDayNight = useMapStore(s => s.showDayNight);
   const connectionStatus = useConnectionStore(s => s.status);
+  const [hasPendingSteam, setHasPendingSteam] = useState(false);
+
+  useEffect(() => {
+    if (connectionStatus === 'connected') return;
+    const checkPending = async () => {
+      try {
+        const hasPending = await invoke<boolean>('has_pending_steam_login');
+        setHasPendingSteam(hasPending);
+      } catch {}
+    };
+    checkPending();
+    const interval = setInterval(checkPending, 2000);
+    return () => clearInterval(interval);
+  }, [connectionStatus]);
+
+  const handleReopenSteam = async () => {
+    try {
+      await invoke('reopen_steam_login');
+    } catch (e: any) {
+      useMapStore.getState().addToast('Steam Login', e?.message || e, 'warning');
+    }
+  };
 
   const handleZoomIn = () => {
     setViewport({ zoom: Math.min(viewport.zoom + 0.25, 4) });
@@ -51,6 +76,33 @@ export default function MapView() {
           </svg>
           <h2 style={{ letterSpacing: '2px', color: 'var(--text-bright)', marginBottom: '8px' }}>AWAITING CONNECTION</h2>
           <p>Go to the Settings panel to pair with your server</p>
+          {hasPendingSteam && (
+            <button
+              onClick={handleReopenSteam}
+              className="btn-accent"
+              style={{
+                marginTop: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                background: 'var(--accent-color, #da5e2a)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                fontSize: '11px',
+                letterSpacing: '0.5px',
+                boxShadow: '0 0 10px rgba(218, 94, 42, 0.4)'
+              }}
+            >
+              <Link2 size={13} />
+              Reopen Steam pairing window
+            </button>
+          )}
         </div>
       )}
 

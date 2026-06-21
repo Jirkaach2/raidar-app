@@ -173,8 +173,12 @@ pub fn run() {
             use tauri_plugin_shell::ShellExt;
             use tauri_plugin_shell::process::CommandEvent;
 
+            let app_data_path = app.path().app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let app_data_str = app_data_path.to_string_lossy().to_string();
+
             let sidecar = app.shell().sidecar("fcm-sidecar");
             if let Ok(sidecar_command) = sidecar {
+                let sidecar_command = sidecar_command.args(&[app_data_str]);
                 let (mut rx, child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
                 
                 struct SidecarKiller(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);

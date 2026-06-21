@@ -7,15 +7,43 @@ pub struct Database {
     pub conn: Connection,
 }
 
+fn get_db_path() -> std::path::PathBuf {
+    let mut path = if cfg!(target_os = "windows") {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            std::path::PathBuf::from(appdata)
+        } else {
+            std::path::PathBuf::from(".")
+        }
+    } else if cfg!(target_os = "macos") {
+        if let Ok(home) = std::env::var("HOME") {
+            std::path::PathBuf::from(home).join("Library").join("Application Support")
+        } else {
+            std::path::PathBuf::from(".")
+        }
+    } else {
+        if let Ok(config) = std::env::var("XDG_CONFIG_HOME") {
+            std::path::PathBuf::from(config)
+        } else if let Ok(home) = std::env::var("HOME") {
+            std::path::PathBuf::from(home).join(".config")
+        } else {
+            std::path::PathBuf::from(".")
+        }
+    };
+    path = path.join("com.raidar.desktop");
+    let _ = std::fs::create_dir_all(&path);
+    path.join("rustoverlay.db")
+}
+
 impl Database {
     pub fn new() -> Result<Self, String> {
-        let conn = Connection::open("rustoverlay.db")
-            .map_err(|e| format!("Failed to open database: {}", e))?;
+        let db_path = get_db_path();
+        let conn = Connection::open(&db_path)
+            .map_err(|e| format!("Failed to open database at {:?}: {}", db_path, e))?;
 
         let db = Self { conn };
         db.run_migrations()?;
 
-        info!("Database initialized successfully");
+        info!("Database initialized successfully at {:?}", db_path);
         Ok(db)
     }
 

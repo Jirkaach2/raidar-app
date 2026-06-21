@@ -25,9 +25,10 @@ pub struct DiscordLink {
     pub allowed_user_ids: Vec<String>,
 }
 
-/// Read the FCM/auth credentials the sidecar wrote next to the app.
-fn read_credentials() -> Result<serde_json::Value, String> {
-    let cfg_path = std::env::current_dir()
+/// Read the FCM/auth credentials the sidecar wrote in the app data directory.
+fn read_credentials(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use tauri::Manager;
+    let cfg_path = app.path().app_data_dir()
         .map_err(|e| e.to_string())?
         .join("rustplus.config.json");
     let cfg_str = std::fs::read_to_string(&cfg_path)
@@ -39,6 +40,7 @@ fn read_credentials() -> Result<serde_json::Value, String> {
 /// code from `/link`. Seamless pairing — no browser Steam login required.
 #[tauri::command]
 pub async fn link_discord_bot(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     code: String,
     devices: Vec<serde_json::Value>,
@@ -66,7 +68,7 @@ pub async fn link_discord_bot(
         }
     };
 
-    let cfg = read_credentials()?;
+    let cfg = read_credentials(app)?;
     let credentials = json!({
         "fcm_credentials": cfg.get("fcm_credentials"),
         "expo_push_token": cfg.get("expo_push_token"),
@@ -107,8 +109,8 @@ pub async fn link_discord_bot(
 
 /// List the Discord servers this app's account is currently linked to.
 #[tauri::command]
-pub async fn get_discord_links() -> Result<Vec<DiscordLink>, String> {
-    let cfg = read_credentials()?;
+pub async fn get_discord_links(app: tauri::AppHandle) -> Result<Vec<DiscordLink>, String> {
+    let cfg = read_credentials(app)?;
     let auth_token = cfg
         .get("rustplus_auth_token")
         .and_then(|v| v.as_str())
@@ -152,11 +154,12 @@ pub async fn get_discord_links() -> Result<Vec<DiscordLink>, String> {
 /// (fire-and-forget); the Settings "test" button surfaces them.
 #[tauri::command]
 pub async fn notify_discord_bot(
+    app: tauri::AppHandle,
     feature: String,
     content: String,
     fields: Option<serde_json::Value>,
 ) -> Result<u64, String> {
-    let cfg = read_credentials()?;
+    let cfg = read_credentials(app)?;
     let auth_token = cfg
         .get("rustplus_auth_token")
         .and_then(|v| v.as_str())
@@ -176,8 +179,12 @@ pub async fn notify_discord_bot(
 
 /// Set the device-control whitelist (Discord user IDs) for a linked guild.
 #[tauri::command]
-pub async fn set_discord_permissions(guild_id: String, user_ids: Vec<String>) -> Result<(), String> {
-    let cfg = read_credentials()?;
+pub async fn set_discord_permissions(
+    app: tauri::AppHandle,
+    guild_id: String,
+    user_ids: Vec<String>,
+) -> Result<(), String> {
+    let cfg = read_credentials(app)?;
     let auth_token = cfg.get("rustplus_auth_token").and_then(|v| v.as_str()).ok_or("Missing auth token.")?;
     let resp = http_client()?
         .post(format!("{}/api/permissions", BOT_BASE_URL))
@@ -192,6 +199,7 @@ pub async fn set_discord_permissions(guild_id: String, user_ids: Vec<String>) ->
 /// connected server (called automatically when the app switches servers).
 #[tauri::command]
 pub async fn sync_discord_server(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     devices: Vec<serde_json::Value>,
 ) -> Result<u32, String> {
@@ -208,7 +216,7 @@ pub async fn sync_discord_server(
         db.get_server_profile_by_ip(&ip, port).ok().map(|p| p.server_name).unwrap_or_default()
     };
 
-    let cfg = read_credentials()?;
+    let cfg = read_credentials(app)?;
     let auth_token = cfg.get("rustplus_auth_token").and_then(|v| v.as_str()).ok_or("Missing auth token.")?;
 
     let payload = json!({
@@ -238,8 +246,8 @@ pub async fn sync_discord_server(
 
 /// Unlink this account from a specific Discord server.
 #[tauri::command]
-pub async fn unlink_discord(guild_id: String) -> Result<String, String> {
-    let cfg = read_credentials()?;
+pub async fn unlink_discord(app: tauri::AppHandle, guild_id: String) -> Result<String, String> {
+    let cfg = read_credentials(app)?;
     let auth_token = cfg
         .get("rustplus_auth_token")
         .and_then(|v| v.as_str())
