@@ -453,6 +453,7 @@ function App() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let unlistenEvent: (() => void) | undefined;
+    let poll: number | undefined;
     const handle = (urls: string[] | string | null | undefined) => {
       if (!urls) return;
       const list = Array.isArray(urls) ? urls : [urls];
@@ -461,11 +462,11 @@ function App() {
         try {
           const u = new URL(raw);
           if (u.protocol.replace(':', '') !== 'raidar') continue;
-          const userId = u.searchParams.get('userId');
-          const secret = u.searchParams.get('secret');
+          const userId = (u.searchParams.get('userId') || '').replace(/[/\s]+$/, '');
+          // The OS/shell can append a trailing slash to the URL — strip it off
+          // the secret or the token is rejected as invalid.
+          const secret = (u.searchParams.get('secret') || '').replace(/[/\s]+$/, '');
           if (userId && secret) {
-            // The token is one-time use — multiple deep-link channels can fire
-            // for the same URL, so only ever exchange a given secret once.
             if (seen.has(secret)) return;
             seen.add(secret);
             useAuthStore.getState().loginWithToken(userId, secret).catch(() => {});
@@ -486,8 +487,16 @@ function App() {
         const { listen } = await import('@tauri-apps/api/event');
         unlistenEvent = await listen<string>('deep-link-received', (e) => handle(e.payload));
       } catch { /* not in tauri */ }
+      // Most reliable: poll the backend for any pending deep-link URL. This
+      // doesn't depend on event-listener timing or plugin forwarding.
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const tick = async () => { try { const url = await invoke<string | null>('take_pending_deep_link'); if (url) handle(url); } catch { /* ignore */ } };
+        await tick();
+        poll = window.setInterval(tick, 1200);
+      } catch { /* not in tauri */ }
     })();
-    return () => { if (unlisten) unlisten(); if (unlistenEvent) unlistenEvent(); };
+    return () => { if (unlisten) unlisten(); if (unlistenEvent) unlistenEvent(); if (poll) window.clearInterval(poll); };
   }, []);
 
   // Listen for entity pairing and connection success

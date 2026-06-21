@@ -18,6 +18,8 @@ pub struct AppState {
     pub authed: Arc<AtomicBool>,
     /// A Steam/Rust+ pairing login URL queued until the user is authed.
     pub pending_login: Arc<Mutex<Option<String>>>,
+    /// Last deep-link URL received, consumed by the frontend via polling.
+    pub pending_deep_link: Arc<std::sync::Mutex<Option<String>>>,
 }
 
 use tauri::{Manager, Emitter};
@@ -71,6 +73,13 @@ async fn set_app_authenticated(app: tauri::AppHandle, state: tauri::State<'_, Ap
     Ok(())
 }
 
+/// Frontend polls this to consume the latest deep-link URL (reliable handoff
+/// that doesn't depend on JS event-listener timing).
+#[tauri::command]
+fn take_pending_deep_link(state: tauri::State<'_, AppState>) -> Option<String> {
+    state.pending_deep_link.lock().ok().and_then(|mut g| g.take())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -82,6 +91,7 @@ pub fn run() {
         db: Arc::new(Mutex::new(db)),
         authed: Arc::new(AtomicBool::new(false)),
         pending_login: Arc::new(Mutex::new(None)),
+        pending_deep_link: Arc::new(std::sync::Mutex::new(None)),
     };
 
     tauri::Builder::default()
@@ -95,6 +105,7 @@ pub fn run() {
             // second instance — pull it out and hand it to the running app.
             if let Some(url) = argv.iter().find(|a| a.starts_with("raidar://")) {
                 dlog(app, &format!("forwarding deep link: {}", url));
+                if let Ok(mut g) = app.state::<AppState>().pending_deep_link.lock() { *g = Some(url.clone()); }
                 let _ = app.emit("deep-link-received", url.clone());
             } else {
                 dlog(app, "no raidar:// arg found in argv");
@@ -125,6 +136,9 @@ pub fn run() {
                 app.deep_link().on_open_url(move |event| {
                     let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
                     dlog(&h, &format!("on_open_url: {:?}", urls));
+                    if let Some(u) = urls.first() {
+                        if let Ok(mut g) = h.state::<AppState>().pending_deep_link.lock() { *g = Some(u.clone()); }
+                    }
                     for u in &urls { let _ = h.emit("deep-link-received", u.clone()); }
                 });
             }
@@ -237,6 +251,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             set_app_authenticated,
+            take_pending_deep_link,
             commands::connection::connect,
             commands::connection::disconnect,
             commands::connection::get_connection_status,
