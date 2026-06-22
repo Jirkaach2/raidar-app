@@ -15,13 +15,11 @@ import { MarketIndexTool } from './MarketIndexTool';
 import { FishingPanel } from '../fishing/FishingPanel';
 import { FarmingTool } from './FarmingTool';
 import { CombatLogTool } from './CombatLogTool';
-import { CraftCalcTool } from './CraftCalcTool';
-import { WipeTool } from './WipeTool';
 import {
   Home, Clock, Lock, Flame, RefreshCw,
   DollarSign, Calculator, Compass, Video,
   Activity, Search, Shield, BarChart3, LucideIcon,
-  Fish, Sprout, Terminal, Hammer, CalendarClock
+  Fish, Sprout, Terminal
 } from 'lucide-react';
 import './ToolsPanel.css';
 
@@ -70,13 +68,6 @@ export function ToolsPanel() {
         { id: 'fishing', name: 'FISHING GUIDE', icon: Fish },
         { id: 'farming', name: 'FARMING SOLVER', icon: Sprout },
         { id: 'combatlog', name: 'COMBAT LOG', icon: Terminal },
-      ],
-    },
-    {
-      label: 'PLANNING',
-      tabs: [
-        { id: 'craftcalc', name: 'CRAFT COST', icon: Hammer },
-        { id: 'wipe', name: 'WIPE TIMER', icon: CalendarClock },
       ],
     },
   ];
@@ -128,8 +119,6 @@ export function ToolsPanel() {
         {tab === 'fishing' && <FishingPanel />}
         {tab === 'farming' && <FarmingTool />}
         {tab === 'combatlog' && <CombatLogTool />}
-        {tab === 'craftcalc' && <CraftCalcTool />}
-        {tab === 'wipe' && <WipeTool />}
       </div>
     </div>
   );

@@ -2,10 +2,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, CornerDownLeft } from 'lucide-react';
 import { useUiStore, NavPage, ToolsTab } from '../../stores/ui-store';
 import { listMonuments } from '../../utils/monuments';
-import { craftableList } from '../../utils/crafting';
 import './CommandPalette.css';
 
-type Kind = 'Page' | 'Tool' | 'Monument' | 'Item';
+type Kind = 'Page' | 'Tool' | 'Monument';
 interface Cmd { id: string; kind: Kind; label: string; sub?: string; run: () => void; }
 
 const PAGES: { label: string; page: NavPage }[] = [
@@ -35,8 +34,6 @@ const TOOLS: { label: string; tab: ToolsTab }[] = [
   { label: 'Fishing Guide', tab: 'fishing' },
   { label: 'Farming Solver', tab: 'farming' },
   { label: 'Combat Log', tab: 'combatlog' },
-  { label: 'Craft Cost Calculator', tab: 'craftcalc' },
-  { label: 'Wipe Timer', tab: 'wipe' },
 ];
 
 export function CommandPalette() {
@@ -48,7 +45,6 @@ export function CommandPalette() {
 
   const setActivePage = useUiStore((s) => s.setActivePage);
   const navigateToToolsTab = useUiStore((s) => s.navigateToToolsTab);
-  const openCraftItem = useUiStore((s) => s.openCraftItem);
 
   // Build the full command index once.
   const commands = useMemo<Cmd[]>(() => {
@@ -56,9 +52,8 @@ export function CommandPalette() {
     for (const p of PAGES) out.push({ id: `page:${p.page}`, kind: 'Page', label: p.label, run: () => setActivePage(p.page) });
     for (const t of TOOLS) out.push({ id: `tool:${t.tab}`, kind: 'Tool', label: t.label, sub: 'Tools', run: () => navigateToToolsTab(t.tab) });
     for (const m of listMonuments()) out.push({ id: `mon:${m.key}`, kind: 'Monument', label: m.name, sub: 'Open map', run: () => setActivePage('map') });
-    for (const it of craftableList()) out.push({ id: `item:${it.short}`, kind: 'Item', label: it.name, sub: 'Craft cost', run: () => openCraftItem(it.short) });
     return out;
-  }, [setActivePage, navigateToToolsTab, openCraftItem]);
+  }, [setActivePage, navigateToToolsTab]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

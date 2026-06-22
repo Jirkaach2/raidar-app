@@ -1,7 +1,8 @@
 /**
- * Raid cost calculator — verified against community raid charts (June 2026):
- *   • rustly.com/raid-calculator  • wikirust.com (verified 1 Jun 2026)
- *   • totalrust.com / wiki.facepunch.com for exact craft recipes
+ * Raid cost calculator — explosive placement counts verified against the
+ * WikiRust manually-verified raid chart (walls + doors, last verified 1 Jun 2026)
+ * and cross-checked with the xgamingserver raid-cost chart. Craft recipes/sulfur
+ * from wiki.facepunch.com.
  */
 
 export type Category = 'wall' | 'door' | 'external' | 'window' | 'deployable';
@@ -23,7 +24,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'wood_wall', name: 'Wood Wall', hp: 250, category: 'wall', icon: 'wood',
     blurb: 'Burns and chops. Soft side melts to a hatchet.',
     counts: {
-      c4: 1, rocket: 2, propane: 2, hv_rocket: 4, incendiary: 1, satchel: 3, beancan: 13, explo_ammo: 48,
+      c4: 1, rocket: 2, propane: 2, hv_rocket: 7, incendiary: 1, satchel: 3, beancan: 13, explo_ammo: 48,
       battering_ram: 3, incendiary_bolt: 10, molotov: 4, flamethrower: 400, salvaged_sword: 10, machete: 15,
       bone_club: 150, wooden_spear: 95, stone_spear: 48, f1_grenade: 15,
       hatchet_soft: 3, hatchet_hard: 8, salvaged_axe_soft: 2, salvaged_axe_hard: 5,
@@ -35,7 +36,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'stone_wall', name: 'Stone Wall', hp: 500, category: 'wall', icon: 'stones',
     blurb: 'Standard stone tier. Fire-proof, weak to soft-side pickaxes/jackhammers.',
     counts: {
-      c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46,
+      c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 211, f1_grenade: 46,
       jackhammer_soft: 1.25, jackhammer_hard: 45, pickaxe_soft: 7, pickaxe_hard: 40,
       icepick_soft: 6, icepick_hard: 35, wooden_spear_soft: 125, stone_spear_soft: 63, salvaged_sword_soft: 35,
       mortar_shell: 17
@@ -45,7 +46,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'sheet_wall', name: 'Sheet Metal Wall', hp: 1000, category: 'wall', icon: 'metal.fragments',
     blurb: 'Double stone HP. Melee-resistant, soft-side is vulnerable to jackhammers.',
     counts: {
-      c4: 4, rocket: 8, propane: 13, hv_rocket: 32, satchel: 23, beancan: 112, explo_ammo: 400,
+      c4: 4, rocket: 8, propane: 13, hv_rocket: 32, satchel: 23, beancan: 112, explo_ammo: 406,
       jackhammer_soft: 15, pickaxe_soft: 80,
       mortar_shell: 34
     },
@@ -53,14 +54,14 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'armored_wall', name: 'Armored Wall (HQM)', hp: 2000, category: 'wall', icon: 'metal.refined',
     blurb: 'Toughest building tier. Highly explosive-resistant. Melee immune.',
-    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 63, satchel: 46, beancan: 223, explo_ammo: 799, mortar_shell: 67 },
+    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 63, satchel: 46, beancan: 223, explo_ammo: 806, mortar_shell: 67 },
   },
   // ── Doors (No soft side in Rust) ──
   {
     key: 'wood_door', name: 'Wooden Door', hp: 200, category: 'door', icon: 'door.hinged.wood',
     blurb: 'Weakest door. Very vulnerable to fire (Molotovs/Flamethrower).',
     counts: {
-      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 19,
+      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
       battering_ram: 3, incendiary_bolt: 8, molotov: 2, flamethrower: 100, salvaged_sword: 9, machete: 14,
       bone_club: 139, wooden_spear: 90, stone_spear: 45, f1_grenade: 10, hatchet: 5, salvaged_axe: 3,
       pickaxe: 13, icepick: 10, mortar_shell: 4, fire_arrow: 50
@@ -70,7 +71,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'wood_double_door', name: 'Wooden Double Door', hp: 200, category: 'door', icon: 'door.double.hinged.wood',
     blurb: 'Wooden double doors. Same durability profiles as single doors.',
     counts: {
-      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 19,
+      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
       battering_ram: 3, incendiary_bolt: 8, molotov: 2, flamethrower: 100, salvaged_sword: 9, machete: 14,
       bone_club: 139, wooden_spear: 90, stone_spear: 45, f1_grenade: 10, hatchet: 5, salvaged_axe: 3,
       pickaxe: 13, icepick: 10, mortar_shell: 4, fire_arrow: 50
@@ -89,17 +90,17 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'garage_door', name: 'Garage Door', hp: 600, category: 'door', icon: 'wall.frame.garagedoor',
     blurb: 'Excellent HP-per-cost door. Ideal for base airlocks.',
-    counts: { c4: 2, rocket: 3, propane: 8, hv_rocket: 19, satchel: 9, beancan: 42, explo_ammo: 150, f1_grenade: 120, mortar_shell: 21, salvaged_hammer: 56 },
+    counts: { c4: 2, rocket: 3, propane: 8, hv_rocket: 19, satchel: 9, beancan: 42, explo_ammo: 152, f1_grenade: 120, mortar_shell: 21, salvaged_hammer: 56 },
   },
   {
     key: 'armored_door', name: 'Armored Door', hp: 800, category: 'door', icon: 'door.hinged.toptier',
     blurb: 'Strongest single door. Requires substantial explosives.',
-    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 12, beancan: 58, explo_ammo: 250, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
+    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 15, beancan: 58, explo_ammo: 251, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
   },
   {
     key: 'armored_double_door', name: 'Armored Double Door', hp: 800, category: 'door', icon: 'door.double.hinged.toptier',
     blurb: 'Double variant of armored door. Identical stats.',
-    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 12, beancan: 58, explo_ammo: 250, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
+    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 15, beancan: 58, explo_ammo: 251, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
   },
   // ── External walls (No soft side in Rust) ──
   {
@@ -116,7 +117,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'ext_wood', name: 'High External Wood Wall', hp: 500, category: 'external', icon: 'wall.external.high',
     blurb: 'Weak to fire, HV rockets, and the battering ram.',
     counts: {
-      c4: 2, rocket: 3, propane: 7, hv_rocket: 9, incendiary: 2, satchel: 6, beancan: 30, explo_ammo: 90,
+      c4: 2, rocket: 3, propane: 7, hv_rocket: 17, incendiary: 2, satchel: 6, beancan: 30, explo_ammo: 93,
       battering_ram: 6, incendiary_bolt: 20, molotov: 4, flamethrower: 500, salvaged_sword: 20, f1_grenade: 30,
       mortar_shell: 5, fire_arrow: 100
     },
@@ -125,7 +126,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'ext_wood_gate', name: 'High External Wood Gate', hp: 500, category: 'external', icon: 'gates.external.high.wood',
     blurb: 'Compound wood gatehouse. Same fire/explosive vulnerabilities.',
     counts: {
-      c4: 2, rocket: 3, propane: 7, hv_rocket: 9, incendiary: 2, satchel: 6, beancan: 30, explo_ammo: 90,
+      c4: 2, rocket: 3, propane: 7, hv_rocket: 17, incendiary: 2, satchel: 6, beancan: 30, explo_ammo: 93,
       battering_ram: 6, incendiary_bolt: 20, molotov: 4, flamethrower: 500, salvaged_sword: 20, f1_grenade: 30,
       mortar_shell: 5, fire_arrow: 100
     },
