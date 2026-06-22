@@ -1,10 +1,10 @@
 {
     "version":  "1.1.0",
-    "notes":  "Raidar 1.1.0: Overhauled Raid Cost and Loadout Lab data accuracy (explosive counts re-verified against the WikiRust June 2026 chart; weapon fixes). Removed the Craft Cost and Wipe Timer tools.",
-    "pub_date":  "2026-06-22T15:33:36Z",
+    "notes":  "Raidar 1.1.0: Raid Cost explosive counts re-verified against the WikiRust June 2026 chart; Loadout Lab weapon \u0026 armor data verified against RustLabs/RustClash. Removed the Craft Cost and Wipe Timer tools.",
+    "pub_date":  "2026-06-22T15:48:09Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdno0bWdWS1F3aTVkKzFzRldWaFI1VStXalpLTS8rdWNqVVhFVGZYTWIxZG9KbHNlQ2dNN3hZUkh5UjdjSkRZbEQ4VUsxMlpXVFdTeTkzZGRrSGo4SXdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQyMzQ1CWZpbGU6UmFpZGFyXzEuMS4wX3g2NC1zZXR1cC5leGUKK1dSU2Q3Nm5KNjhwejg0bnJ2MU5FZlVVOVFCOW1YWEZwN2VIbis1Qms3K3pDMCs1TmZ3WTJlRHYrVmxiNHhvUWIxRzFNZjhPemVjNG1HWFZDMTlUQmc9PQo=",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdndrT29jdXRwa0JUWVRtNTQ5Uk1Zd21YdUhXeWU0MEJLNnJFRmxIdDFZeXdhRHhtak1iNXppZUIxaUpwbjU3TDdYZWZYTUZ5NTlhbzBuUG9QTnpOZWdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQzMjcxCWZpbGU6UmFpZGFyXzEuMS4wX3g2NC1zZXR1cC5leGUKQ1NhWExuRmMrL29pYzRyVDBjKzJzVjZTMFlhRi9JdTI4TW1uMG5ZbklUUUxBeXNwUmcvWWRXQlZWaUVUbVY0S1dSWUZJVlZxUXFNeE4rT3Z1NExIQ1E9PQo=",
                                              "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.0/Raidar_1.1.0_x64-setup.exe"
                                          }
                   }
