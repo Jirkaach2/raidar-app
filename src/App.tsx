@@ -11,7 +11,7 @@ import { DevicePanel } from './components/devices/DevicePanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { ToolsPanel } from './components/tools/ToolsPanel';
 import { SpyPanel } from './components/spy/SpyPanel';
-import { FishingPanel } from './components/fishing/FishingPanel';
+
 import { useRustPlusEvents } from './hooks/useRustPlusEvents';
 import { useOverlayMode } from './hooks/useOverlayMode';
 import { useAutomationRunner, fireAutomationEvent } from './hooks/useAutomationRunner';
@@ -1519,7 +1519,6 @@ function App() {
         {activePage === 'tools' && <ToolsPanel />}
         {activePage === 'spy' && <SpyPanel />}
         {activePage === 'settings' && <SettingsPanel />}
-        {activePage === 'fishing' && <FishingPanel />}
       </AppShell>
       )}
 

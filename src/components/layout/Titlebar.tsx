@@ -1,7 +1,16 @@
+import { useState, useEffect } from 'react';
 import './Titlebar.css';
 import AccountButton from './AccountButton';
 
 export default function Titlebar() {
+  const [version, setVersion] = useState('1.0.1');
+
+  useEffect(() => {
+    import('@tauri-apps/api/app')
+      .then(({ getVersion }) => getVersion())
+      .then((v) => setVersion(v))
+      .catch(() => {});
+  }, []);
   const handleMinimize = async () => {
     try {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
@@ -50,7 +59,7 @@ export default function Titlebar() {
           </svg>
         </div>
         <span className="titlebar__title">RAIDAR</span>
-        <span className="titlebar__version">v1.0.0</span>
+        <span className="titlebar__version">v{version}</span>
       </div>
 
       <div className="titlebar__controls">

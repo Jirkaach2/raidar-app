@@ -12,10 +12,14 @@ import { RaidCostTool } from './RaidCostTool';
 import { PlayerLookupTool } from './PlayerLookupTool';
 import { LoadoutTool } from './LoadoutTool';
 import { MarketIndexTool } from './MarketIndexTool';
+import { FishingPanel } from '../fishing/FishingPanel';
+import { FarmingTool } from './FarmingTool';
+import { CombatLogTool } from './CombatLogTool';
 import {
   Home, Clock, Lock, Flame, RefreshCw,
   DollarSign, Calculator, Compass, Video,
-  Activity, Search, Shield, BarChart3, LucideIcon
+  Activity, Search, Shield, BarChart3, LucideIcon,
+  Fish, Sprout, Terminal
 } from 'lucide-react';
 import './ToolsPanel.css';
 
@@ -61,6 +65,9 @@ export function ToolsPanel() {
         { id: 'cctv', name: 'CCTV CODES', icon: Video },
         { id: 'activity', name: 'ACTIVITY', icon: Activity },
         { id: 'lookup', name: 'PLAYER LOOKUP', icon: Search },
+        { id: 'fishing', name: 'FISHING GUIDE', icon: Fish },
+        { id: 'farming', name: 'FARMING SOLVER', icon: Sprout },
+        { id: 'combatlog', name: 'COMBAT LOG', icon: Terminal },
       ],
     },
   ];
@@ -109,6 +116,9 @@ export function ToolsPanel() {
         {tab === 'activity' && <ActivityTool />}
         {tab === 'lookup' && <PlayerLookupTool />}
         {tab === 'loadout' && <LoadoutTool />}
+        {tab === 'fishing' && <FishingPanel />}
+        {tab === 'farming' && <FarmingTool />}
+        {tab === 'combatlog' && <CombatLogTool />}
       </div>
     </div>
   );

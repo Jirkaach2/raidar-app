@@ -1,0 +1,877 @@
+/* ══════════════════════════════════════════════════════════════════
+   FARMING GENETIC CROSSBREED SOLVER — premium dark‑theme redesign
+   Uses the app palette: accent #e55c25, --color-text, --color-text-dim
+   ══════════════════════════════════════════════════════════════════ */
+
+.farming-tool {
+  --farm-green: #22c55e;
+  --farm-green-dim: rgba(34, 197, 94, 0.15);
+  --farm-red: #ef4444;
+  --farm-red-dim: rgba(239, 68, 68, 0.12);
+  --farm-amber: #f59e0b;
+  --farm-amber-dim: rgba(245, 158, 11, 0.10);
+  --farm-card: linear-gradient(170deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%);
+  --farm-card-border: rgba(255, 255, 255, 0.06);
+  --farm-card-bg: rgba(14, 16, 22, 0.55);
+  color: var(--color-text);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.farm-header {
+  margin-bottom: 22px;
+}
+
+.farm-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+  color: var(--color-text);
+  letter-spacing: 1.5px;
+}
+
+.farm-title svg {
+  color: var(--farm-green);
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.35));
+}
+
+.farm-subtitle {
+  margin: 6px 0 0 0;
+  font-size: 12px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+}
+
+/* ── Main grid layout ───────────────────────────────────────────── */
+.farm-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+}
+
+.farm-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.farm-col-right {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Glass card panel ───────────────────────────────────────────── */
+.farm-card {
+  padding: 18px;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(34, 197, 94, 0.04), transparent 65%),
+    var(--farm-card);
+  background-color: var(--farm-card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--farm-card-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 8px 28px rgba(0,0,0,0.30);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s ease;
+}
+
+.farm-card:hover {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.farm-card-heading {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.farm-card-heading::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--color-accent, #e55c25);
+  border-radius: 2px;
+}
+
+/* ── Gene pills / badges ────────────────────────────────────────── */
+.gene-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gene-pill:hover {
+  transform: scale(1.15);
+}
+
+.gene-pill-green {
+  background: linear-gradient(135deg, #166534 0%, #15803d 100%);
+  color: #bbf7d0;
+  box-shadow: 0 1px 4px rgba(34, 197, 94, 0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+  border: 1px solid rgba(34, 197, 94, 0.30);
+}
+
+.gene-pill-red {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  color: #fecaca;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+}
+
+.gene-sequence {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+/* ── Clone list ─────────────────────────────────────────────────── */
+.clone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.clone-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.008) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.clone-card:hover {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.04) 0%, rgba(255,255,255,0.015) 100%);
+  box-shadow: 0 2px 12px rgba(34, 197, 94, 0.08);
+  transform: translateY(-1px);
+}
+
+.clone-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clone-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.3px;
+}
+
+.clone-remove-btn {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.clone-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.20);
+  border-color: rgba(239, 68, 68, 0.40);
+  color: #fca5a5;
+  transform: scale(1.1);
+}
+
+.clone-empty {
+  font-size: 12px;
+  padding: 16px 0;
+  text-align: center;
+  color: var(--color-text-dim);
+  font-style: italic;
+}
+
+/* ── Add clone form ─────────────────────────────────────────────── */
+.farm-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.farm-input {
+  flex: 1;
+  padding: 9px 14px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.farm-input:focus {
+  border-color: rgba(34, 197, 94, 0.40);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.10);
+}
+
+.farm-input-genes {
+  width: 110px;
+  flex: none;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.farm-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border: 1px solid rgba(34, 197, 94, 0.30);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.20);
+}
+
+.farm-add-btn:hover {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.30);
+  transform: translateY(-1px);
+}
+
+/* ── Target section ─────────────────────────────────────────────── */
+.farm-target-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.farm-target-input-wrap {
+  flex: 1;
+}
+
+.farm-target-input {
+  width: 100%;
+  padding: 11px 16px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.farm-target-input:focus {
+  border-color: rgba(229, 92, 37, 0.50);
+  box-shadow: 0 0 0 3px rgba(229, 92, 37, 0.10);
+}
+
+.farm-solve-btn {
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #e55c25, #c44b1d);
+  color: #fff;
+  border: 1px solid rgba(229, 92, 37, 0.40);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 12px rgba(229, 92, 37, 0.25);
+  white-space: nowrap;
+}
+
+.farm-solve-btn:hover {
+  background: linear-gradient(135deg, #f06830, #e55c25);
+  box-shadow: 0 4px 20px rgba(229, 92, 37, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Gene legend card ───────────────────────────────────────────── */
+.gene-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,0.015);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 10px;
+}
+
+.gene-legend-title {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--color-text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.gene-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-text-dim);
+  padding: 4px 0;
+}
+
+.gene-legend-item .gene-pill {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gene-legend-label {
+  line-height: 1.3;
+}
+
+.gene-legend-name {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.gene-legend-weight {
+  font-size: 9.5px;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.6;
+  margin-left: 4px;
+}
+
+/* ── Info / rules box ───────────────────────────────────────────── */
+.farm-info-box {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: #93c5fd;
+  line-height: 1.5;
+}
+
+.farm-info-box svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #60a5fa;
+}
+
+.farm-info-box ul {
+  margin: 5px 0 0 0;
+  padding-left: 16px;
+}
+
+.farm-info-box li {
+  margin-bottom: 2px;
+}
+
+.farm-info-green {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.farm-info-red {
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* ── Solution panel ─────────────────────────────────────────────── */
+.farm-solution-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state */
+.farm-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dim);
+  text-align: center;
+  padding: 30px 20px;
+  gap: 10px;
+}
+
+.farm-empty-icon {
+  stroke-width: 1.2;
+  color: rgba(255,255,255,0.08);
+  animation: farm-float 3s ease-in-out infinite;
+}
+
+@keyframes farm-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.farm-empty-text {
+  font-size: 12px;
+  max-width: 240px;
+}
+
+.farm-error-text {
+  flex: 1;
+  color: var(--farm-red);
+  font-size: 12px;
+  padding: 14px;
+}
+
+/* ── Banners (success / warning) ────────────────────────────────── */
+.farm-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  animation: farm-slideDown 0.35s ease-out;
+}
+
+@keyframes farm-slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.farm-banner-success {
+  color: var(--farm-green);
+  background: var(--farm-green-dim);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.farm-banner-warning {
+  color: var(--farm-amber);
+  background: var(--farm-amber-dim);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* ── Planter grid (3×3) ─────────────────────────────────────────── */
+.planter-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.planter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 86px);
+  grid-template-rows: repeat(3, 86px);
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(139, 90, 43, 0.06) 0px,
+      transparent 2px,
+      transparent 8px,
+      rgba(139, 90, 43, 0.06) 10px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(139, 90, 43, 0.04) 0px,
+      transparent 2px,
+      transparent 8px,
+      rgba(139, 90, 43, 0.04) 10px
+    ),
+    linear-gradient(180deg, rgba(30, 22, 12, 0.60) 0%, rgba(20, 16, 10, 0.75) 100%);
+  border: 1px solid rgba(139, 90, 43, 0.15);
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.30),
+    0 4px 20px rgba(0,0,0,0.25);
+  position: relative;
+}
+
+/* Soil texture pseudo‑element overlay */
+.planter-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23654321' fill-opacity='0.03'%3E%3Ccircle cx='5' cy='5' r='1'/%3E%3Ccircle cx='25' cy='15' r='0.8'/%3E%3Ccircle cx='15' cy='30' r='1.2'/%3E%3Ccircle cx='35' cy='35' r='0.6'/%3E%3Ccircle cx='10' cy='20' r='0.5'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.planter-cell {
+  position: relative;
+  z-index: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  text-align: center;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.planter-cell-empty {
+  background: rgba(30, 25, 18, 0.50);
+  border: 1px dashed rgba(139, 90, 43, 0.12);
+}
+
+/* Soil dots decoration on empty cells */
+.planter-cell-empty::after {
+  content: '···';
+  color: rgba(139, 90, 43, 0.15);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.planter-cell-clone {
+  background: linear-gradient(160deg, rgba(34, 197, 94, 0.06) 0%, rgba(255,255,255,0.018) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.planter-cell-clone::before {
+  content: '🌱';
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+.planter-cell-clone:hover {
+  border-color: rgba(34, 197, 94, 0.30);
+  background: linear-gradient(160deg, rgba(34, 197, 94, 0.10) 0%, rgba(255,255,255,0.025) 100%);
+}
+
+/* ── Crossbreed center cell (pulsing glow) ──────────────────────── */
+.planter-cell-center {
+  border: 1px solid rgba(229, 92, 37, 0.35);
+  animation: crossbreed-pulse 2s ease-in-out infinite;
+}
+
+.planter-cell-center-success {
+  background: radial-gradient(circle at center, rgba(229, 92, 37, 0.12) 0%, rgba(229, 92, 37, 0.03) 100%);
+}
+
+.planter-cell-center-warning {
+  background: radial-gradient(circle at center, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+@keyframes crossbreed-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(229, 92, 37, 0.10),
+      0 0 20px rgba(229, 92, 37, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 14px rgba(229, 92, 37, 0.25),
+      0 0 35px rgba(229, 92, 37, 0.10);
+  }
+}
+
+/* Crossbreed DNA‑helix decoration */
+.planter-cell-center::after {
+  content: '🧬';
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  font-size: 9px;
+  opacity: 0.4;
+  animation: farm-spin 4s linear infinite;
+}
+
+@keyframes farm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.planter-cell-name {
+  font-size: 8.5px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  letter-spacing: 0.5px;
+}
+
+.planter-cell-name-clone {
+  color: rgba(255,255,255,0.85);
+}
+
+.planter-cell-name-center {
+  color: var(--color-accent, #e55c25);
+  text-transform: uppercase;
+}
+
+.planter-cell-name-warning {
+  color: var(--farm-amber);
+}
+
+.planter-cell-genes {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.planter-cell-target-genes {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--farm-green);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.planter-cell-closest {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* ── Instructions card ──────────────────────────────────────────── */
+.farm-instructions {
+  font-size: 11.5px;
+  line-height: 1.6;
+  background: rgba(255,255,255,0.015);
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.farm-instructions strong {
+  color: var(--color-text);
+}
+
+.farm-instructions ol {
+  margin: 8px 0 0 0;
+  padding-left: 18px;
+  color: var(--color-text-dim);
+}
+
+.farm-instructions li {
+  margin-bottom: 4px;
+}
+
+.farm-instructions li strong {
+  color: #fff;
+}
+
+/* ── No‑match text ──────────────────────────────────────────────── */
+.farm-nomatch-text {
+  font-size: 11.5px;
+  margin: 0;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+}
+
+.farm-nomatch-text strong {
+  color: #fff;
+}
+
+/* ── Slot details table ─────────────────────────────────────────── */
+.farm-table-wrap {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.15);
+}
+
+.farm-table-wrap::-webkit-scrollbar {
+  width: 4px;
+}
+
+.farm-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.farm-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+}
+
+.farm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+}
+
+.farm-table thead tr {
+  background: rgba(255,255,255,0.035);
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.farm-table th {
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+.farm-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.15s ease;
+}
+
+.farm-table tbody tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.farm-table td {
+  padding: 7px 10px;
+}
+
+.farm-table-match {
+  color: var(--farm-green);
+}
+
+.farm-table-mismatch {
+  color: var(--farm-red);
+}
+
+/* ── Weight distribution bars ───────────────────────────────────── */
+.weight-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.weight-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.weight-bar-label {
+  width: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.weight-bar-label-green {
+  color: #4ade80;
+}
+
+.weight-bar-label-red {
+  color: #f87171;
+}
+
+.weight-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.weight-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+  min-width: 0;
+}
+
+.weight-bar-fill-green {
+  background: linear-gradient(90deg, #166534, #22c55e);
+}
+
+.weight-bar-fill-red {
+  background: linear-gradient(90deg, #7f1d1d, #ef4444);
+}
+
+.weight-bar-fill-winner {
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.30);
+}
+
+.weight-bar-value {
+  width: 24px;
+  text-align: right;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-dim);
+  font-size: 9px;
+}
+
+/* ── Solution results wrapper ───────────────────────────────────── */
+.farm-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: farm-fadeIn 0.4s ease-out;
+}
+
+@keyframes farm-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Status pill in table ───────────────────────────────────────── */
+.farm-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.farm-status-match {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--farm-green);
+  border: 1px solid rgba(34, 197, 94, 0.20);
+}
+
+.farm-status-mismatch {
+  background: rgba(239, 68, 68, 0.10);
+  color: var(--farm-red);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
