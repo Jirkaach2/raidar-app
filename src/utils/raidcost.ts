@@ -36,7 +36,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'stone_wall', name: 'Stone Wall', hp: 500, category: 'wall', icon: 'stones',
     blurb: 'Standard stone tier. Fire-proof, weak to soft-side pickaxes/jackhammers.',
     counts: {
-      c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 211, f1_grenade: 46,
+      c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46,
       jackhammer_soft: 1.25, jackhammer_hard: 45, pickaxe_soft: 7, pickaxe_hard: 40,
       icepick_soft: 6, icepick_hard: 35, wooden_spear_soft: 125, stone_spear_soft: 63, salvaged_sword_soft: 35,
       mortar_shell: 17
@@ -46,15 +46,15 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'sheet_wall', name: 'Sheet Metal Wall', hp: 1000, category: 'wall', icon: 'metal.fragments',
     blurb: 'Double stone HP. Melee-resistant, soft-side is vulnerable to jackhammers.',
     counts: {
-      c4: 4, rocket: 8, propane: 13, hv_rocket: 32, satchel: 23, beancan: 112, explo_ammo: 406,
-      jackhammer_soft: 15, pickaxe_soft: 80,
+      c4: 4, rocket: 8, propane: 13, hv_rocket: 67, satchel: 23, beancan: 112, explo_ammo: 400,
+      jackhammer_soft: 15, jackhammer_hard: 439, pickaxe_soft: 80, pickaxe_hard: 345, icepick_hard: 298,
       mortar_shell: 34
     },
   },
   {
     key: 'armored_wall', name: 'Armored Wall (HQM)', hp: 2000, category: 'wall', icon: 'metal.refined',
     blurb: 'Toughest building tier. Highly explosive-resistant. Melee immune.',
-    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 63, satchel: 46, beancan: 223, explo_ammo: 806, mortar_shell: 67 },
+    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 63, satchel: 46, beancan: 223, explo_ammo: 799, mortar_shell: 67 },
   },
   // ── Doors (No soft side in Rust) ──
   {

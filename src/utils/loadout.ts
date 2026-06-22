@@ -104,15 +104,15 @@ const P = (projectile: number, melee: number, explosion = 0, cold = 0, radiation
 export const ARMOR_PIECES: ArmorPiece[] = [
   // ───── HEAD ─────
   { key: 'ballistic.helmet', name: 'Ballistic Helmet', icon: 'ballistic.helmet', tier: 'ballistic',
-    slots: ['head'], layer: 2, protection: P(0.55, 0.75, 0.55, -0.04, 0.10, 0.10) },
+    slots: ['head'], layer: 2, fullFace: true, protection: P(0.55, 0.75, 0.55, -0.04, 0.10, 0.10) },
   { key: 'heavy.plate.helmet', name: 'Heavy Plate Helmet', icon: 'heavy.plate.helmet', tier: 'heavy',
-    slots: ['head'], layer: 2, dualLayer: true, fullFace: true, speedPenalty: 0.1, protection: P(0.90, 0.80, 0.17, -0.17, 0.07, 0.13) },
+    slots: ['head'], layer: 2, dualLayer: true, fullFace: true, speedPenalty: 0.1, protection: P(0.90, 0.80, 1.00, -0.16, 0.07, 0.13) },
   { key: 'metal.facemask', name: 'Metal Facemask', icon: 'metal.facemask', tier: 'metal',
-    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.50, 0.70, 0.08, -0.04, 0, 0.08) },
+    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.50, 0.70, 0.50, -0.04, 0, 0.08) },
   { key: 'coffeecan.helmet', name: 'Coffee Can Helmet', icon: 'coffeecan.helmet', tier: 'metal',
-    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.35, 0.50, 0.08, 0, 0.05, 0.08) },
+    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.35, 0.50, 0.50, 0, 0.05, 0.08) },
   { key: 'riot.helmet', name: 'Riot Helmet', icon: 'riot.helmet', tier: 'roadsign',
-    slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.25, 0.80, 0.08, 0.06, 0.05, 0.13) },
+    slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.25, 0.80, 0.50, 0.06, 0.05, 0.13) },
   { key: 'bucket.helmet', name: 'Bucket Helmet', icon: 'bucket.helmet', tier: 'metal',
     slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.20, 0.50, 0.08, 0.06, 0.04, 0.08) },
   { key: 'clatter.helmet', name: 'Clatter Helmet', icon: 'clatter.helmet', tier: 'metal',
@@ -151,15 +151,15 @@ export const ARMOR_PIECES: ArmorPiece[] = [
   { key: 'ballistic.vest', name: 'Ballistic Vest', icon: 'ballistic.vest', tier: 'ballistic',
     slots: ['chest'], layer: 2, protection: P(0.55, 0.55, 0.55, -0.30, 0.07, 0.30) },
   { key: 'heavy.plate.jacket', name: 'Heavy Plate Jacket', icon: 'heavy.plate.jacket', tier: 'heavy',
-    slots: ['chest'], layer: 2, dualLayer: true, blocksADS: true, speedPenalty: 0.2, blocksSlots: ['hands'], protection: P(0.75, 0.70, 0.17, -0.17, 0.07, 0.12) },
+    slots: ['chest'], layer: 2, dualLayer: true, blocksADS: true, speedPenalty: 0.2, blocksSlots: ['hands'], protection: P(0.75, 0.70, 1.00, -0.67, 0.07, 0.12) },
   { key: 'metal.plate.torso', name: 'Metal Chest Plate', icon: 'metal.plate.torso', tier: 'metal',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.25, 0.20, 0, -0.08, 0, 0.03) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.25, 0.20, 0, -0.34, 0, 0.03) },
   { key: 'roadsign.jacket', name: 'Road Sign Jacket', icon: 'roadsign.jacket', tier: 'roadsign',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.20, 0.25, 0, -0.08, 0, 0.10) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.20, 0.20, 0, -0.34, 0, 0.10) },
   { key: 'wood.armor.jacket', name: 'Wood Chestplate', icon: 'wood.armor.jacket', tier: 'wood',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.20, 0, 0.05, 0.20) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.30, 0, 0.05, 0.20) },
   { key: 'bone.armor.jacket', name: 'Bone Armor', icon: 'bone.armor.suit', tier: 'bone',
-    slots: ['chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.25, 0.40, 0.07, 0, 0.04, 0.13) },
+    slots: ['chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.25, 0.40, 0.40, 0, 0.04, 0.67) },
   { key: 'hoodie', name: 'Hoodie', icon: 'hoodie', tier: 'clothing',
     slots: ['chest'], layer: 1, protection: P(0.20, 0.15, 0, 0.34, 0.05, 0.23) },
   { key: 'jacket.snow', name: 'Snow Jacket', icon: 'jacket.snow', tier: 'clothing',
@@ -177,11 +177,11 @@ export const ARMOR_PIECES: ArmorPiece[] = [
   { key: 'ballistic.legs', name: 'Ballistic Leg Armor', icon: 'ballistic.legarmor', tier: 'ballistic',
     slots: ['legs'], layer: 2, protection: P(0.55, 0.55, 0.55, -0.10, 0.07, 0.20) },
   { key: 'heavy.plate.pants', name: 'Heavy Plate Pants', icon: 'heavy.plate.pants', tier: 'heavy',
-    slots: ['legs'], layer: 2, dualLayer: true, speedPenalty: 0.1, blocksSlots: ['feet'], protection: P(0.75, 0.70, 0.17, -0.17, 0.07, 0.12) },
+    slots: ['legs'], layer: 2, dualLayer: true, speedPenalty: 0.1, blocksSlots: ['feet'], protection: P(0.75, 0.70, 1.00, -0.17, 0.07, 0.12) },
   { key: 'roadsign.kilt', name: 'Road Sign Kilt', icon: 'roadsign.kilt', tier: 'roadsign',
-    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.20, 0.25, 0, -0.08, 0, 0.10) },
+    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.20, 0.20, 0, -0.08, 0, 0.10) },
   { key: 'wood.armor.pants', name: 'Wood Armor Pants', icon: 'wood.armor.pants', tier: 'wood',
-    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.20, 0, 0.05, 0.05) },
+    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.30, 0, 0.05, 0.05) },
   { key: 'pants', name: 'Pants', icon: 'pants', tier: 'clothing',
     slots: ['legs'], layer: 1, protection: P(0.15, 0.15, 0, 0.08, 0.05, 0.03) },
   { key: 'bdu.pants', name: 'BDU Pants', icon: 'bdu.pants', tier: 'clothing',
@@ -521,7 +521,7 @@ export interface ArmorSetSummary {
 /** Aggregate set summary using the chest as the representative torso value. */
 export function setSummary(loadout: Loadout): ArmorSetSummary {
   let speed = 0; let ads = false;
-  let radiation = 0; let cold = 0; let animal = 0; let explosionGlobal = 0; let waterproof = false;
+  let radiation = 0; let cold = 0; let animal = 0; let waterproof = false;
   // A multi-slot suit is stored as the same piece in several slots — count each
   // unique worn piece only once for the global totals.
   const seen = new Set<string>();
@@ -535,7 +535,6 @@ export function setSummary(loadout: Loadout): ArmorSetSummary {
       radiation += pieceMisc(p, 'radiation');
       cold += p.protection.cold || 0;
       animal += p.protection.bite || 0;
-      explosionGlobal += pieceProtection(p, 'explosion');
     }
   }
   return {
@@ -543,7 +542,9 @@ export function setSummary(loadout: Loadout): ArmorSetSummary {
     melee: partProtection(loadout, 'chest', 'melee'),
     explosion: partProtection(loadout, 'chest', 'explosion'),
     speedPenalty: speed, blocksADS: ads,
-    radiation, cold, animal, explosionGlobal, waterproof,
+    // Explosion protection is per body part, not additive across pieces — show
+    // the torso's combined value rather than a meaningless sum.
+    radiation, cold, animal, explosionGlobal: partProtection(loadout, 'chest', 'explosion'), waterproof,
   };
 }
 
