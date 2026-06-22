@@ -1,11 +1,11 @@
 {
-  "version": "1.0.1",
-  "notes": "Raidar 1.0.1 Release: Correct vending sales math, add timeline filter slider, log teammate offline deaths, add customizable sound notifications, and add the new Fishing & Fish Traps utility tab.",
-  "pub_date": "2026-06-22T01:23:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnlJdUNPY2hnYlFScURQQlNzN01ZcVpxQnR5RUdPYkZwVHpjY1ZCbHQ2UW5admp6eHc5bVdXKzFEWEIyQzFQRmgvOWtmVGNpTWNjeUhmQU5yalk1SndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMDg0MDY5CWZpbGU6UmFpZGFyXzEuMC4xX3g2NC1zZXR1cC5leGUKMC9PUnMwd2xZZzVPa1RZSTlpMkJWeG1tc2JlSE1xRG56TFhacVNrTWZaVFlTY0FSOTN1cnlJeDVDUUU5bnNQdFlENjNkdWp2TFlmUlRqamdYcVFnQmc9PQo=",
-      "url": "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.1/Raidar_1.0.1_x64-setup.exe"
-    }
-  }
+    "version":  "1.0.2",
+    "notes":  "Raidar 1.0.2: Overhauled Fishing, Combat Log, and Plant Breeder tools - configurable trap fail rate and verified trap durability data, combat K/D + accuracy + headshot-rate metrics, and a faster crossbreed solver with a performance guard.",
+    "pub_date":  "2026-06-22T13:27:42Z",
+    "platforms":  {
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnhQYVJMZFpJR3pLUEFIZjVIR25BL2Z6RW1jeHZnQmZCZy9iSWV6UzNHMmUrZzNZaktEaXhIRVhpaXkxSUZSRHRvR2p4MGlpbStkZktLc00yQTNFckFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM0Nzk3CWZpbGU6UmFpZGFyXzEuMC4yX3g2NC1zZXR1cC5leGUKNm9CN3V1UWY5OUVXTkJNT3p3OWpIbjh6dWdicCtiaU83QmNDeVhRUDhHSFdpaEpsaEF6eG1HOTFkaHJldkJnRnp4QW1IREdSbjNWMER6bWFSVDhIRFE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.2/Raidar_1.0.2_x64-setup.exe"
+                                         }
+                  }
 }
