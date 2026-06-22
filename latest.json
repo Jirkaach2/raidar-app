@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.3",
-    "notes":  "Raidar 1.0.3: Complete UI/UX rework of the Fishing Guide, Farming Solver and Combat Log tools, with corrected fish-trap data (calorie-based catches, 10 durability per catch). The App Updates panel now sits at the top of Settings \u003e Game \u0026 Recycler.",
-    "pub_date":  "2026-06-22T14:18:42Z",
+    "version":  "1.0.4",
+    "notes":  "Raidar 1.0.4: Rust missions integrated into the live map — open any safe-zone monument (Fishing Village, Large Fishing Village, Outpost, Bandit Camp) to see the missions offered there with objectives, rewards, providers and cooldowns. Also adds the Craft Cost Calculator, Wipe Schedule \u0026 Countdown, and a Ctrl+K command palette.",
+    "pub_date":  "2026-06-22T14:59:10Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjRIenNzWlJFTUx3cmhMYnQ2d003K1JrZXYrZjdBYzB4ZU1WWTZsckNvZFFaT0ZQYVAwcTd3WHhHeWtJcEZNcFdKNkd2OUxycnFRZFduRFR2ZG1ZNkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM3ODk1CWZpbGU6UmFpZGFyXzEuMC4zX3g2NC1zZXR1cC5leGUKbDNLd3FFam1zenpMZ2VyZ2FHV1FJQ1krZktqTWtQQ1RyRzlHdm44Q2pCS3NUd1dsMWN5WjIvczlSeWlnU2I0TlZDV29pZ014SFFtKzhGVzZ5RUFQQkE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.3/Raidar_1.0.3_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjBTbzVnUDFLRTFIem5xaEgxZXdNTTAvcnlJRFJPM3UwcnBMcEk5eVBpbiszWU13N0RPcjN2Q1l5VkljUVpwcmxhL2YrNS9aam5ERmZMRHh1aVpTU0E0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQwMzM0CWZpbGU6UmFpZGFyXzEuMC40X3g2NC1zZXR1cC5leGUKeVp1aWZORWNIUjIwc2t1akYxcXZRaVlKRWlGRE5RMkhOUDBPUXYyOEdHTWFvb0VNUjdJN1dKMW5wd0tSTjlZb1BndkxMQUF0eDlyRGd6dTIwakVkRHc9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.4/Raidar_1.0.4_x64-setup.exe"
                                          }
                   }
 }
