@@ -1,490 +1,233 @@
 import { useState, useMemo } from 'react';
-import { 
-  Fish, Calculator, RefreshCw, 
-  HelpCircle, Info, AlertCircle
-} from 'lucide-react';
+import { Fish, Calculator, Play, Search, Hammer, Gauge, Waves, Info, AlertTriangle } from 'lucide-react';
 import './FishingPanel.css';
 
-interface BaitItem {
-  name: string;
-  lvl: number;
-  stack: number;
-  maxLvl: number;
-}
+interface BaitItem { name: string; lvl: number; stack: number; maxLvl: number; }
+
+const BAITS: BaitItem[] = [
+  { name: 'Grub', lvl: 3.5, stack: 3, maxLvl: 10.5 },
+  { name: 'Small Trout', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Yellow Perch', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Raw Bear Meat', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Raw Big Cat Meat', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Raw Crocodile Meat', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Raw Snake Meat', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Raw Wolf Meat', lvl: 10, stack: 1, maxLvl: 10 },
+  { name: 'Worm', lvl: 2.5, stack: 3, maxLvl: 7.5 },
+  { name: 'Raw Pork', lvl: 5, stack: 1, maxLvl: 5 },
+  { name: 'Raw Deer Meat', lvl: 5, stack: 1, maxLvl: 5 },
+  { name: 'Raw Horse Meat', lvl: 5, stack: 1, maxLvl: 5 },
+  { name: 'Raw Fish Meat', lvl: 0.5, stack: 10, maxLvl: 5 },
+  { name: 'Blueberries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'Blackberries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'Raspberries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'White Berries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'Red Berries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'Yellow Berries', lvl: 1, stack: 5, maxLvl: 5 },
+  { name: 'Anchovy', lvl: 2, stack: 2, maxLvl: 4 },
+  { name: 'Herring', lvl: 2, stack: 2, maxLvl: 4 },
+  { name: 'Sardine', lvl: 2, stack: 2, maxLvl: 4 },
+  { name: 'Raw Human Meat', lvl: 3, stack: 1, maxLvl: 3 },
+];
+
+const tierOf = (maxVal: number) => (maxVal >= 7.5 ? 'S' : maxVal >= 4 ? 'A' : 'B');
+const fishTier = (name: string) =>
+  ['Catfish', 'Salmon'].includes(name) ? 'S'
+  : ['Small Trout', 'Yellow Perch'].includes(name) ? 'A'
+  : ['Anchovy', 'Herring', 'Sardine'].includes(name) ? 'B' : 'J';
 
 export function FishingPanel() {
   const [search, setSearch] = useState('');
-  const [calcBait, setCalcBait] = useState<string>('Grub');
-  const [calcQty, setCalcQty] = useState<number>(30);
-  
-  // Simulator State
-  const [simWater, setSimWater] = useState<'river' | 'ocean'>('ocean');
+  const [calcBait, setCalcBait] = useState('Grub');
+  const [calcQty, setCalcQty] = useState(30);
+
   const [simBaitLvl, setSimBaitLvl] = useState<'5' | '3' | '1'>('5');
-  const [simRuns, setSimRuns] = useState<number>(50);
-  const [simFailRate, setSimFailRate] = useState<number>(50);
+  const [simRuns, setSimRuns] = useState(50);
+  const [simFailRate, setSimFailRate] = useState(50);
   const [simResults, setSimResults] = useState<any | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Bait Data
-  const baits: BaitItem[] = useMemo(() => [
-    { name: 'Grub', lvl: 3.5, stack: 3, maxLvl: 10.5 },
-    { name: 'Small Trout', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Yellow Perch', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Raw Bear Meat', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Raw Big Cat Meat', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Raw Crocodile Meat', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Raw Snake Meat', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Raw Wolf Meat', lvl: 10, stack: 1, maxLvl: 10 },
-    { name: 'Worm', lvl: 2.5, stack: 3, maxLvl: 7.5 },
-    { name: 'Blueberries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'Blackberries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'Raspberries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'White Berries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'Red Berries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'Yellow Berries', lvl: 1, stack: 5, maxLvl: 5 },
-    { name: 'Anchovy', lvl: 2, stack: 2, maxLvl: 4 },
-    { name: 'Herring', lvl: 2, stack: 2, maxLvl: 4 },
-    { name: 'Sardine', lvl: 2, stack: 2, maxLvl: 4 },
-    { name: 'Raw Human Meat', lvl: 3, stack: 1, maxLvl: 3 },
-    { name: 'Raw Pork', lvl: 5, stack: 1, maxLvl: 5 },
-    { name: 'Raw Deer Meat', lvl: 5, stack: 1, maxLvl: 5 },
-    { name: 'Raw Horse Meat', lvl: 5, stack: 1, maxLvl: 5 },
-    { name: 'Raw Fish Meat', lvl: 0.5, stack: 10, maxLvl: 5 },
-  ], []);
+  const filtered = useMemo(() => BAITS.filter((b) => b.name.toLowerCase().includes(search.toLowerCase())), [search]);
 
-  // Filtered Baits
-  const filteredBaits = useMemo(() => {
-    return baits.filter(b => b.name.toLowerCase().includes(search.toLowerCase()));
-  }, [baits, search]);
+  const calc = useMemo(() => {
+    const b = BAITS.find((x) => x.name === calcBait);
+    if (!b) return null;
+    const effective = Math.min(b.lvl * b.stack, b.maxLvl);
+    const runs = Math.floor(calcQty / b.stack);
+    const unused = calcQty % b.stack;
+    const pool = effective >= 5 ? 'Salmon & Catfish' : effective >= 3 ? 'Trout & Perch (some Salmon)' : 'Small fish (Anchovy, Herring, Sardine)';
+    return { effective, runs, unused, pool };
+  }, [calcBait, calcQty]);
 
-  // Calculator Logic
-  const calcResults = useMemo(() => {
-    const selected = baits.find(b => b.name === calcBait);
-    if (!selected) return null;
-
-    // effective bait calculation
-    const effectiveBaitLvl = Math.min(selected.lvl * selected.stack, selected.maxLvl);
-    const runs = Math.floor(calcQty / selected.stack);
-    const unused = calcQty % selected.stack;
-
-    // determine catch options
-    let caughtOptions = '';
-    if (effectiveBaitLvl >= 5) {
-      caughtOptions = 'Salmon, Catfish (River/Ocean)';
-    } else if (effectiveBaitLvl >= 3) {
-      caughtOptions = 'Small Trout, Yellow Perch, Salmon (Low %)';
-    } else {
-      caughtOptions = 'Anchovy, Herring, Sardine, Tarps/Junk';
-    }
-
-    return {
-      effectiveBaitLvl,
-      runs,
-      unused,
-      caughtOptions
-    };
-  }, [baits, calcBait, calcQty]);
-
-  // Run Yield Simulation (Monte Carlo)
   const runSimulation = () => {
     setIsSimulating(true);
-    
     setTimeout(() => {
-      let successes = 0;
-      let fails = 0;
-      const counts: Record<string, number> = {
-        'Catfish': 0,
-        'Salmon': 0,
-        'Small Trout': 0,
-        'Yellow Perch': 0,
-        'Anchovy': 0,
-        'Herring': 0,
-        'Sardine': 0,
-        'Tarp': 0,
-        'Diving Fins': 0,
-        'Water Jug': 0,
-        'Human Skull': 0,
-        'Small Water Bottle': 0,
-        'Water Bucket': 0,
-      };
-
+      let ok = 0, fail = 0;
+      const counts: Record<string, number> = {};
+      const add = (k: string) => { counts[k] = (counts[k] || 0) + 1; };
       for (let i = 0; i < simRuns; i++) {
-        // Configurable trap fail chance
-        if (Math.random() < (simFailRate / 100)) {
-          fails++;
+        if (Math.random() < simFailRate / 100) { fail++; continue; }
+        ok++;
+        const r = Math.random();
+        if (simBaitLvl === '5') {
+          if (r < 0.55) add('Salmon'); else if (r < 0.9) add('Catfish'); else add('Small Trout');
+        } else if (simBaitLvl === '3') {
+          if (r < 0.45) add('Small Trout'); else if (r < 0.8) add('Yellow Perch'); else if (r < 0.92) add('Salmon'); else add('Sardine');
         } else {
-          successes++;
-          const subRoll = Math.random();
-
-          if (simBaitLvl === '5') {
-            // Bait level 5+ pool
-            if (simWater === 'river') {
-              if (subRoll < 0.60) counts['Catfish']++;
-              else if (subRoll < 0.90) counts['Salmon']++;
-              else counts['Small Trout']++;
-            } else {
-              // Ocean
-              if (subRoll < 0.50) counts['Salmon']++;
-              else if (subRoll < 0.85) counts['Catfish']++;
-              else counts['Small Trout']++;
-            }
-          } else if (simBaitLvl === '3') {
-            // Bait level 3-4.5 pool
-            if (simWater === 'river') {
-              if (subRoll < 0.40) counts['Small Trout']++;
-              else if (subRoll < 0.80) counts['Yellow Perch']++;
-              else if (subRoll < 0.90) counts['Salmon']++;
-              else counts['Sardine']++;
-            } else {
-              // Ocean
-              if (subRoll < 0.50) counts['Small Trout']++;
-              else if (subRoll < 0.80) counts['Yellow Perch']++;
-              else if (subRoll < 0.90) counts['Salmon']++;
-              else counts['Sardine']++;
-            }
-          } else {
-            // Bait level 0-2.5 pool (includes junk)
-            if (subRoll < 0.15) counts['Anchovy']++;
-            else if (subRoll < 0.30) counts['Herring']++;
-            else if (subRoll < 0.45) counts['Sardine']++;
-            else if (subRoll < 0.60) counts['Tarp']++;
-            else if (subRoll < 0.70) counts['Diving Fins']++;
-            else if (subRoll < 0.80) counts['Water Jug']++;
-            else if (subRoll < 0.90) counts['Human Skull']++;
-            else if (subRoll < 0.95) counts['Small Water Bottle']++;
-            else counts['Water Bucket']++;
-          }
+          if (r < 0.3) add('Anchovy'); else if (r < 0.55) add('Herring'); else if (r < 0.8) add('Sardine'); else add('Small Trout');
         }
       }
-
-      // Calculate yields
-      const catfishQty = counts['Catfish'] || 0;
-      const salmonQty = counts['Salmon'] || 0;
-      const troutQty = counts['Small Trout'] || 0;
-      const perchQty = counts['Yellow Perch'] || 0;
-      const lowFishQty = (counts['Anchovy'] || 0) + (counts['Herring'] || 0) + (counts['Sardine'] || 0);
-
-      const rawFish = (catfishQty + salmonQty) * 15 + (troutQty + perchQty) * 10 + lowFishQty * 1;
-      const animalFat = (catfishQty + salmonQty) * 15 + (troutQty + perchQty) * 10;
-      const scrapValue = (catfishQty + salmonQty) * 100; // Salmon/Catfish trade for 100 scrap
-      const blueCardChance = (catfishQty + salmonQty) * 0.2;
-
-      setSimResults({
-        fails,
-        successes,
-        counts,
-        rawFish,
-        animalFat,
-        scrapValue,
-        blueCardChance
-      });
+      const big = (counts['Salmon'] || 0) + (counts['Catfish'] || 0);
+      const mid = (counts['Small Trout'] || 0) + (counts['Yellow Perch'] || 0);
+      const small = (counts['Anchovy'] || 0) + (counts['Herring'] || 0) + (counts['Sardine'] || 0);
+      const rawFish = big * 15 + mid * 10 + small * 2;
+      const animalFat = big * 15 + mid * 8;
+      const scrap = big * 100; // salmon/catfish sell ~100 scrap at fishing villages
+      const durabilityUsed = ok * 10;
+      const trapsNeeded = Math.max(1, Math.ceil(durabilityUsed / 100));
+      setSimResults({ ok, fail, counts, rawFish, animalFat, scrap, durabilityUsed, trapsNeeded });
       setIsSimulating(false);
-    }, 400);
-  };
-
-  // Helper to determine tier CSS styling
-  const getBaitRowClass = (bait: BaitItem) => {
-    const activeClass = bait.name === calcBait ? 'active-row ' : '';
-    const maxVal = bait.lvl * bait.stack;
-    if (maxVal >= 7.5) return activeClass + 'tier-high';
-    if (maxVal >= 4.0) return activeClass + 'tier-mid';
-    return activeClass + 'tier-low';
-  };
-
-  const getBaitBadgeTier = (bait: BaitItem) => {
-    const maxVal = bait.lvl * bait.stack;
-    if (maxVal >= 7.5) return 'S';
-    if (maxVal >= 4.0) return 'A';
-    return 'B';
-  };
-
-  const getFishTierBadge = (name: string) => {
-    if (['Catfish', 'Salmon'].includes(name)) return <span className="fish-tier-badge tier-s">S</span>;
-    if (['Small Trout', 'Yellow Perch'].includes(name)) return <span className="fish-tier-badge tier-a">A</span>;
-    if (['Anchovy', 'Herring', 'Sardine'].includes(name)) return <span className="fish-tier-badge tier-b">B</span>;
-    return <span className="fish-tier-badge tier-j">J</span>;
-  };
-
-  const getFishTierClass = (name: string) => {
-    if (['Catfish', 'Salmon'].includes(name)) return 'bar-tier-high';
-    if (['Small Trout', 'Yellow Perch'].includes(name)) return 'bar-tier-mid';
-    if (['Anchovy', 'Herring', 'Sardine'].includes(name)) return 'bar-tier-low';
-    return 'bar-tier-junk';
-  };
-
-  const getFishChipTierClass = (name: string) => {
-    if (['Catfish', 'Salmon'].includes(name)) return 'catch-chip chip-tier-high';
-    if (['Small Trout', 'Yellow Perch'].includes(name)) return 'catch-chip chip-tier-mid';
-    return 'catch-chip';
+    }, 350);
   };
 
   return (
-    <div className="fishing-panel font-body">
-      <div className="fishing-header">
-        <h2 className="font-display"><Fish size={22} className="fish-icon" /> FISHING & FISH TRAPS</h2>
-        <p className="subtitle">Optimize bait and simulate yields to maximize scrap & blue keycards.</p>
-      </div>
-
-      <div className="fishing-grid">
-        <div className="fishing-left-col">
-          <div className="glass-panel card">
-            <h3 className="card-title font-display"><HelpCircle size={16} /> TRAP PLACEMENT & USAGE</h3>
-            <div className="guide-content text-muted">
-              <p>Fish traps cost <b className="highlight-text">200 Wood</b> & <b className="highlight-text">5 Cloth</b> to craft. No blueprint is required.</p>
-              <ol>
-                <li>Place the trap slightly under water level (on ground or building block).</li>
-                <li>Load the trap with bait (higher levels catch better fish).</li>
-                <li>Wait 1–2 minutes. When you hear a <b className="highlight-text">splashing noise</b>, it has caught something!</li>
-                <li>Interact to re-arm the trap, retrieve your fish, and repeat.</li>
-              </ol>
-              <div className="info-box danger">
-                <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span><b>50% FAIL RATE:</b> Traps have a 50% chance of failing, consuming the bait without catching anything. No reset is required on fail.</span>
-              </div>
-              <div className="info-box info">
-                <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span><b>5m DEPTH LIMIT:</b> Traps always act as if they are in 5-meter deep water. They <b>cannot</b> catch Small Sharks or Orange Roughies, but can catch Salmon and Catfish.</span>
-              </div>
-              <div className="info-box info">
-                <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span><b>DURABILITY:</b> A trap has 100 durability and loses <b className="highlight-text">10 per successful catch</b> — roughly <b>10 fish</b> before it needs repairing. The fish caught (small fish vs. trout) is decided by the total <b>calorie value</b> of the loaded bait.</span>
-              </div>
-            </div>
+    <div className="fp">
+      <header className="fp-header">
+        <div className="fp-header-title">
+          <span className="fp-header-icon"><Fish size={20} /></span>
+          <div>
+            <h2>Fishing &amp; Fish Traps</h2>
+            <p>Pick the right bait, calculate effective bait level, and estimate trap yields.</p>
           </div>
         </div>
+      </header>
 
-        <div className="fishing-right-col">
-          <div className="glass-panel card">
-            <h3 className="card-title font-display"><Calculator size={16} /> BAIT CALCULATOR</h3>
-            <p className="card-desc text-muted">Rust automatically stacks smaller baits to reach higher bait levels (capped at max lvl).</p>
-            
-            <div className="bait-calc-widget">
-              <div className="calc-row">
-                <div className="field-group">
-                  <label>Select Bait</label>
-                  <select value={calcBait} onChange={(e) => setCalcBait(e.target.value)}>
-                    {baits.map(b => (
-                      <option key={b.name} value={b.name}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field-group">
-                  <label>Quantity</label>
-                  <input 
-                    type="number" 
-                    min={1} 
-                    value={calcQty} 
-                    onChange={(e) => setCalcQty(Math.max(1, parseInt(e.target.value) || 1))} 
-                  />
-                </div>
-              </div>
-              {calcResults && (
-                <div className="calc-results font-mono">
-                  <div className="calc-result-row">
-                    <span>Effective Bait Level:</span>
-                    <span className="result-val highlight-text">{calcResults.effectiveBaitLvl}</span>
-                  </div>
-                  <div className="calc-result-row">
-                    <span>Trap Runs Available:</span>
-                    <span className="result-val">{calcResults.runs}</span>
-                  </div>
-                  {calcResults.unused > 0 && (
-                    <div className="calc-result-row">
-                      <span>Unused Items:</span>
-                      <span className="result-val text-dim">{calcResults.unused}</span>
-                    </div>
-                  )}
-                  <div className="calc-result-row catch-pool">
-                    <span>Catch Pool:</span>
-                    <span className="result-val pool-text text-muted">{calcResults.caughtOptions}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+      {/* Quick facts */}
+      <div className="fp-facts">
+        <div className="fp-fact"><Hammer size={15} /><div><span className="fp-fact-k">Craft cost</span><span className="fp-fact-v">200 Wood · 5 Cloth</span></div></div>
+        <div className="fp-fact"><Gauge size={15} /><div><span className="fp-fact-k">Durability</span><span className="fp-fact-v">−10 per catch (~10 fish)</span></div></div>
+        <div className="fp-fact"><Waves size={15} /><div><span className="fp-fact-k">Depth</span><span className="fp-fact-v">Acts as 5 m — no sharks</span></div></div>
+      </div>
 
-            <div className="table-search-container">
-              <input 
-                type="text" 
-                placeholder="Search baits..." 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                className="bait-search"
-              />
+      <div className="fp-body">
+        {/* LEFT */}
+        <div className="fp-col">
+          <section className="fp-card">
+            <h3 className="fp-card-h"><Info size={14} /> How fish traps work</h3>
+            <ol className="fp-steps">
+              <li>Place the trap so its base sits just under the water line.</li>
+              <li>Load it with bait — the trap catches <b>small fish or trout based on the total calorie value</b> of the bait inside.</li>
+              <li>Wait 1–2 minutes; a splash sound means a catch. Higher bait level → better fish.</li>
+              <li>Collect the fish and re-bait. Each catch costs <b>10 durability</b>, so repair after ~10 fish.</li>
+            </ol>
+            <div className="fp-note fp-note--warn">
+              <AlertTriangle size={13} />
+              <span>Traps act as if in 5 m water, so they <b>can't</b> catch Sharks or Orange Roughy — but they will land Salmon and Catfish with strong bait.</span>
             </div>
-            <div className="table-wrapper">
-              <table className="bait-table font-mono">
-                <thead>
-                  <tr>
-                    <th>Bait Item</th>
-                    <th>Base Lvl</th>
-                    <th>Stack Size</th>
-                    <th>Max Lvl</th>
-                  </tr>
-                </thead>
+          </section>
+
+          <section className="fp-card">
+            <div className="fp-card-head">
+              <h3 className="fp-card-h"><Fish size={14} /> Bait reference</h3>
+              <div className="fp-search"><Search size={13} /><input placeholder="Search bait…" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+            </div>
+            <div className="fp-table-wrap">
+              <table className="fp-table">
+                <thead><tr><th>Bait</th><th>Lvl</th><th>Stack</th><th>Max</th></tr></thead>
                 <tbody>
-                  {filteredBaits.map((b) => (
-                    <tr key={b.name} className={getBaitRowClass(b)} onClick={() => setCalcBait(b.name)}>
-                      <td>
-                        <span className="bait-name-cell">
-                          {b.name}
-                          <span className="bait-tier-badge">{getBaitBadgeTier(b)}</span>
-                        </span>
-                      </td>
-                      <td>{b.lvl}</td>
-                      <td>{b.stack}</td>
-                      <td className="highlight-text">{b.maxLvl}</td>
+                  {filtered.map((b) => (
+                    <tr key={b.name} className={b.name === calcBait ? 'active' : ''} onClick={() => setCalcBait(b.name)}>
+                      <td><span className={`fp-tier fp-tier--${tierOf(b.lvl * b.stack)}`}>{tierOf(b.lvl * b.stack)}</span>{b.name}</td>
+                      <td>{b.lvl}</td><td>{b.stack}</td><td className="fp-max">{b.maxLvl}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
+        </div>
 
-          <div className="glass-panel card">
-            <h3 className="card-title font-display"><RefreshCw size={16} /> CATCH & YIELD SIMULATOR</h3>
-            <p className="card-desc text-muted">Simulate the results of placing multiple loaded traps over time using Monte Carlo rolls.</p>
-            
-            <div className="sim-controls">
-              <div className="sim-control-group">
-                <label>Water Type</label>
-                <div className="radio-group">
-                  <button className={simWater === 'ocean' ? 'active' : ''} onClick={() => setSimWater('ocean')}>Ocean / Shore</button>
-                  <button className={simWater === 'river' ? 'active' : ''} onClick={() => setSimWater('river')}>River / Swamp</button>
-                </div>
+        {/* RIGHT */}
+        <div className="fp-col">
+          <section className="fp-card">
+            <h3 className="fp-card-h"><Calculator size={14} /> Bait calculator</h3>
+            <p className="fp-card-sub">Rust stacks smaller baits to reach higher bait levels, capped at each item's max.</p>
+            <div className="fp-calc-row">
+              <label className="fp-field"><span>Bait</span>
+                <select value={calcBait} onChange={(e) => setCalcBait(e.target.value)}>
+                  {BAITS.map((b) => <option key={b.name} value={b.name}>{b.name}</option>)}
+                </select>
+              </label>
+              <label className="fp-field"><span>Quantity</span>
+                <input type="number" min={1} value={calcQty} onChange={(e) => setCalcQty(Math.max(1, parseInt(e.target.value) || 1))} />
+              </label>
+            </div>
+            {calc && (
+              <div className="fp-calc-out">
+                <div className="fp-calc-stat"><span>Effective level</span><b className="fp-accent">{calc.effective}</b></div>
+                <div className="fp-calc-stat"><span>Trap loads</span><b>{calc.runs}</b></div>
+                {calc.unused > 0 && <div className="fp-calc-stat"><span>Leftover</span><b className="fp-dim">{calc.unused}</b></div>}
+                <div className="fp-calc-stat fp-calc-stat--wide"><span>Likely catch</span><b className="fp-mut">{calc.pool}</b></div>
               </div>
+            )}
+          </section>
 
-              <div className="sim-control-group">
-                <label>Bait Strength</label>
-                <div className="radio-group">
-                  <button className={simBaitLvl === '5' ? 'active' : ''} onClick={() => setSimBaitLvl('5')}>Lvl 5+ (Salmon/Cat)</button>
-                  <button className={simBaitLvl === '3' ? 'active' : ''} onClick={() => setSimBaitLvl('3')}>Lvl 3-4.5 (Trout/Perch)</button>
-                  <button className={simBaitLvl === '1' ? 'active' : ''} onClick={() => setSimBaitLvl('1')}>Lvl 0-2.5 (Junk/Sardine)</button>
-                </div>
-              </div>
+          <section className="fp-card">
+            <h3 className="fp-card-h"><Play size={14} /> Yield simulator</h3>
+            <p className="fp-card-sub">Monte-Carlo estimate of catches over many trap cycles. Adjust the fail chance to match your server.</p>
 
-              <div className="sim-control-row">
-                <div className="sim-control-group flex-1">
-                  <label>Trap Runs</label>
-                  <input 
-                    type="range" 
-                    min={10} 
-                    max={200} 
-                    step={10} 
-                    value={simRuns} 
-                    onChange={(e) => setSimRuns(parseInt(e.target.value))} 
-                    style={{ width: '100%', accentColor: 'var(--color-accent)' }}
-                  />
-                  <div className="slider-label font-mono text-muted">{simRuns} Trap Cycles</div>
-                </div>
-                <button 
-                  className="sim-run-btn font-display" 
-                  onClick={runSimulation}
-                  disabled={isSimulating}
-                >
-                  {isSimulating ? 'SIMULATING...' : 'RUN SIMULATION'}
-                </button>
-              </div>
-
-              <div className="sim-control-group">
-                <label>Trap Fail Chance — {simFailRate}%</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={90}
-                  step={5}
-                  value={simFailRate}
-                  onChange={(e) => setSimFailRate(parseInt(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--color-accent)' }}
-                />
-                <div className="slider-label font-mono text-muted">Adjust to match your server / experience</div>
+            <div className="fp-field"><span>Bait strength</span>
+              <div className="fp-seg">
+                <button className={simBaitLvl === '5' ? 'on' : ''} onClick={() => setSimBaitLvl('5')}>Lvl 5+</button>
+                <button className={simBaitLvl === '3' ? 'on' : ''} onClick={() => setSimBaitLvl('3')}>Lvl 3–4.5</button>
+                <button className={simBaitLvl === '1' ? 'on' : ''} onClick={() => setSimBaitLvl('1')}>Lvl 0–2.5</button>
               </div>
             </div>
 
+            <div className="fp-slider">
+              <div className="fp-slider-head"><span>Trap cycles</span><b>{simRuns}</b></div>
+              <input type="range" min={10} max={200} step={10} value={simRuns} onChange={(e) => setSimRuns(parseInt(e.target.value))} />
+            </div>
+            <div className="fp-slider">
+              <div className="fp-slider-head"><span>Trap fail chance</span><b>{simFailRate}%</b></div>
+              <input type="range" min={0} max={90} step={5} value={simFailRate} onChange={(e) => setSimFailRate(parseInt(e.target.value))} />
+            </div>
+
+            <button className="fp-run" onClick={runSimulation} disabled={isSimulating}>
+              <Play size={14} /> {isSimulating ? 'Simulating…' : 'Run simulation'}
+            </button>
+
             {simResults && (
-              <div className="sim-results font-mono">
-                <h4 className="results-heading font-display">SIMULATION REPORT</h4>
-                
-                <div className="ratio-bar-container">
-                  <div className="ratio-bar-labels">
-                    <span className="success-label">SUCCESS: {simResults.successes} ({Math.round((simResults.successes / simRuns) * 100)}%)</span>
-                    <span className="fail-label">FAIL: {simResults.fails} ({Math.round((simResults.fails / simRuns) * 100)}%)</span>
-                  </div>
-                  <div className="ratio-bar">
-                    <div 
-                      className="ratio-bar-fill" 
-                      style={{ width: `${(simResults.successes / simRuns) * 100}%` }}
-                    />
-                  </div>
+              <div className="fp-results">
+                <div className="fp-ratio">
+                  <div className="fp-ratio-track"><div className="fp-ratio-fill" style={{ width: `${(simResults.ok / simRuns) * 100}%` }} /></div>
+                  <div className="fp-ratio-legend"><span className="fp-ok">{simResults.ok} caught</span><span className="fp-fail">{simResults.fail} failed</span></div>
                 </div>
 
-                <div className="results-grid">
-                  <div className="res-card">
-                    <span className="res-lbl">SUCCESS / FAIL</span>
-                    <span className="res-val">{simResults.successes} caught / {simResults.fails} failed</span>
-                  </div>
-                  <div className="res-card font-mono highlight">
-                    <span className="res-lbl text-yellow">SCRAP VALUE</span>
-                    <span className="res-val text-yellow">{simResults.scrapValue} Scrap</span>
-                    <span className="res-note text-muted">Salmon/Catfish at Village</span>
-                  </div>
+                <div className="fp-est">
+                  <div className="fp-est-card"><span>Raw fish</span><b>{simResults.rawFish}</b></div>
+                  <div className="fp-est-card"><span>Animal fat</span><b>{simResults.animalFat}</b></div>
+                  <div className="fp-est-card fp-est-card--scrap"><span>Scrap value</span><b>{simResults.scrap}</b></div>
+                  <div className="fp-est-card"><span>Traps used</span><b>{simResults.trapsNeeded}</b></div>
                 </div>
+                <p className="fp-est-note">Yields are estimates from gutting/selling at fishing villages. {simResults.durabilityUsed} durability spent across the run.</p>
 
-                <div className="yields-card font-mono">
-                  <h5 className="section-subheading">Estimated Gutting Yields</h5>
-                  <div className="yield-row">
-                    <span>Animal Fat:</span>
-                    <span className="yield-val highlight-text">{simResults.animalFat}</span>
-                  </div>
-                  <div className="yield-row">
-                    <span>Raw Fish:</span>
-                    <span className="yield-val">{simResults.rawFish}</span>
-                  </div>
-                  <div className="yield-row">
-                    <span>Blue Keycard Probability:</span>
-                    <span className="yield-val text-info">~{Math.round(simResults.blueCardChance)} Cards ({Math.round(simResults.blueCardChance * 100)}%)</span>
-                  </div>
-                </div>
-
-                <div className="catches-breakdown">
-                  <h5 className="section-subheading">Catch Counts & Distribution</h5>
-                  <div className="catch-chart">
-                    {Object.entries(simResults.counts)
-                      .filter(([_, qty]) => (qty as number) > 0)
-                      .map(([name, qty]) => {
-                        const count = qty as number;
-                        const percentage = simResults.successes > 0 ? (count / simResults.successes) * 100 : 0;
-                        return (
-                          <div key={name} className="catch-bar-row">
-                            <span className="catch-bar-name">
-                              {getFishTierBadge(name)}
-                              {name}
-                            </span>
-                            <div className="catch-bar-track">
-                              <div 
-                                className={`catch-bar-fill ${getFishTierClass(name)}`} 
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                            <span className="catch-bar-count">{count}</span>
-                          </div>
-                        );
-                      })}
-                  </div>
-
-                  <div className="catch-chips" style={{ marginTop: 10 }}>
-                    {Object.entries(simResults.counts)
-                      .filter(([_, qty]) => (qty as number) > 0)
-                      .map(([name, qty]) => (
-                        <span key={name} className={getFishChipTierClass(name)}>
-                          {getFishTierBadge(name)}
-                          {name}: <b>{qty as number}</b>
-                        </span>
-                      ))}
-                  </div>
+                <div className="fp-catches">
+                  {Object.entries(simResults.counts).sort((a: any, b: any) => b[1] - a[1]).map(([name, qty]) => {
+                    const p = simResults.ok > 0 ? ((qty as number) / simResults.ok) * 100 : 0;
+                    const t = fishTier(name);
+                    return (
+                      <div key={name} className="fp-catch-row">
+                        <span className="fp-catch-name"><span className={`fp-tier fp-tier--${t}`}>{t}</span>{name}</span>
+                        <div className="fp-catch-track"><div className={`fp-catch-fill fp-tier-fill--${t}`} style={{ width: `${p}%` }} /></div>
+                        <span className="fp-catch-qty">{qty as number}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </div>
     </div>

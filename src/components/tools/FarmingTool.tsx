@@ -1,20 +1,28 @@
-import { useState } from 'react';
-import { Sprout, Trash2, Plus, Info, Check, AlertTriangle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Sprout, Trash2, Plus, Check, AlertTriangle, RotateCcw, Dna, Wand2 } from 'lucide-react';
 import './FarmingTool.css';
 
 interface Clone {
   id: string;
-  genes: string; // 6 characters, e.g., "GGYYYY"
+  genes: string; // 6 characters, e.g. "GGYYYY"
   name: string;
 }
 
-const GENE_WEIGHTS: Record<string, number> = {
-  G: 0.6,
-  Y: 0.6,
-  H: 0.6,
-  W: 1.0,
-  X: 1.0,
+const GENE_WEIGHTS: Record<string, number> = { G: 0.6, Y: 0.6, H: 0.6, W: 1.0, X: 1.0 };
+const GENE_ORDER = ['G', 'Y', 'H', 'W', 'X'];
+const GENE_META: Record<string, { name: string; desc: string; good: boolean }> = {
+  G: { name: 'Growth', desc: 'Faster growth speed', good: true },
+  Y: { name: 'Yield', desc: 'More produce / clones', good: true },
+  H: { name: 'Hardiness', desc: 'Resists harsh conditions', good: true },
+  W: { name: 'Water', desc: 'Higher water need — undesirable', good: false },
+  X: { name: 'Empty', desc: 'Blank gene — undesirable', good: false },
 };
+
+function cycleGene(g: string, dir: 1 | -1 = 1): string {
+  const i = GENE_ORDER.indexOf(g);
+  const n = (i + dir + GENE_ORDER.length) % GENE_ORDER.length;
+  return GENE_ORDER[n];
+}
 
 export function FarmingTool() {
   const [clones, setClones] = useState<Clone[]>([
@@ -29,474 +37,299 @@ export function FarmingTool() {
   const [solved, setSolved] = useState(false);
   const [solving, setSolving] = useState(false);
 
-  // Validate gene string
-  const validateGenes = (str: string) => {
-    const cleaned = str.toUpperCase().replace(/[^GYHWX]/g, '');
-    return cleaned.slice(0, 6);
+  const validateGenes = (str: string) => str.toUpperCase().replace(/[^GYHWX]/g, '').slice(0, 6);
+
+  const targetArr = useMemo(() => {
+    const t = (target + 'XXXXXX').slice(0, 6);
+    return t.split('');
+  }, [target]);
+
+  const setTargetSlot = (idx: number, g: string) => {
+    const arr = targetArr.slice();
+    arr[idx] = g;
+    setTarget(arr.join(''));
   };
 
   const handleAddClone = () => {
     const cleaned = validateGenes(newGenes);
-    if (cleaned.length !== 6) {
-      alert('Genes must be exactly 6 characters of G, Y, H, W, or X.');
-      return;
-    }
+    if (cleaned.length !== 6) return;
     const name = newName.trim() || `Clone ${String.fromCharCode(65 + clones.length)}`;
     setClones([...clones, { id: Date.now().toString(), genes: cleaned, name }]);
     setNewGenes('');
     setNewName('');
   };
 
-  const handleRemoveClone = (id: string) => {
-    setClones(clones.filter((c) => c.id !== id));
-  };
+  const handleRemoveClone = (id: string) => setClones(clones.filter((c) => c.id !== id));
 
-  // Helper: Get combinations with replacement
   const getCombinationsWithReplacement = (arr: Clone[], length: number): Clone[][] => {
     if (length === 0) return [[]];
     const results: Clone[][] = [];
     for (let i = 0; i < arr.length; i++) {
       const remaining = getCombinationsWithReplacement(arr.slice(i), length - 1);
-      for (const r of remaining) {
-        results.push([arr[i], ...r]);
-      }
+      for (const r of remaining) results.push([arr[i], ...r]);
     }
     return results;
   };
 
-  // Solver Algorithm
+  const evalSlot = (combo: Clone[], slot: number, targetGene: string) => {
+    const weights: Record<string, number> = { G: 0, Y: 0, H: 0, W: 0, X: 0 };
+    for (const clone of combo) {
+      const gene = clone.genes[slot];
+      weights[gene] = (weights[gene] || 0) + GENE_WEIGHTS[gene];
+    }
+    let maxVal = -1, winner = '', isTie = false;
+    for (const [gene, val] of Object.entries(weights)) {
+      if (val > maxVal) { maxVal = val; winner = gene; isTie = false; }
+      else if (val === maxVal && val > 0) { isTie = true; }
+    }
+    const match = !isTie && winner === targetGene;
+    return { slot, weights, winner, targetGene, match, isTie };
+  };
+
   const solveCrossbreed = () => {
     setSolved(true);
     const cleanedTarget = validateGenes(target);
-    if (cleanedTarget.length !== 6) {
-      alert('Target genes must be exactly 6 characters.');
-      return;
-    }
+    if (cleanedTarget.length !== 6) return;
+    if (clones.length === 0) { setSolution({ error: 'Add at least one clone to breed from.' }); return; }
 
-    if (clones.length === 0) {
-      setSolution({ error: 'Please add at least one clone to use as breeding stock.' });
-      return;
-    }
-
-    // Combinations-with-replacement grows as C(n+k-1, k); cap the search depth so
-    // large inventories cannot freeze the UI. A planter only has 8 neighbour slots
-    // anyway, so 8 is the hard ceiling regardless.
     const n = clones.length;
     let maxSize = 8;
-    if (n >= 16) maxSize = 5;
-    else if (n >= 10) maxSize = 6;
-    else if (n >= 7) maxSize = 7;
+    if (n >= 16) maxSize = 5; else if (n >= 10) maxSize = 6; else if (n >= 7) maxSize = 7;
 
     setSolving(true);
     setSolution(null);
-
-    // Defer to next tick so the "solving" spinner can paint before the heavy loop.
     setTimeout(() => {
-      const result = runSolver(cleanedTarget, maxSize);
-      setSolution(result);
+      setSolution(runSolver(cleanedTarget, maxSize));
       setSolving(false);
     }, 30);
   };
 
   const runSolver = (cleanedTarget: string, maxSize: number): any => {
-    // Search exact matches first, smallest planting first (fewest neighbours).
     for (let size = 2; size <= maxSize; size++) {
-      const combos = getCombinationsWithReplacement(clones, size);
-
-      for (const combo of combos) {
-        let matchesAll = true;
+      for (const combo of getCombinationsWithReplacement(clones, size)) {
         const slotDetails: any[] = [];
-
+        let ok = true;
         for (let slot = 0; slot < 6; slot++) {
-          const weights: Record<string, number> = { G: 0, Y: 0, H: 0, W: 0, X: 0 };
-          for (const clone of combo) {
-            const gene = clone.genes[slot];
-            weights[gene] = (weights[gene] || 0) + GENE_WEIGHTS[gene];
-          }
-
-          let maxVal = -1;
-          let winner = '';
-          let isTie = false;
-
-          for (const [gene, val] of Object.entries(weights)) {
-            if (val > maxVal) {
-              maxVal = val;
-              winner = gene;
-              isTie = false;
-            } else if (val === maxVal && val > 0) {
-              isTie = true;
-            }
-          }
-
-          const targetGene = cleanedTarget[slot];
-          if (isTie || winner !== targetGene) {
-            matchesAll = false;
-            break;
-          }
-
-          slotDetails.push({ slot, weights, winner, targetGene, match: true });
+          const d = evalSlot(combo, slot, cleanedTarget[slot]);
+          if (!d.match) { ok = false; break; }
+          slotDetails.push(d);
         }
-
-        if (matchesAll) {
-          return { success: true, neighbors: combo, size, slotDetails };
-        }
+        if (ok) return { success: true, neighbors: combo, size, slotDetails };
       }
     }
-
-    // No exact solution — return the closest match found.
-    let bestCombo: Clone[] = [];
-    let bestScore = -1;
-    let bestSlotDetails: any[] = [];
-
+    let bestCombo: Clone[] = [], bestScore = -1, bestSlotDetails: any[] = [];
     const closestMax = Math.min(maxSize, 6);
     for (let size = 3; size <= closestMax; size++) {
-      const combos = getCombinationsWithReplacement(clones, size);
-      for (const combo of combos) {
+      for (const combo of getCombinationsWithReplacement(clones, size)) {
         let score = 0;
-        const tempDetails: any[] = [];
+        const tmp: any[] = [];
         for (let slot = 0; slot < 6; slot++) {
-          const weights: Record<string, number> = { G: 0, Y: 0, H: 0, W: 0, X: 0 };
-          for (const clone of combo) {
-            const gene = clone.genes[slot];
-            weights[gene] = (weights[gene] || 0) + GENE_WEIGHTS[gene];
-          }
-          let maxVal = -1;
-          let winner = '';
-          let isTie = false;
-          for (const [gene, val] of Object.entries(weights)) {
-            if (val > maxVal) {
-              maxVal = val;
-              winner = gene;
-              isTie = false;
-            } else if (val === maxVal && val > 0) {
-              isTie = true;
-            }
-          }
-          const targetGene = cleanedTarget[slot];
-          const match = !isTie && winner === targetGene;
-          if (match) score++;
-          tempDetails.push({ slot, weights, winner, targetGene, match });
+          const d = evalSlot(combo, slot, cleanedTarget[slot]);
+          if (d.match) score++;
+          tmp.push(d);
         }
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestCombo = combo;
-          bestSlotDetails = tempDetails;
-        }
+        if (score > bestScore) { bestScore = score; bestCombo = combo; bestSlotDetails = tmp; }
       }
     }
-
-    return {
-      success: false,
-      closestNeighbors: bestCombo,
-      score: bestScore,
-      slotDetails: bestSlotDetails,
-    };
+    return { success: false, closestNeighbors: bestCombo, score: bestScore, slotDetails: bestSlotDetails };
   };
 
-  // Map neighbor combination to a 3x3 layout
-  // Center is the crossbreed spot (shown as ? / Target)
-  // Neighbors are distributed around the center
   const getPlanterLayout = (neighbors: Clone[]) => {
     const layout = Array(9).fill(null);
-    layout[4] = { name: 'CROSSBREED', type: 'target' }; // Center
-    
-    // Distribute neighbors into outer slots
-    // Available slots: 0, 1, 2, 3, 5, 6, 7, 8
-    const neighborSlots = [0, 2, 6, 8, 1, 3, 5, 7]; // Prefer corners, then sides
-    for (let i = 0; i < neighbors.length; i++) {
-      if (i < neighborSlots.length) {
-        layout[neighborSlots[i]] = { name: neighbors[i].name, genes: neighbors[i].genes, type: 'clone' };
-      }
+    layout[4] = { name: 'CROSSBREED', type: 'target' };
+    const neighborSlots = [0, 2, 6, 8, 1, 3, 5, 7];
+    for (let i = 0; i < neighbors.length && i < neighborSlots.length; i++) {
+      layout[neighborSlots[i]] = { name: neighbors[i].name, genes: neighbors[i].genes, type: 'clone' };
     }
     return layout;
   };
 
-  return (
-    <div className="farming-tool">
-      <div className="farm-header">
-        <h2 className="farm-title font-display">
-          <Sprout size={22} /> FARMING GENETIC CROSSBREED SOLVER
-        </h2>
-        <p className="farm-subtitle">
-          Input your available plant clones and target genes to calculate the optimal planting grid.
-        </p>
-      </div>
+  const renderGenes = (genes: string) => (
+    <span className="fg-seq">
+      {genes.split('').map((g, i) => (
+        <span key={i} className={`fg-pill ${GENE_META[g]?.good ? 'fg-pill--good' : 'fg-pill--bad'}`}>{g}</span>
+      ))}
+    </span>
+  );
 
-      <div className="farm-layout">
-        {/* Left Column: Clone Inventory & Target Selector */}
-        <div className="farm-col">
-          {/* Inventory Card */}
-          <div className="farm-card">
-            <h3 className="farm-card-heading font-display">AVAILABLE CLONES</h3>
-            
-            <div className="clone-list">
+  const neighbors = solution?.neighbors || solution?.closestNeighbors || [];
+
+  return (
+    <div className="fg">
+      <header className="fg-header">
+        <div className="fg-header-title">
+          <span className="fg-header-icon"><Dna size={20} /></span>
+          <div>
+            <h2>Farming Genetic Solver</h2>
+            <p>Find the planting grid that crossbreeds your clones into a target genotype.</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="fg-body">
+        {/* LEFT */}
+        <div className="fg-col">
+          {/* Target */}
+          <section className="fg-card">
+            <div className="fg-card-head">
+              <h3>Target genotype</h3>
+              <span className="fg-hint">click a slot to cycle</span>
+            </div>
+            <div className="fg-target">
+              {targetArr.map((g, i) => (
+                <button
+                  key={i}
+                  className={`fg-slot ${GENE_META[g]?.good ? 'fg-slot--good' : 'fg-slot--bad'}`}
+                  onClick={() => setTargetSlot(i, cycleGene(g))}
+                  onContextMenu={(e) => { e.preventDefault(); setTargetSlot(i, cycleGene(g, -1)); }}
+                  title={`${GENE_META[g]?.name} — left-click next, right-click previous`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+            <div className="fg-target-actions">
+              <button className="fg-btn-solve" onClick={solveCrossbreed} disabled={solving}>
+                <Wand2 size={14} /> {solving ? 'Solving…' : 'Solve grid'}
+              </button>
+              <button className="fg-btn-ghost" onClick={() => setTarget('GGYYHH')} title="Reset to a strong default">
+                <RotateCcw size={13} /> GGYYHH
+              </button>
+            </div>
+          </section>
+
+          {/* Clones */}
+          <section className="fg-card">
+            <div className="fg-card-head">
+              <h3>Your clones</h3>
+              <span className="fg-count">{clones.length}</span>
+            </div>
+            <div className="fg-clone-list">
               {clones.map((c) => (
-                <div key={c.id} className="clone-card">
-                  <div className="clone-info">
-                    <strong className="clone-name">{c.name}</strong>
-                    <span className="gene-sequence">
-                      {c.genes.split('').map((g, idx) => (
-                        <span key={idx} className={`gene-pill ${['W', 'X'].includes(g) ? 'gene-pill-red' : 'gene-pill-green'}`}>
-                          {g}
-                        </span>
-                      ))}
-                    </span>
-                  </div>
-                  <button onClick={() => handleRemoveClone(c.id)} className="clone-remove-btn" title="Remove Clone">
-                    <Trash2 size={14} />
+                <div key={c.id} className="fg-clone">
+                  <span className="fg-clone-name">{c.name}</span>
+                  {renderGenes(c.genes)}
+                  <button className="fg-clone-del" onClick={() => handleRemoveClone(c.id)} title="Remove">
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ))}
-              {clones.length === 0 && (
-                <div className="clone-empty">No clones added yet. Add some below.</div>
-              )}
+              {clones.length === 0 && <div className="fg-empty-line">No clones yet — add some below.</div>}
             </div>
-
-            {/* Add Clone Form */}
-            <div className="farm-form-row">
-              <input 
-                type="text" 
-                placeholder="Clone Name (e.g. Clone D)" 
-                value={newName} 
-                onChange={(e) => setNewName(e.target.value)}
-                className="farm-input"
-              />
-              <input 
-                type="text" 
-                placeholder="GENES" 
-                value={newGenes} 
-                onChange={(e) => setNewGenes(validateGenes(e.target.value))}
+            <div className="fg-add">
+              <input className="fg-input" placeholder="Name (optional)" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <input
+                className="fg-input fg-input--genes"
+                placeholder="GENES"
+                value={newGenes}
                 maxLength={6}
-                className="farm-input farm-input-genes font-mono"
+                onChange={(e) => setNewGenes(validateGenes(e.target.value))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddClone()}
               />
-              <button onClick={handleAddClone} className="farm-add-btn font-display">
+              <button className="fg-btn-add" onClick={handleAddClone} disabled={validateGenes(newGenes).length !== 6}>
                 <Plus size={14} /> Add
               </button>
             </div>
-          </div>
-
-          {/* Target Config Card */}
-          <div className="farm-card">
-            <h3 className="farm-card-heading font-display">TARGET GENE SEQUENCE</h3>
-            <div className="farm-target-row">
-              <div className="farm-target-input-wrap">
-                <input 
-                  type="text" 
-                  value={target} 
-                  onChange={(e) => setTarget(validateGenes(e.target.value))}
-                  maxLength={6}
-                  className="farm-target-input font-mono"
-                />
-              </div>
-              <button onClick={solveCrossbreed} className="farm-solve-btn font-display" disabled={solving}>
-                {solving ? 'SOLVING…' : 'SOLVE MATRIX'}
-              </button>
+            <div className="fg-legend">
+              {GENE_ORDER.map((g) => (
+                <span key={g} className="fg-legend-item">
+                  <span className={`fg-pill ${GENE_META[g].good ? 'fg-pill--good' : 'fg-pill--bad'}`}>{g}</span>
+                  <span className="fg-legend-text">{GENE_META[g].name}<em>{GENE_WEIGHTS[g].toFixed(1)}</em></span>
+                </span>
+              ))}
             </div>
-            
-            {/* Gene Legend */}
-            <div className="gene-legend">
-              <div className="gene-legend-title font-display">Gene Specification Legend</div>
-              <div className="gene-legend-item">
-                <span className="gene-pill gene-pill-green">G</span>
-                <span className="gene-legend-label">
-                  <span className="gene-legend-name">Growth</span>
-                  <span className="gene-legend-weight">0.6</span>
-                </span>
-              </div>
-              <div className="gene-legend-item">
-                <span className="gene-pill gene-pill-green">Y</span>
-                <span className="gene-legend-label">
-                  <span className="gene-legend-name">Yield</span>
-                  <span className="gene-legend-weight">0.6</span>
-                </span>
-              </div>
-              <div className="gene-legend-item">
-                <span className="gene-pill gene-pill-green">H</span>
-                <span className="gene-legend-label">
-                  <span className="gene-legend-name">Hardy</span>
-                  <span className="gene-legend-weight">0.6</span>
-                </span>
-              </div>
-              <div className="gene-legend-item">
-                <span className="gene-pill gene-pill-red">W</span>
-                <span className="gene-legend-label">
-                  <span className="gene-legend-name">Water</span>
-                  <span className="gene-legend-weight">1.0</span>
-                </span>
-              </div>
-              <div className="gene-legend-item" style={{ gridColumn: 'span 2' }}>
-                <span className="gene-pill gene-pill-red">X</span>
-                <span className="gene-legend-label">
-                  <span className="gene-legend-name">Empty / Crossbreeding penalty</span>
-                  <span className="gene-legend-weight">1.0</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Info / rules box */}
-            <div className="farm-info-box">
-              <Info size={16} />
-              <div>
-                <strong>Rules of Rust Crossbreeding:</strong>
-                <ul>
-                  <li>Red genes (<span className="farm-info-red">W, X</span>) weigh <strong style={{ color: '#fff' }}>1.0</strong> each.</li>
-                  <li>Green genes (<span className="farm-info-green">G, Y, H</span>) weigh <strong style={{ color: '#fff' }}>0.6</strong> each.</li>
-                  <li>The gene with the highest total weight in a slot wins and overwrites the center.</li>
-                  <li>Ties maintain the center plant's original gene.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+            <p className="fg-rule">
+              Each of the 8 surrounding plants votes on every slot with its gene's weight. Highest total wins and
+              overwrites the centre. Reds (<b>W/X</b>) weigh <b>1.0</b> and dominate greens (<b>G/Y/H</b>) at <b>0.6</b>. A tie keeps the centre plant's gene.
+            </p>
+          </section>
         </div>
 
-        {/* Right Column: Solution Output */}
-        <div className="farm-col-right">
-          <div className="farm-card farm-solution-card">
-            <h3 className="farm-card-heading font-display">SOLVER SOLUTION</h3>
+        {/* RIGHT */}
+        <div className="fg-col fg-col--result">
+          <section className="fg-card fg-card--fill">
+            <div className="fg-card-head"><h3>Planting solution</h3></div>
 
             {!solved ? (
-              <div className="farm-empty-state">
-                <Sprout size={36} className="farm-empty-icon" />
-                <span className="farm-empty-text">Enter your inventory clones and click <strong>SOLVE MATRIX</strong> to compute planting layout.</span>
+              <div className="fg-placeholder">
+                <Sprout size={40} />
+                <p>Set your target and hit <b>Solve grid</b> to compute the optimal planter layout.</p>
               </div>
             ) : solving ? (
-              <div className="farm-empty-state">
-                <Sprout size={36} className="farm-empty-icon farm-empty-icon-spin" />
-                <span className="farm-empty-text">Searching breeding combinations…</span>
+              <div className="fg-placeholder">
+                <Dna size={40} className="fg-spin" />
+                <p>Searching crossbreed combinations…</p>
               </div>
             ) : solution?.error ? (
-              <div className="farm-error-text">{solution.error}</div>
+              <div className="fg-placeholder fg-placeholder--err">
+                <AlertTriangle size={36} />
+                <p>{solution.error}</p>
+              </div>
             ) : (
-              <div className="farm-results">
-                {/* Banner */}
-                {solution.success ? (
-                  <div className="farm-banner farm-banner-success">
-                    <Check size={16} />
-                    <span>EXACT BREEDING MATCH FOUND! ({solution.size} neighbors)</span>
-                  </div>
-                ) : (
-                  <div className="farm-banner farm-banner-warning">
-                    <AlertTriangle size={16} />
-                    <span>NO EXACT 1-STEP MATCH (Closest: {solution.score}/6 match)</span>
-                  </div>
-                )}
+              <>
+                <div className={`fg-banner ${solution.success ? 'fg-banner--ok' : 'fg-banner--warn'}`}>
+                  {solution.success ? <Check size={16} /> : <AlertTriangle size={16} />}
+                  {solution.success
+                    ? `Exact match — plant ${solution.size} neighbour${solution.size > 1 ? 's' : ''}`
+                    : `No exact 1-step match · closest ${solution.score}/6 slots`}
+                </div>
 
-                {/* Planter Layout Visual */}
-                <div className="planter-wrap">
-                  <div className="planter-grid">
-                    {getPlanterLayout(solution.neighbors || solution.closestNeighbors).map((cell, idx) => {
-                      if (!cell) {
-                        return <div key={idx} className="planter-cell planter-cell-empty" />;
-                      }
-                      const isCenter = cell.type === 'target';
-                      const cellClass = isCenter 
-                        ? `planter-cell planter-cell-center ${solution.success ? 'planter-cell-center-success' : 'planter-cell-center-warning'}`
-                        : 'planter-cell planter-cell-clone';
-                      
+                <div className="fg-planter">
+                  {getPlanterLayout(neighbors).map((cell, idx) => {
+                    if (!cell) return <div key={idx} className="fg-cell fg-cell--empty" />;
+                    if (cell.type === 'target') {
                       return (
-                        <div key={idx} className={cellClass}>
-                          <span className={`planter-cell-name ${
-                            isCenter 
-                              ? (solution.success ? 'planter-cell-name-center' : 'planter-cell-name-center planter-cell-name-warning')
-                              : 'planter-cell-name-clone'
-                          }`}>
-                            {cell.name}
-                          </span>
-                          {isCenter ? (
-                            solution.success ? (
-                              <span className="planter-cell-target-genes">{target}</span>
-                            ) : (
-                              <span className="planter-cell-closest">CLOSEST</span>
-                            )
-                          ) : (
-                            <span className="planter-cell-genes">{cell.genes}</span>
-                          )}
+                        <div key={idx} className={`fg-cell fg-cell--center ${solution.success ? 'ok' : 'warn'}`}>
+                          <span className="fg-cell-label">CENTRE</span>
+                          {solution.success ? renderGenes(validateGenes(target)) : <span className="fg-cell-closest">closest</span>}
                         </div>
                       );
-                    })}
-                  </div>
+                    }
+                    return (
+                      <div key={idx} className="fg-cell fg-cell--clone">
+                        <span className="fg-cell-label">{cell.name}</span>
+                        {renderGenes(cell.genes)}
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Instructions */}
-                <div className="farm-instructions">
-                  <strong>Breeding Instructions:</strong>
-                  <ol>
-                    <li>Plant the surrounding neighbor clones in the positions shown above.</li>
-                    <li>Wait for them to grow into the <strong>Crossbreed-compatible stage</strong> (e.g. Crossbreeding / Sapling).</li>
-                    <li>Plant the central crop (seed or wild clone) in the center slot.</li>
-                    <li>When the central plant enters the Crossbreeding stage, it will absorb the genes and become your target clone. Take cuttings immediately!</li>
-                  </ol>
-                </div>
+                <ol className="fg-steps">
+                  <li>Plant the surrounding neighbour clones shown above.</li>
+                  <li>Let them reach the <b>Crossbreeding / Sapling</b> stage.</li>
+                  <li>Plant the centre crop. When it crossbreeds it absorbs the winning genes.</li>
+                  <li>Take cuttings of the centre immediately once it flips to the target.</li>
+                </ol>
 
-                {/* Slot Details Table */}
-                <div className="farm-table-wrap">
-                  <table className="farm-table">
+                <div className="fg-table-wrap">
+                  <table className="fg-table">
                     <thead>
-                      <tr>
-                        <th>Slot</th>
-                        <th>Target</th>
-                        <th>Winner</th>
-                        <th>Weight Distribution</th>
-                        <th>Status</th>
-                      </tr>
+                      <tr><th>Slot</th><th>Target</th><th>Winner</th><th>Weights</th><th></th></tr>
                     </thead>
                     <tbody>
-                      {solution.slotDetails.map((det: any, idx: number) => {
-                        const numNeighbors = (solution.neighbors || solution.closestNeighbors || []).length;
-                        return (
-                          <tr key={idx}>
-                            <td>#{det.slot + 1}</td>
-                            <td>
-                              <span className={`gene-pill ${['W', 'X'].includes(det.targetGene) ? 'gene-pill-red' : 'gene-pill-green'}`}>
-                                {det.targetGene}
-                              </span>
-                            </td>
-                            <td>
-                              {det.winner ? (
-                                <span className={`gene-pill ${['W', 'X'].includes(det.winner) ? 'gene-pill-red' : 'gene-pill-green'}`}>
-                                  {det.winner}
+                      {solution.slotDetails.map((d: any, i: number) => (
+                        <tr key={i} className={d.match ? '' : 'fg-row-miss'}>
+                          <td>#{d.slot + 1}</td>
+                          <td><span className={`fg-pill ${GENE_META[d.targetGene]?.good ? 'fg-pill--good' : 'fg-pill--bad'}`}>{d.targetGene}</span></td>
+                          <td>{d.winner ? <span className={`fg-pill ${GENE_META[d.winner]?.good ? 'fg-pill--good' : 'fg-pill--bad'}`}>{d.winner}</span> : <span className="fg-tie">tie</span>}</td>
+                          <td>
+                            <div className="fg-weights">
+                              {Object.entries(d.weights).map(([g, v]: [string, any]) => v > 0 && (
+                                <span key={g} className={`fg-weight ${d.winner === g ? 'win' : ''} ${GENE_META[g]?.good ? 'good' : 'bad'}`}>
+                                  {g}<em>{v.toFixed(1)}</em>
                                 </span>
-                              ) : (
-                                <span style={{ color: 'var(--color-text-dim)' }}>Tie</span>
-                              )}
-                            </td>
-                            <td>
-                              <div className="weight-bars">
-                                {Object.entries(det.weights).map(([gene, val]: [string, any]) => {
-                                  if (val === 0) return null;
-                                  const isRed = ['W', 'X'].includes(gene);
-                                  const isWinner = det.winner === gene;
-                                  const fillWidth = numNeighbors > 0 ? (val / numNeighbors) * 100 : 0;
-                                  return (
-                                    <div className="weight-bar-row" key={gene}>
-                                      <span className={`weight-bar-label ${isRed ? 'weight-bar-label-red' : 'weight-bar-label-green'}`}>{gene}</span>
-                                      <div className="weight-bar-track">
-                                        <div 
-                                          className={`weight-bar-fill ${isRed ? 'weight-bar-fill-red' : 'weight-bar-fill-green'} ${isWinner ? 'weight-bar-fill-winner' : ''}`}
-                                          style={{ width: `${fillWidth}%` }}
-                                        />
-                                      </div>
-                                      <span className="weight-bar-value">{val.toFixed(1)}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </td>
-                            <td>
-                              <span className={`farm-status-pill ${det.match ? 'farm-status-match' : 'farm-status-mismatch'}`}>
-                                {det.match ? 'MATCH' : 'MISMATCH'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              ))}
+                            </div>
+                          </td>
+                          <td>{d.match ? <Check size={14} className="fg-ok-ico" /> : <span className="fg-x">×</span>}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </>
             )}
-          </div>
+          </section>
         </div>
       </div>
     </div>

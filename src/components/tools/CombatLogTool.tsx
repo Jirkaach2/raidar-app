@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { Terminal, Play, Trash2 } from 'lucide-react';
+import { Terminal, Play, Trash2, Crosshair, Target, Skull, Activity } from 'lucide-react';
 import './CombatLogTool.css';
 
 interface CombatEvent {
   time: string;
   attacker: string;
-  attackerId?: string;
   victim: string;
-  victimId?: string;
   weapon: string;
   ammo: string;
   area: string;
@@ -44,651 +42,277 @@ const SAMPLE_LOG_INVALID = `10:14.05 you 76561198000000001 Shifty_Sam 7656119800
 10:14.80 Shifty_Sam 76561198000000004 you 76561198000000001 custom ammo.pistol head 25.1m 60.5 15.0 hit
 10:15.02 Shifty_Sam 76561198000000004 you 76561198000000001 custom ammo.pistol chest 25.0m 15.0 0.0 killed`;
 
+const emptyStats = { damageDealt: 0, damageTaken: 0, headshots: 0, totalHitsDealt: 0, invalids: 0, kills: 0, deaths: 0 };
+
 export function CombatLogTool() {
   const [logText, setLogText] = useState('');
   const [parsed, setParsed] = useState(false);
+  const [showInput, setShowInput] = useState(true);
   const [events, setEvents] = useState<CombatEvent[]>([]);
-  const [stats, setStats] = useState({
-    damageDealt: 0,
-    damageTaken: 0,
-    headshots: 0,
-    totalHitsDealt: 0,
-    invalids: 0,
-    kills: 0,
-    deaths: 0,
-  });
+  const [stats, setStats] = useState({ ...emptyStats });
   const [opponents, setOpponents] = useState<Record<string, OpponentStat>>({});
-  const [hitDistribution, setHitDistribution] = useState({
-    head: 0,
-    chest: 0,
-    stomach: 0,
-    limbs: 0,
-    total: 0,
-  });
+  const [hitDistribution, setHitDistribution] = useState({ head: 0, chest: 0, stomach: 0, limbs: 0, total: 0 });
 
-  const loadSample = (sample: string) => {
-    setLogText(sample);
-    parseLog(sample);
-  };
+  const loadSample = (sample: string) => { setLogText(sample); parseLog(sample); };
 
   const clearLog = () => {
-    setLogText('');
-    setEvents([]);
-    setParsed(false);
-    setStats({
-      damageDealt: 0,
-      damageTaken: 0,
-      headshots: 0,
-      totalHitsDealt: 0,
-      invalids: 0,
-      kills: 0,
-      deaths: 0,
-    });
-    setOpponents({});
-    setHitDistribution({
-      head: 0,
-      chest: 0,
-      stomach: 0,
-      limbs: 0,
-      total: 0,
-    });
+    setLogText(''); setEvents([]); setParsed(false); setShowInput(true);
+    setStats({ ...emptyStats }); setOpponents({});
+    setHitDistribution({ head: 0, chest: 0, stomach: 0, limbs: 0, total: 0 });
   };
 
   const parseLog = (textToParse?: string) => {
     const text = textToParse !== undefined ? textToParse : logText;
     if (!text.trim()) return;
-
     const lines = text.split('\n');
     const parsedEvents: CombatEvent[] = [];
-    
-    let totalDmgDealt = 0;
-    let totalDmgTaken = 0;
-    let headshotCount = 0;
-    let totalHits = 0;
-    let invalidCount = 0;
-    let killCount = 0;
-    let deathCount = 0;
+    let dmgDealt = 0, dmgTaken = 0, hs = 0, hits = 0, invalids = 0, kills = 0, deaths = 0;
+    let head = 0, chest = 0, stomach = 0, limbs = 0, hitTotal = 0;
     const opponentMap: Record<string, OpponentStat> = {};
-
-    let headHits = 0;
-    let chestHits = 0;
-    let stomachHits = 0;
-    let limbsHits = 0;
-    let totalHitDealtDealt = 0;
 
     for (let line of lines) {
       line = line.trim();
       if (!line) continue;
-      
-      // Skip headers
-      if (line.toLowerCase().startsWith('time') || line.toLowerCase().startsWith('active')) {
-        continue;
-      }
+      if (line.toLowerCase().startsWith('time') || line.toLowerCase().startsWith('active')) continue;
+      const t = line.split(/\s+/);
+      if (t.length < 5) continue;
 
-      // Split by whitespace
-      const tokens = line.split(/\s+/);
-      if (tokens.length < 5) continue; // Not a valid combat log entry
+      const clean = (s: string) => { if (!s) return 'unknown'; const i = s.indexOf('('); return i > -1 ? s.slice(0, i) : s; };
+      let attacker = 'unknown', victim = 'unknown', weapon = 'unknown', ammo = 'unknown', area = 'none', distance = '0m', oldHp = '100.0', newHp = '100.0', hp = '100', info = '';
 
-      const time = tokens[0] || '00:00';
-      
-      const cleanName = (str: string) => {
-        if (!str) return 'unknown';
-        const idx = str.indexOf('(');
-        return idx > -1 ? str.slice(0, idx) : str;
-      };
-
-      let attacker = 'unknown';
-      let attackerId = '';
-      let victim = 'unknown';
-      let victimId = '';
-      let weapon = 'unknown';
-      let ammo = 'unknown';
-      let area = 'none';
-      let distance = '0m';
-      let oldHp = '100.0';
-      let newHp = '100.0';
-      let hp = '100';
-      let info = '';
-
-      if (tokens.length >= 11) {
-        // Real Rust 12-column format (or 11 column if info is empty)
-        // e.g. "time attacker attacker_id target target_id weapon ammo area distance old_hp new_hp info"
-        attacker = cleanName(tokens[1]);
-        attackerId = tokens[2];
-        victim = cleanName(tokens[3]);
-        victimId = tokens[4];
-        weapon = tokens[5];
-        ammo = tokens[6];
-        area = tokens[7];
-        distance = tokens[8].endsWith('m') ? tokens[8] : tokens[8] + 'm';
-        oldHp = tokens[9];
-        newHp = tokens[10];
-        hp = tokens[10];
-        info = tokens.slice(11).join(' ') || '-';
+      if (t.length >= 11) {
+        attacker = clean(t[1]); victim = clean(t[3]); weapon = t[5]; ammo = t[6]; area = t[7];
+        distance = t[8].endsWith('m') ? t[8] : t[8] + 'm';
+        oldHp = t[9]; newHp = t[10]; hp = t[10]; info = t.slice(11).join(' ') || '-';
       } else {
-        // Fallback/Legacy 9-column format
-        // time attacker victim weapon ammo area distance hp info
-        attacker = cleanName(tokens[1]);
-        attackerId = '';
-        victim = cleanName(tokens[2]);
-        victimId = '';
-        weapon = tokens[3];
-        ammo = tokens[4];
-        area = tokens[5];
-        distance = tokens[6].endsWith('m') ? tokens[6] : tokens[6] + 'm';
-        
-        const isDmgInvalid = tokens[7]?.toLowerCase() === 'invalid';
-        if (isDmgInvalid) {
-          oldHp = '100.0';
-          newHp = 'invalid';
-          hp = 'invalid';
-          info = tokens.slice(7).join(' ');
-        } else {
-          oldHp = '100.0';
-          newHp = tokens[7] || '100.0';
-          hp = newHp;
-          info = tokens.slice(8).join(' ');
-        }
+        attacker = clean(t[1]); victim = clean(t[2]); weapon = t[3]; ammo = t[4]; area = t[5];
+        distance = t[6].endsWith('m') ? t[6] : t[6] + 'm';
+        if (t[7]?.toLowerCase() === 'invalid') { oldHp = '100.0'; newHp = 'invalid'; hp = 'invalid'; info = t.slice(7).join(' '); }
+        else { oldHp = '100.0'; newHp = t[7] || '100.0'; hp = newHp; info = t.slice(8).join(' '); }
       }
 
-      // Determine Event Type
       let type: CombatEvent['type'] = 'generic';
-      const isAttackerYou = attacker.toLowerCase() === 'you';
-      const isVictimYou = victim.toLowerCase() === 'you';
+      const isAtkYou = attacker.toLowerCase() === 'you';
+      const isVicYou = victim.toLowerCase() === 'you';
       const isInvalid = info.toLowerCase().includes('invalid') || hp.toLowerCase() === 'invalid' || info.toLowerCase().includes('desync');
+      if (isInvalid) type = 'invalid';
+      else if (info.toLowerCase().includes('killed') || info.toLowerCase().includes('death') || newHp === '0.0' || newHp === '0') type = isAtkYou ? 'kill' : (isVicYou ? 'death' : 'generic');
+      else if (isAtkYou) type = 'dealt';
+      else if (isVicYou) type = 'taken';
 
-      if (isInvalid) {
-        type = 'invalid';
-      } else if (info.toLowerCase().includes('killed') || info.toLowerCase().includes('death') || newHp === '0.0' || newHp === '0') {
-        type = isAttackerYou ? 'kill' : (isVictimYou ? 'death' : 'generic');
-      } else if (isAttackerYou) {
-        type = 'dealt';
-      } else if (isVictimYou) {
-        type = 'taken';
-      }
+      parsedEvents.push({ time: t[0] || '00:00', attacker, victim, weapon, ammo, area, distance, oldHp, newHp, hp, info, type });
+      if (type === 'kill') kills++; else if (type === 'death') deaths++;
 
-      const event: CombatEvent = {
-        time,
-        attacker,
-        attackerId,
-        victim,
-        victimId,
-        weapon,
-        ammo,
-        area,
-        distance,
-        oldHp,
-        newHp,
-        hp,
-        info,
-        type
-      };
-
-      parsedEvents.push(event);
-
-      if (type === 'kill') killCount++;
-      else if (type === 'death') deathCount++;
-
-      const opponentName = isAttackerYou ? victim : attacker;
-      if (opponentName && opponentName !== 'you' && opponentName !== 'unknown') {
-        if (!opponentMap[opponentName]) {
-          opponentMap[opponentName] = {
-            name: opponentName,
-            damageDealt: 0,
-            damageTaken: 0,
-            hitsDealt: 0,
-            hitsTaken: 0,
-            headshots: 0,
-            invalids: 0,
-          };
-        }
-
-        const op = opponentMap[opponentName];
-        
-        // Calculate exact damage delta if numeric
-        let exactDamage = 0;
-        if (oldHp !== 'invalid' && newHp !== 'invalid') {
-          const oldVal = parseFloat(oldHp);
-          const newVal = parseFloat(newHp);
-          if (!isNaN(oldVal) && !isNaN(newVal)) {
-            exactDamage = Math.max(0, oldVal - newVal);
-          }
-        }
-
-        if (isInvalid) {
-          invalidCount++;
-          op.invalids++;
-        } else if (type === 'dealt' || type === 'kill') {
-          totalHits++;
-          op.hitsDealt++;
-          
-          // Use exact damage or fallback to estimation
-          const dmg = exactDamage > 0 ? exactDamage : (area.toLowerCase() === 'head' ? 50 : 25);
-          totalDmgDealt += dmg;
-          op.damageDealt += dmg;
-
-          // Track hit distributions for dealt hits
-          totalHitDealtDealt++;
-          const cleanArea = area.toLowerCase();
-          if (cleanArea === 'head') {
-            headshotCount++;
-            op.headshots++;
-            headHits++;
-          } else if (cleanArea === 'chest' || cleanArea === 'breast' || cleanArea === 'spine' || cleanArea === 'body') {
-            chestHits++;
-          } else if (cleanArea === 'stomach' || cleanArea === 'pelvis' || cleanArea === 'hip' || cleanArea === 'abdomen') {
-            stomachHits++;
-          } else {
-            limbsHits++; // arm, leg, hand, foot, shoulder etc.
-          }
+      const opName = isAtkYou ? victim : attacker;
+      if (opName && opName !== 'you' && opName !== 'unknown') {
+        if (!opponentMap[opName]) opponentMap[opName] = { name: opName, damageDealt: 0, damageTaken: 0, hitsDealt: 0, hitsTaken: 0, headshots: 0, invalids: 0 };
+        const op = opponentMap[opName];
+        let exact = 0;
+        if (oldHp !== 'invalid' && newHp !== 'invalid') { const o = parseFloat(oldHp), n = parseFloat(newHp); if (!isNaN(o) && !isNaN(n)) exact = Math.max(0, o - n); }
+        const a = area.toLowerCase();
+        if (isInvalid) { invalids++; op.invalids++; }
+        else if (type === 'dealt' || type === 'kill') {
+          hits++; op.hitsDealt++;
+          const dmg = exact > 0 ? exact : (a === 'head' ? 50 : 25);
+          dmgDealt += dmg; op.damageDealt += dmg; hitTotal++;
+          if (a === 'head') { hs++; op.headshots++; head++; }
+          else if (['chest', 'breast', 'spine', 'body'].includes(a)) chest++;
+          else if (['stomach', 'pelvis', 'hip', 'abdomen'].includes(a)) stomach++;
+          else limbs++;
         } else if (type === 'taken' || type === 'death') {
           op.hitsTaken++;
-          const dmg = exactDamage > 0 ? exactDamage : (area.toLowerCase() === 'head' ? 50 : 20);
-          totalDmgTaken += dmg;
-          op.damageTaken += dmg;
+          const dmg = exact > 0 ? exact : (a === 'head' ? 50 : 20);
+          dmgTaken += dmg; op.damageTaken += dmg;
         }
       }
     }
 
     setEvents(parsedEvents);
-    setStats({
-      damageDealt: Math.round(totalDmgDealt),
-      damageTaken: Math.round(totalDmgTaken),
-      headshots: headshotCount,
-      totalHitsDealt: totalHits,
-      invalids: invalidCount,
-      kills: killCount,
-      deaths: deathCount,
-    });
+    setStats({ damageDealt: Math.round(dmgDealt), damageTaken: Math.round(dmgTaken), headshots: hs, totalHitsDealt: hits, invalids, kills, deaths });
     setOpponents(opponentMap);
-    setHitDistribution({
-      head: headHits,
-      chest: chestHits,
-      stomach: stomachHits,
-      limbs: limbsHits,
-      total: totalHitDealtDealt,
-    });
+    setHitDistribution({ head, chest, stomach, limbs, total: hitTotal });
     setParsed(true);
+    setShowInput(false);
   };
 
-  const getWeaponBadge = (weaponName: string) => {
-    const name = weaponName.toLowerCase();
-    let emoji = '🔫';
-    let cleanName = weaponName;
-
-    if (name.includes('ak') || name.includes('rifle.ak')) {
-      emoji = '🔫';
-      cleanName = 'AK-47';
-    } else if (name.includes('bolt') || name.includes('rifle.bolt')) {
-      emoji = '🎯';
-      cleanName = 'Bolt';
-    } else if (name.includes('mp5')) {
-      emoji = '🔫';
-      cleanName = 'MP5';
-    } else if (name.includes('custom')) {
-      emoji = '🔫';
-      cleanName = 'Custom';
-    } else if (name.includes('thompson')) {
-      emoji = '🔫';
-      cleanName = 'Thompson';
-    } else if (name.includes('m39')) {
-      emoji = '🎯';
-      cleanName = 'M39';
-    } else if (name.includes('m249')) {
-      emoji = '🔥';
-      cleanName = 'M249';
-    } else if (name.includes('lr300') || name.includes('lr-300')) {
-      emoji = '🔫';
-      cleanName = 'LR-300';
-    } else if (name.includes('shotgun') || name.includes('pump') || name.includes('spas') || name.includes('double')) {
-      emoji = '💥';
-      cleanName = 'Shotgun';
-    } else if (name.includes('bow') || name.includes('crossbow')) {
-      emoji = '🏹';
-      cleanName = 'Bow';
-    } else if (name.includes('nail')) {
-      emoji = '🔨';
-      cleanName = 'Nailgun';
-    } else if (name.includes('pistol') || name.includes('revolver') || name.includes('semi')) {
-      emoji = '🔫';
-      cleanName = 'Pistol';
-    }
-
-    return (
-      <span className="combatlog__weapon-badge" title={weaponName}>
-        <span className="combatlog__weapon-icon">{emoji}</span>
-        <span>{cleanName}</span>
-      </span>
-    );
+  const getWeaponName = (w: string) => {
+    const n = w.toLowerCase();
+    if (n.includes('ak')) return 'AK-47';
+    if (n.includes('bolt')) return 'Bolt AR';
+    if (n.includes('mp5')) return 'MP5';
+    if (n.includes('thompson')) return 'Thompson';
+    if (n.includes('m39')) return 'M39';
+    if (n.includes('m249')) return 'M249';
+    if (n.includes('lr')) return 'LR-300';
+    if (n.includes('shotgun') || n.includes('pump') || n.includes('spas') || n.includes('double')) return 'Shotgun';
+    if (n.includes('bow') || n.includes('crossbow')) return 'Bow';
+    if (n.includes('nail')) return 'Nailgun';
+    if (n.includes('custom')) return 'Custom SMG';
+    if (n.includes('pistol') || n.includes('revolver') || n.includes('semi')) return 'Pistol';
+    return w;
   };
 
-  const getAreaBadgeClass = (area: string) => {
-    const cleanArea = area.toLowerCase();
-    if (cleanArea === 'head') return 'combatlog__area-badge combatlog__area-badge--head';
-    if (cleanArea === 'chest' || cleanArea === 'breast' || cleanArea === 'spine' || cleanArea === 'body') return 'combatlog__area-badge combatlog__area-badge--chest';
-    if (cleanArea === 'stomach' || cleanArea === 'pelvis' || cleanArea === 'hip' || cleanArea === 'abdomen') return 'combatlog__area-badge combatlog__area-badge--stomach';
-    return 'combatlog__area-badge combatlog__area-badge--limb';
+  const areaClass = (area: string) => {
+    const a = area.toLowerCase();
+    if (a === 'head') return 'cl-area cl-area--head';
+    if (['chest', 'breast', 'spine', 'body'].includes(a)) return 'cl-area cl-area--chest';
+    if (['stomach', 'pelvis', 'hip', 'abdomen'].includes(a)) return 'cl-area cl-area--stomach';
+    return 'cl-area cl-area--limb';
   };
 
-  // Percentages for body parts
-  const headPct = hitDistribution.total > 0 ? Math.round((hitDistribution.head / hitDistribution.total) * 100) : 0;
-  const chestPct = hitDistribution.total > 0 ? Math.round((hitDistribution.chest / hitDistribution.total) * 100) : 0;
-  const stomachPct = hitDistribution.total > 0 ? Math.round((hitDistribution.stomach / hitDistribution.total) * 100) : 0;
-  const limbsPct = hitDistribution.total > 0 ? Math.round((hitDistribution.limbs / hitDistribution.total) * 100) : 0;
+  const pct = (n: number) => hitDistribution.total > 0 ? Math.round((n / hitDistribution.total) * 100) : 0;
+  const headPct = pct(hitDistribution.head), chestPct = pct(hitDistribution.chest), stomachPct = pct(hitDistribution.stomach), limbsPct = pct(hitDistribution.limbs);
 
-  // Heatmap colors for body diagram
-  const headHeat = `rgba(59, 130, 246, ${0.12 + (headPct / 100) * 0.85})`;
-  const chestHeat = `rgba(34, 197, 94, ${0.12 + (chestPct / 100) * 0.85})`;
-  const stomachHeat = `rgba(245, 158, 11, ${0.12 + (stomachPct / 100) * 0.85})`;
-  const limbsHeat = `rgba(229, 92, 37, ${0.12 + (limbsPct / 100) * 0.85})`;
-
-  // Combat performance metrics
   const shotsFired = stats.totalHitsDealt + stats.invalids;
-  const accuracyPct = shotsFired > 0 ? Math.round((stats.totalHitsDealt / shotsFired) * 100) : 0;
+  const accuracy = shotsFired > 0 ? Math.round((stats.totalHitsDealt / shotsFired) * 100) : 0;
   const headshotRate = stats.totalHitsDealt > 0 ? Math.round((stats.headshots / stats.totalHitsDealt) * 100) : 0;
-  const kdRatio = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : String(stats.kills);
+  const kd = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : String(stats.kills);
+
+  const heat = (base: string, p: number) => `rgba(${base}, ${0.1 + (p / 100) * 0.8})`;
 
   return (
-    <div className="combatlog">
-      <div className="combatlog__header">
-        <h2 className="combatlog__title font-display">
-          <Terminal size={22} /> COMBAT LOG PARSER & VISUALIZER
-        </h2>
-        <p className="combatlog__subtitle">
-          Paste your in-game <code>combatlog</code> console output. Supports the modern 12-column format.
-        </p>
-      </div>
-
-      <div className="combatlog__grid">
-        {/* Left Column: Log Paste Terminal */}
-        <div className="combatlog__col">
-          <div className="glass-panel" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h3 className="combatlog__panel-title font-display">CONSOLE OUTPUT PASTE</h3>
-            
-            <div className="combatlog__terminal-wrap">
-              <div className="combatlog__terminal-bar">
-                <span className="combatlog__terminal-dot combatlog__terminal-dot--red" />
-                <span className="combatlog__terminal-dot combatlog__terminal-dot--amber" />
-                <span className="combatlog__terminal-dot combatlog__terminal-dot--green" />
-                <span style={{ marginLeft: 6 }}>RUST_CONSOLE_COMBAT_LOG</span>
-              </div>
-              <textarea
-                placeholder="Paste Rust console combatlog here... (Press F1 in-game, type combatlog, copy and paste)"
-                value={logText}
-                onChange={(e) => setLogText(e.target.value)}
-                className="combatlog__textarea"
-              />
-              {!logText && (
-                <div className="combatlog__terminal-prompt">
-                  <span>&gt;</span>
-                  <span className="combatlog__cursor" />
-                </div>
-              )}
-            </div>
-
-            <div className="combatlog__btn-row">
-              <button onClick={() => parseLog()} className="combatlog__btn-parse font-display">
-                <Play size={14} /> Parse Log
-              </button>
-              <button onClick={() => loadSample(SAMPLE_LOG_PVP)} className="combatlog__btn-sample">
-                Load PVP Sample
-              </button>
-              <button onClick={() => loadSample(SAMPLE_LOG_INVALID)} className="combatlog__btn-sample">
-                Load Invalid Sample
-              </button>
-              <button onClick={clearLog} className="combatlog__btn-clear" title="Clear log text">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Opponent Aggregated Stats */}
-          <div className="glass-panel" style={{ padding: 16 }}>
-            <h3 className="combatlog__panel-title combatlog__panel-title--mb font-display">TARGET COMBAT SUMMARY</h3>
-            <div className="combatlog__opponents">
-              {Object.values(opponents).map((op) => {
-                const totalDmg = op.damageDealt + op.damageTaken;
-                const dealtPct = totalDmg > 0 ? Math.round((op.damageDealt / totalDmg) * 100) : 50;
-                const takenPct = totalDmg > 0 ? Math.round((op.damageTaken / totalDmg) * 100) : 50;
-                const accuracy = op.hitsDealt > 0 ? Math.round(((op.hitsDealt - op.invalids) / op.hitsDealt) * 100) : 0;
-
-                return (
-                  <div key={op.name} className="combatlog__opponent-card">
-                    <div className="combatlog__opponent-header">
-                      <span className="combatlog__opponent-name">{op.name}</span>
-                      <span className="combatlog__opponent-accuracy">
-                        Valid Accuracy: <strong>{accuracy}%</strong>
-                      </span>
-                    </div>
-                    
-                    <div className="combatlog__opponent-stats">
-                      <div>
-                        <span className="combatlog__opponent-stat-label">Damage Dealt</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--cl-green)' }}>{op.damageDealt}</span>
-                      </div>
-                      <div>
-                        <span className="combatlog__opponent-stat-label">Damage Taken</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--cl-red)' }}>{op.damageTaken}</span>
-                      </div>
-                      <div>
-                        <span className="combatlog__opponent-stat-label">Hits (HS / Invalid)</span>
-                        <span style={{ fontSize: 12, fontWeight: 700 }}>
-                          {op.hitsDealt} <span style={{ color: 'var(--cl-blue)' }}>({op.headshots})</span> / <span style={{ color: 'var(--cl-amber)' }}>{op.invalids}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="combatlog__dmg-bar-wrap">
-                      <div className="combatlog__dmg-bar-label">Damage Contribution</div>
-                      <div className="combatlog__dmg-bar-track">
-                        <div className="combatlog__dmg-bar-dealt" style={{ width: `${dealtPct}%` }} />
-                        <div className="combatlog__dmg-bar-taken" style={{ width: `${takenPct}%` }} />
-                      </div>
-                      <div className="combatlog__dmg-bar-legends">
-                        <span>Dealt: {dealtPct}%</span>
-                        <span>Taken: {takenPct}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {Object.keys(opponents).length === 0 && (
-                <div className="combatlog__empty-msg">No opponent data parsed yet.</div>
-              )}
-            </div>
+    <div className="cl">
+      <header className="cl-header">
+        <div className="cl-header-title">
+          <span className="cl-header-icon"><Terminal size={20} /></span>
+          <div>
+            <h2>Combat Log Analyzer</h2>
+            <p>Paste your in-game <code>combatlog</code> output for damage, accuracy and hit telemetry.</p>
           </div>
         </div>
-
-        {/* Right Column: Statistics Cards, Hit Distribution, and Timeline */}
-        <div className="combatlog__col--right">
-          <div className="glass-panel" style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <h3 className="combatlog__panel-title font-display">PARSED DIAGNOSTICS REPORT</h3>
-
-            {!parsed ? (
-              <div className="combatlog__empty">
-                <Terminal size={38} />
-                <span className="combatlog__empty-text">
-                  Paste console output and parse it to view damage heatmaps, timelines, and invalid telemetry.
-                </span>
-              </div>
-            ) : (
-              <div className="combatlog__report-content">
-                {/* Stats Cards Row */}
-                <div className="combatlog__stats-row">
-                  <div className="combatlog__stat-card combatlog__stat-card--dealt">
-                    <span className="combatlog__stat-label">Dmg Dealt</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--dealt">{stats.damageDealt}</span>
-                  </div>
-                  <div className="combatlog__stat-card combatlog__stat-card--taken">
-                    <span className="combatlog__stat-label">Dmg Taken</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--taken">{stats.damageTaken}</span>
-                  </div>
-                  <div className="combatlog__stat-card combatlog__stat-card--headshot">
-                    <span className="combatlog__stat-label">Headshots</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--headshot">{stats.headshots}</span>
-                  </div>
-                  <div className={`combatlog__stat-card ${stats.invalids > 0 ? 'combatlog__stat-card--invalid-active' : 'combatlog__stat-card--invalid'}`}>
-                    <span className="combatlog__stat-label">Invalids</span>
-                    <span className={`combatlog__stat-value ${stats.invalids > 0 ? 'combatlog__stat-value--invalid-active' : 'combatlog__stat-value--invalid'}`}>{stats.invalids}</span>
-                  </div>
-                </div>
-
-                {/* Performance Metrics Row */}
-                <div className="combatlog__stats-row">
-                  <div className="combatlog__stat-card combatlog__stat-card--dealt">
-                    <span className="combatlog__stat-label">K / D</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--dealt">{stats.kills}/{stats.deaths} <span style={{ fontSize: 12, opacity: 0.7 }}>({kdRatio})</span></span>
-                  </div>
-                  <div className="combatlog__stat-card combatlog__stat-card--headshot">
-                    <span className="combatlog__stat-label">Accuracy</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--headshot">{accuracyPct}%</span>
-                  </div>
-                  <div className="combatlog__stat-card combatlog__stat-card--headshot">
-                    <span className="combatlog__stat-label">Headshot Rate</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--headshot">{headshotRate}%</span>
-                  </div>
-                  <div className="combatlog__stat-card combatlog__stat-card--taken">
-                    <span className="combatlog__stat-label">Shots Fired</span>
-                    <span className="combatlog__stat-value combatlog__stat-value--taken">{shotsFired}</span>
-                  </div>
-                </div>
-
-                {/* Global Damage Compare Bar Chart */}
-                <div className="combatlog__dmg-compare">
-                  <span className="combatlog__section-title font-display">DAMAGE SHARE COMPARISON</span>
-                  <div style={{ marginTop: 8 }}>
-                    <div className="combatlog__dmg-compare-row">
-                      <span className="combatlog__dmg-compare-label">DEALT</span>
-                      <div className="combatlog__dmg-compare-track">
-                        <div 
-                          className="combatlog__dmg-compare-fill combatlog__dmg-compare-fill--dealt" 
-                          style={{ width: `${stats.damageDealt + stats.damageTaken > 0 ? (stats.damageDealt / (stats.damageDealt + stats.damageTaken)) * 100 : 50}%` }}
-                        >
-                          {stats.damageDealt}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="combatlog__dmg-compare-row">
-                      <span className="combatlog__dmg-compare-label">TAKEN</span>
-                      <div className="combatlog__dmg-compare-track">
-                        <div 
-                          className="combatlog__dmg-compare-fill combatlog__dmg-compare-fill--taken" 
-                          style={{ width: `${stats.damageDealt + stats.damageTaken > 0 ? (stats.damageTaken / (stats.damageDealt + stats.damageTaken)) * 100 : 50}%` }}
-                        >
-                          {stats.damageTaken}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Hit Distribution Body Diagram */}
-                <div>
-                  <span className="combatlog__section-title font-display">HIT ANATOMY DISTRIBUTION</span>
-                  <div className="combatlog__hitdist">
-                    {/* Bars */}
-                    <div className="combatlog__hitdist-bars">
-                      <div className="combatlog__hitdist-row">
-                        <span className="combatlog__hitdist-label">Head ({hitDistribution.head})</span>
-                        <div className="combatlog__hitdist-track">
-                          <div className="combatlog__hitdist-fill combatlog__hitdist-fill--head" style={{ width: `${headPct}%` }} />
-                        </div>
-                        <span className="combatlog__hitdist-pct">{headPct}%</span>
-                      </div>
-                      <div className="combatlog__hitdist-row">
-                        <span className="combatlog__hitdist-label">Chest ({hitDistribution.chest})</span>
-                        <div className="combatlog__hitdist-track">
-                          <div className="combatlog__hitdist-fill combatlog__hitdist-fill--chest" style={{ width: `${chestPct}%` }} />
-                        </div>
-                        <span className="combatlog__hitdist-pct">{chestPct}%</span>
-                      </div>
-                      <div className="combatlog__hitdist-row">
-                        <span className="combatlog__hitdist-label">Stomach ({hitDistribution.stomach})</span>
-                        <div className="combatlog__hitdist-track">
-                          <div className="combatlog__hitdist-fill combatlog__hitdist-fill--stomach" style={{ width: `${stomachPct}%` }} />
-                        </div>
-                        <span className="combatlog__hitdist-pct">{stomachPct}%</span>
-                      </div>
-                      <div className="combatlog__hitdist-row">
-                        <span className="combatlog__hitdist-label">Limbs ({hitDistribution.limbs})</span>
-                        <div className="combatlog__hitdist-track">
-                          <div className="combatlog__hitdist-fill combatlog__hitdist-fill--limbs" style={{ width: `${limbsPct}%` }} />
-                        </div>
-                        <span className="combatlog__hitdist-pct">{limbsPct}%</span>
-                      </div>
-                    </div>
-
-                    {/* Silhouette */}
-                    <div className="combatlog__body-diagram">
-                      <div className="combatlog__body-part combatlog__body-head" style={{ background: headHeat, border: `1px solid rgba(59,130,246, ${headPct > 0 ? 0.4 : 0.08})` }}>H</div>
-                      <div className="combatlog__body-part combatlog__body-chest" style={{ background: chestHeat, border: `1px solid rgba(34,197,94, ${chestPct > 0 ? 0.4 : 0.08})` }}>C</div>
-                      <div className="combatlog__body-part combatlog__body-stomach" style={{ background: stomachHeat, border: `1px solid rgba(245,158,11, ${stomachPct > 0 ? 0.4 : 0.08})` }}>S</div>
-                      <div className="combatlog__body-part combatlog__body-limbs" style={{ background: limbsHeat, border: `1px solid rgba(229,92,37, ${limbsPct > 0 ? 0.4 : 0.08})` }}>L</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="combatlog__timeline-wrap">
-                  <span className="combatlog__section-title font-display">EVENT TELEMETRY TIMELINE</span>
-                  <div className="combatlog__timeline">
-                    {events.map((ev, idx) => {
-                      let dotColor = 'var(--color-text-dim)';
-                      let label = 'EVENT';
-                      let desc = '';
-
-                      if (ev.type === 'dealt') {
-                        dotColor = 'var(--cl-green)';
-                        label = 'HIT DEALT';
-                        const dmgStr = (ev.oldHp && ev.newHp) ? ` (-${Math.round(parseFloat(ev.oldHp) - parseFloat(ev.newHp))}hp)` : '';
-                        desc = `to ${ev.victim} in the ${ev.area} at ${ev.distance}${dmgStr}`;
-                      } else if (ev.type === 'taken') {
-                        dotColor = 'var(--cl-red)';
-                        label = 'HIT TAKEN';
-                        const dmgStr = (ev.oldHp && ev.newHp) ? ` (-${Math.round(parseFloat(ev.oldHp) - parseFloat(ev.newHp))}hp)` : '';
-                        desc = `from ${ev.attacker} in the ${ev.area} at ${ev.distance}${dmgStr}`;
-                      } else if (ev.type === 'invalid') {
-                        dotColor = 'var(--cl-amber)';
-                        label = 'SHOT INVALID';
-                        desc = `to ${ev.victim} (${ev.info})`;
-                      } else if (ev.type === 'kill') {
-                        dotColor = 'var(--cl-kill)';
-                        label = 'TARGET KILLED';
-                        desc = `${ev.victim} with ${ev.weapon} (${ev.distance})`;
-                      } else if (ev.type === 'death') {
-                        dotColor = 'var(--cl-death)';
-                        label = 'YOU DIED';
-                        desc = `killed by ${ev.attacker} using ${ev.weapon} (${ev.distance})`;
-                      } else {
-                        label = ev.info.toUpperCase() || 'EVENT';
-                        desc = `${ev.attacker} -> ${ev.victim} (${ev.weapon})`;
-                      }
-
-                      return (
-                        <div key={idx} className="combatlog__event">
-                          <span className="combatlog__event-time">{ev.time}</span>
-                          <span className="combatlog__event-dot" style={{ color: dotColor, background: dotColor }} />
-                          <div className="combatlog__event-body">
-                            <strong className="combatlog__event-label" style={{ color: dotColor }}>{label}</strong>
-                            {getWeaponBadge(ev.weapon)}
-                            {ev.area !== 'none' && (
-                              <span className={getAreaBadgeClass(ev.area)}>{ev.area}</span>
-                            )}
-                            <span className="combatlog__event-desc"> {desc}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {events.length === 0 && (
-                      <div className="combatlog__empty-msg">No parsed events.</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+        {parsed && (
+          <div className="cl-header-actions">
+            <button className="cl-mini-btn" onClick={() => setShowInput((v) => !v)}>{showInput ? 'Hide log' : 'Edit log'}</button>
+            <button className="cl-mini-btn cl-mini-btn--danger" onClick={clearLog}><Trash2 size={13} /> Reset</button>
           </div>
+        )}
+      </header>
+
+      {/* Input */}
+      {(showInput || !parsed) && (
+        <section className="cl-input-card">
+          <div className="cl-term">
+            <div className="cl-term-bar">
+              <span className="cl-dot red" /><span className="cl-dot amber" /><span className="cl-dot green" />
+              <span className="cl-term-title">RUST_CONSOLE · combatlog</span>
+            </div>
+            <textarea
+              className="cl-textarea"
+              placeholder="Press F1 in-game → type 'combatlog' → copy the output and paste it here…"
+              value={logText}
+              onChange={(e) => setLogText(e.target.value)}
+            />
+          </div>
+          <div className="cl-input-actions">
+            <button className="cl-parse" onClick={() => parseLog()}><Play size={14} /> Analyze</button>
+            <button className="cl-sample" onClick={() => loadSample(SAMPLE_LOG_PVP)}>PVP sample</button>
+            <button className="cl-sample" onClick={() => loadSample(SAMPLE_LOG_INVALID)}>Desync sample</button>
+          </div>
+        </section>
+      )}
+
+      {!parsed ? (
+        <div className="cl-hint-empty">
+          <Crosshair size={34} />
+          <p>Your damage breakdown, accuracy, headshot rate and a full event timeline appear here once you analyze a log.</p>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Metric strip */}
+          <div className="cl-metrics">
+            <div className="cl-metric cl-metric--dealt"><span className="cl-metric-k">Damage dealt</span><span className="cl-metric-v">{stats.damageDealt}</span></div>
+            <div className="cl-metric cl-metric--taken"><span className="cl-metric-k">Damage taken</span><span className="cl-metric-v">{stats.damageTaken}</span></div>
+            <div className="cl-metric"><span className="cl-metric-k">K / D</span><span className="cl-metric-v">{stats.kills}/{stats.deaths} <small>({kd})</small></span></div>
+            <div className="cl-metric"><span className="cl-metric-k">Accuracy</span><span className="cl-metric-v">{accuracy}<small>%</small></span></div>
+            <div className="cl-metric"><span className="cl-metric-k">Headshot</span><span className="cl-metric-v">{headshotRate}<small>%</small></span></div>
+            <div className={`cl-metric ${stats.invalids > 0 ? 'cl-metric--warn' : ''}`}><span className="cl-metric-k">Invalid</span><span className="cl-metric-v">{stats.invalids}</span></div>
+          </div>
+
+          <div className="cl-grid">
+            {/* LEFT: hit distribution + opponents */}
+            <div className="cl-col">
+              <section className="cl-card">
+                <h3 className="cl-card-h"><Target size={14} /> Hit distribution</h3>
+                <div className="cl-hit">
+                  <div className="cl-body">
+                    <div className="cl-body-part cl-body-head" style={{ background: heat('59,130,246', headPct) }}>H<em>{headPct}%</em></div>
+                    <div className="cl-body-part cl-body-chest" style={{ background: heat('34,197,94', chestPct) }}>C<em>{chestPct}%</em></div>
+                    <div className="cl-body-part cl-body-stomach" style={{ background: heat('245,158,11', stomachPct) }}>S<em>{stomachPct}%</em></div>
+                    <div className="cl-body-part cl-body-limbs" style={{ background: heat('229,92,37', limbsPct) }}>L<em>{limbsPct}%</em></div>
+                  </div>
+                  <div className="cl-hit-bars">
+                    {[['Head', hitDistribution.head, headPct, 'head'], ['Chest', hitDistribution.chest, chestPct, 'chest'], ['Stomach', hitDistribution.stomach, stomachPct, 'stomach'], ['Limbs', hitDistribution.limbs, limbsPct, 'limbs']].map(([label, n, p, k]) => (
+                      <div className="cl-hit-row" key={k as string}>
+                        <span className="cl-hit-label">{label} <em>{n as number}</em></span>
+                        <div className="cl-hit-track"><div className={`cl-hit-fill cl-hit-fill--${k}`} style={{ width: `${p}%` }} /></div>
+                        <span className="cl-hit-pct">{p as number}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section className="cl-card">
+                <h3 className="cl-card-h"><Skull size={14} /> Targets</h3>
+                <div className="cl-opps">
+                  {Object.values(opponents).map((op) => {
+                    const acc = op.hitsDealt > 0 ? Math.round(((op.hitsDealt - op.invalids) / op.hitsDealt) * 100) : 0;
+                    const tot = op.damageDealt + op.damageTaken;
+                    const dealtPct = tot > 0 ? Math.round((op.damageDealt / tot) * 100) : 50;
+                    return (
+                      <div key={op.name} className="cl-opp">
+                        <div className="cl-opp-top">
+                          <span className="cl-opp-name">{op.name}</span>
+                          <span className="cl-opp-acc">acc {acc}%</span>
+                        </div>
+                        <div className="cl-opp-bar"><div className="cl-opp-bar-dealt" style={{ width: `${dealtPct}%` }} /><div className="cl-opp-bar-taken" style={{ width: `${100 - dealtPct}%` }} /></div>
+                        <div className="cl-opp-nums">
+                          <span className="cl-up">▲ {op.damageDealt}</span>
+                          <span className="cl-down">▼ {op.damageTaken}</span>
+                          <span className="cl-mut">{op.hitsDealt} hits · {op.headshots} hs{op.invalids ? ` · ${op.invalids} inv` : ''}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {Object.keys(opponents).length === 0 && <div className="cl-none">No opponents parsed.</div>}
+                </div>
+              </section>
+            </div>
+
+            {/* RIGHT: timeline */}
+            <div className="cl-col">
+              <section className="cl-card cl-card--fill">
+                <h3 className="cl-card-h"><Activity size={14} /> Event timeline</h3>
+                <div className="cl-timeline">
+                  {events.map((ev, i) => {
+                    const dmg = ev.oldHp && ev.newHp && ev.newHp !== 'invalid' ? Math.round(parseFloat(ev.oldHp) - parseFloat(ev.newHp)) : null;
+                    let label = 'EVENT', desc = '', tone = 'gen';
+                    if (ev.type === 'dealt') { tone = 'dealt'; label = 'HIT'; desc = `${ev.victim} · ${ev.area} · ${ev.distance}${dmg ? ` · −${dmg}` : ''}`; }
+                    else if (ev.type === 'taken') { tone = 'taken'; label = 'TOOK'; desc = `${ev.attacker} · ${ev.area} · ${ev.distance}${dmg ? ` · −${dmg}` : ''}`; }
+                    else if (ev.type === 'invalid') { tone = 'invalid'; label = 'INVALID'; desc = `→ ${ev.victim} · ${ev.info}`; }
+                    else if (ev.type === 'kill') { tone = 'kill'; label = 'KILL'; desc = `${ev.victim} · ${ev.distance}`; }
+                    else if (ev.type === 'death') { tone = 'death'; label = 'DEATH'; desc = `by ${ev.attacker} · ${ev.distance}`; }
+                    else { label = (ev.info || 'event').toUpperCase(); desc = `${ev.attacker} → ${ev.victim}`; }
+                    return (
+                      <div key={i} className={`cl-ev cl-ev--${tone}`}>
+                        <span className="cl-ev-time">{ev.time}</span>
+                        <span className="cl-ev-dot" />
+                        <div className="cl-ev-body">
+                          <span className="cl-ev-label">{label}</span>
+                          {ev.weapon !== 'unknown' && <span className="cl-ev-weapon">{getWeaponName(ev.weapon)}</span>}
+                          {ev.area !== 'none' && <span className={areaClass(ev.area)}>{ev.area}</span>}
+                          <span className="cl-ev-desc">{desc}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {events.length === 0 && <div className="cl-none">No events parsed.</div>}
+                </div>
+              </section>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

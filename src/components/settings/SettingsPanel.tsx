@@ -1077,6 +1077,29 @@ export function SettingsPanel() {
       {/* Game & Recycler Tab */}
       {activeTab === 'game' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* App updates */}
+          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
+            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <RefreshCw size={15} />
+              APP UPDATES
+            </h3>
+            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
+              Raidar checks for updates automatically on launch and installs them in the background. You can also check manually.
+              {appVersion && <> Current version: <strong style={{ color: 'var(--color-text)' }}>v{appVersion}</strong>.</>}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                onClick={handleCheckUpdate}
+                disabled={checkingUpdate}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 700, cursor: checkingUpdate ? 'default' : 'pointer', opacity: checkingUpdate ? 0.6 : 1 }}
+              >
+                <RefreshCw size={13} />
+                {checkingUpdate ? 'Checking…' : 'Check for Updates'}
+              </button>
+              {updateStatus && <span style={{ fontSize: 10.5, color: 'var(--color-text-dim)', lineHeight: 1.4 }}>{updateStatus}</span>}
+            </div>
+          </div>
+
           {/* Overlay card */}
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1195,29 +1218,6 @@ export function SettingsPanel() {
               placeholder="Paste RustMaps API key..."
               style={{ width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
             />
-          </div>
-
-          {/* App updates */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <RefreshCw size={15} />
-              APP UPDATES
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Raidar checks for updates automatically on launch and installs them in the background. You can also check manually.
-              {appVersion && <> Current version: <strong style={{ color: 'var(--color-text)' }}>v{appVersion}</strong>.</>}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checkingUpdate}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 700, cursor: checkingUpdate ? 'default' : 'pointer', opacity: checkingUpdate ? 0.6 : 1 }}
-              >
-                <RefreshCw size={13} />
-                {checkingUpdate ? 'Checking…' : 'Check for Updates'}
-              </button>
-              {updateStatus && <span style={{ fontSize: 10.5, color: 'var(--color-text-dim)', lineHeight: 1.4 }}>{updateStatus}</span>}
-            </div>
           </div>
 
           {/* Locked Crate Default Seconds */}

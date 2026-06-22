@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.2",
-    "notes":  "Raidar 1.0.2: Overhauled Fishing, Combat Log, and Plant Breeder tools - configurable trap fail rate and verified trap durability data, combat K/D + accuracy + headshot-rate metrics, and a faster crossbreed solver with a performance guard.",
-    "pub_date":  "2026-06-22T13:27:42Z",
+    "version":  "1.0.3",
+    "notes":  "Raidar 1.0.3: Complete UI/UX rework of the Fishing Guide, Farming Solver and Combat Log tools, with corrected fish-trap data (calorie-based catches, 10 durability per catch). The App Updates panel now sits at the top of Settings \u003e Game \u0026 Recycler.",
+    "pub_date":  "2026-06-22T14:18:42Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnhQYVJMZFpJR3pLUEFIZjVIR25BL2Z6RW1jeHZnQmZCZy9iSWV6UzNHMmUrZzNZaktEaXhIRVhpaXkxSUZSRHRvR2p4MGlpbStkZktLc00yQTNFckFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM0Nzk3CWZpbGU6UmFpZGFyXzEuMC4yX3g2NC1zZXR1cC5leGUKNm9CN3V1UWY5OUVXTkJNT3p3OWpIbjh6dWdicCtiaU83QmNDeVhRUDhHSFdpaEpsaEF6eG1HOTFkaHJldkJnRnp4QW1IREdSbjNWMER6bWFSVDhIRFE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.2/Raidar_1.0.2_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjRIenNzWlJFTUx3cmhMYnQ2d003K1JrZXYrZjdBYzB4ZU1WWTZsckNvZFFaT0ZQYVAwcTd3WHhHeWtJcEZNcFdKNkd2OUxycnFRZFduRFR2ZG1ZNkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM3ODk1CWZpbGU6UmFpZGFyXzEuMC4zX3g2NC1zZXR1cC5leGUKbDNLd3FFam1zenpMZ2VyZ2FHV1FJQ1krZktqTWtQQ1RyRzlHdm44Q2pCS3NUd1dsMWN5WjIvczlSeWlnU2I0TlZDV29pZ014SFFtKzhGVzZ5RUFQQkE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.3/Raidar_1.0.3_x64-setup.exe"
                                          }
                   }
 }
