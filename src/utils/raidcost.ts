@@ -61,7 +61,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'wood_door', name: 'Wooden Door', hp: 200, category: 'door', icon: 'door.hinged.wood',
     blurb: 'Weakest door. Very vulnerable to fire (Molotovs/Flamethrower).',
     counts: {
-      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
+      c4: 1, rocket: 1, propane: 3, hv_rocket: 14, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
       battering_ram: 3, incendiary_bolt: 8, molotov: 2, flamethrower: 100, salvaged_sword: 9, machete: 14,
       bone_club: 139, wooden_spear: 90, stone_spear: 45, f1_grenade: 10, hatchet: 5, salvaged_axe: 3,
       pickaxe: 13, icepick: 10, mortar_shell: 4, fire_arrow: 50
@@ -71,7 +71,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'wood_double_door', name: 'Wooden Double Door', hp: 200, category: 'door', icon: 'door.double.hinged.wood',
     blurb: 'Wooden double doors. Same durability profiles as single doors.',
     counts: {
-      c4: 1, rocket: 1, propane: 3, hv_rocket: 4, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
+      c4: 1, rocket: 1, propane: 3, hv_rocket: 14, incendiary: 1, satchel: 2, beancan: 6, explo_ammo: 18,
       battering_ram: 3, incendiary_bolt: 8, molotov: 2, flamethrower: 100, salvaged_sword: 9, machete: 14,
       bone_club: 139, wooden_spear: 90, stone_spear: 45, f1_grenade: 10, hatchet: 5, salvaged_axe: 3,
       pickaxe: 13, icepick: 10, mortar_shell: 4, fire_arrow: 50
@@ -80,27 +80,27 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'sheet_door', name: 'Sheet Metal Door', hp: 250, category: 'door', icon: 'door.hinged.metal',
     blurb: 'Standard early-to-mid game door. Immune to basic melee.',
-    counts: { c4: 1, rocket: 2, propane: 4, hv_rocket: 8, satchel: 4, beancan: 18, explo_ammo: 63, f1_grenade: 50, mortar_shell: 9, salvaged_hammer: 24 },
+    counts: { c4: 1, rocket: 2, propane: 4, hv_rocket: 17, satchel: 4, beancan: 18, explo_ammo: 63, f1_grenade: 50, mortar_shell: 9, salvaged_hammer: 24 },
   },
   {
     key: 'sheet_double_door', name: 'Sheet Metal Double Door', hp: 250, category: 'door', icon: 'door.double.hinged.metal',
     blurb: 'Double variant of sheet metal door. Same stats.',
-    counts: { c4: 1, rocket: 2, propane: 4, hv_rocket: 8, satchel: 4, beancan: 18, explo_ammo: 63, f1_grenade: 50, mortar_shell: 9, salvaged_hammer: 24 },
+    counts: { c4: 1, rocket: 2, propane: 4, hv_rocket: 17, satchel: 4, beancan: 18, explo_ammo: 63, f1_grenade: 50, mortar_shell: 9, salvaged_hammer: 24 },
   },
   {
     key: 'garage_door', name: 'Garage Door', hp: 600, category: 'door', icon: 'wall.frame.garagedoor',
     blurb: 'Excellent HP-per-cost door. Ideal for base airlocks.',
-    counts: { c4: 2, rocket: 3, propane: 8, hv_rocket: 19, satchel: 9, beancan: 42, explo_ammo: 152, f1_grenade: 120, mortar_shell: 21, salvaged_hammer: 56 },
+    counts: { c4: 2, rocket: 3, propane: 8, hv_rocket: 41, satchel: 9, beancan: 42, explo_ammo: 152, f1_grenade: 120, mortar_shell: 21, salvaged_hammer: 56 },
   },
   {
-    key: 'armored_door', name: 'Armored Door', hp: 800, category: 'door', icon: 'door.hinged.toptier',
+    key: 'armored_door', name: 'Armored Door', hp: 1000, category: 'door', icon: 'door.hinged.toptier',
     blurb: 'Strongest single door. Requires substantial explosives.',
-    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 15, beancan: 58, explo_ammo: 251, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
+    counts: { c4: 4, rocket: 7, propane: 14, hv_rocket: 67, satchel: 19, beancan: 73, explo_ammo: 314, f1_grenade: 200, mortar_shell: 34, salvaged_hammer: 94 },
   },
   {
-    key: 'armored_double_door', name: 'Armored Double Door', hp: 800, category: 'door', icon: 'door.double.hinged.toptier',
+    key: 'armored_double_door', name: 'Armored Double Door', hp: 1000, category: 'door', icon: 'door.double.hinged.toptier',
     blurb: 'Double variant of armored door. Identical stats.',
-    counts: { c4: 3, rocket: 5, propane: 11, hv_rocket: 30, satchel: 15, beancan: 58, explo_ammo: 251, f1_grenade: 160, mortar_shell: 27, salvaged_hammer: 75 },
+    counts: { c4: 4, rocket: 7, propane: 14, hv_rocket: 67, satchel: 19, beancan: 73, explo_ammo: 314, f1_grenade: 200, mortar_shell: 34, salvaged_hammer: 94 },
   },
   // ── External walls (No soft side in Rust) ──
   {
