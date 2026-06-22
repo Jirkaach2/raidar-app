@@ -100,19 +100,19 @@ export const PART_TO_SLOT: Record<BodyPart, ArmorSlot> = {
 const P = (projectile: number, melee: number, explosion = 0, cold = 0, radiation = 0, bite = 0): Protection =>
   ({ projectile, melee, explosion, cold, radiation, bite });
 
-// ── Armor & clothing (exact Facepunch wiki values, June 2026) ──
+// ── Armor & clothing — exact RustLabs/RustClash wearable database values (current) ──
 export const ARMOR_PIECES: ArmorPiece[] = [
   // ───── HEAD ─────
   { key: 'ballistic.helmet', name: 'Ballistic Helmet', icon: 'ballistic.helmet', tier: 'ballistic',
-    slots: ['head'], layer: 2, fullFace: true, protection: P(0.55, 0.75, 0.55, -0.04, 0.10, 0.10) },
+    slots: ['head'], layer: 2, fullFace: true, protection: P(0.60, 0.70, 0.13, -0.03, 0, 0.10) },
   { key: 'heavy.plate.helmet', name: 'Heavy Plate Helmet', icon: 'heavy.plate.helmet', tier: 'heavy',
-    slots: ['head'], layer: 2, dualLayer: true, fullFace: true, speedPenalty: 0.1, protection: P(0.90, 0.80, 1.00, -0.16, 0.07, 0.13) },
+    slots: ['head'], layer: 2, dualLayer: true, fullFace: true, speedPenalty: 0.1, protection: P(0.90, 0.80, 0.17, -0.17, 0.07, 0.13) },
   { key: 'metal.facemask', name: 'Metal Facemask', icon: 'metal.facemask', tier: 'metal',
-    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.50, 0.70, 0.50, -0.04, 0, 0.08) },
+    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.50, 0.70, 0.08, -0.04, 0, 0.08) },
   { key: 'coffeecan.helmet', name: 'Coffee Can Helmet', icon: 'coffeecan.helmet', tier: 'metal',
-    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.35, 0.50, 0.50, 0, 0.05, 0.08) },
+    slots: ['head'], layer: 2, insertSlots: 3, fullFace: true, protection: P(0.35, 0.50, 0.08, 0, 0.05, 0.08) },
   { key: 'riot.helmet', name: 'Riot Helmet', icon: 'riot.helmet', tier: 'roadsign',
-    slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.25, 0.80, 0.50, 0.06, 0.05, 0.13) },
+    slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.25, 0.80, 0.08, 0.06, 0.05, 0.13) },
   { key: 'bucket.helmet', name: 'Bucket Helmet', icon: 'bucket.helmet', tier: 'metal',
     slots: ['head'], layer: 2, insertSlots: 3, protection: P(0.20, 0.50, 0.08, 0.06, 0.04, 0.08) },
   { key: 'clatter.helmet', name: 'Clatter Helmet', icon: 'clatter.helmet', tier: 'metal',
@@ -149,43 +149,43 @@ export const ARMOR_PIECES: ArmorPiece[] = [
 
   // ───── CHEST ─────
   { key: 'ballistic.vest', name: 'Ballistic Vest', icon: 'ballistic.vest', tier: 'ballistic',
-    slots: ['chest'], layer: 2, protection: P(0.55, 0.55, 0.55, -0.30, 0.07, 0.30) },
+    slots: ['chest'], layer: 2, protection: P(0.35, 0.20, 0.03, -0.03, 0, 0.03) },
   { key: 'heavy.plate.jacket', name: 'Heavy Plate Jacket', icon: 'heavy.plate.jacket', tier: 'heavy',
-    slots: ['chest'], layer: 2, dualLayer: true, blocksADS: true, speedPenalty: 0.2, blocksSlots: ['hands'], protection: P(0.75, 0.70, 1.00, -0.67, 0.07, 0.12) },
+    slots: ['chest'], layer: 2, dualLayer: true, blocksADS: true, speedPenalty: 0.2, blocksSlots: ['hands'], protection: P(0.75, 0.70, 0.17, -0.17, 0.07, 0.12) },
   { key: 'metal.plate.torso', name: 'Metal Chest Plate', icon: 'metal.plate.torso', tier: 'metal',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.25, 0.20, 0, -0.34, 0, 0.03) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.25, 0.20, 0, -0.08, 0, 0.03) },
   { key: 'roadsign.jacket', name: 'Road Sign Jacket', icon: 'roadsign.jacket', tier: 'roadsign',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.20, 0.20, 0, -0.34, 0, 0.10) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.20, 0.25, 0, -0.08, 0, 0.10) },
   { key: 'wood.armor.jacket', name: 'Wood Chestplate', icon: 'wood.armor.jacket', tier: 'wood',
-    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.30, 0, 0.05, 0.20) },
+    slots: ['chest'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.05, 0, 0.05, 0.05) },
   { key: 'bone.armor.jacket', name: 'Bone Armor', icon: 'bone.armor.suit', tier: 'bone',
-    slots: ['chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.25, 0.40, 0.40, 0, 0.04, 0.67) },
+    slots: ['chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.25, 0.40, 0.07, 0, 0.04, 0.13) },
   { key: 'hoodie', name: 'Hoodie', icon: 'hoodie', tier: 'clothing',
-    slots: ['chest'], layer: 1, protection: P(0.20, 0.15, 0, 0.34, 0.05, 0.23) },
+    slots: ['chest'], layer: 1, protection: P(0.20, 0.15, 0, 0.08, 0.05, 0.06) },
   { key: 'jacket.snow', name: 'Snow Jacket', icon: 'jacket.snow', tier: 'clothing',
-    slots: ['chest'], layer: 1, dualLayer: true, protection: P(0.10, 0.10, 0, 0.50, 0, 0.10) },
+    slots: ['chest'], layer: 1, dualLayer: true, protection: P(0.20, 0.30, 0, 0.17, 0.20, 0.05) },
   { key: 'shirt.collared', name: 'Shirt', icon: 'shirt.collared', tier: 'clothing',
-    slots: ['chest'], layer: 1, protection: P(0.05, 0.05, 0, 0.10, 0, 0) },
+    slots: ['chest'], layer: 1, protection: P(0.15, 0.15, 0, 0.06, 0.03, 0.05) },
   { key: 'shirt.tanktop', name: 'Tank Top', icon: 'shirt.tanktop', tier: 'clothing',
-    slots: ['chest'], layer: 1, protection: P(0.02, 0.05, 0, 0, 0, 0) },
+    slots: ['chest'], layer: 1, protection: P(0.10, 0.10, 0, 0.02, 0.02, 0.03) },
   { key: 'bdu.shirt', name: 'BDU Shirt', icon: 'bdu.shirt', tier: 'clothing',
-    slots: ['chest'], layer: 1, protection: P(0.10, 0.10, 0, 0.20, 0.05, 0.10) },
+    slots: ['chest'], layer: 1, protection: P(0.25, 0.20, 0, 0.05, 0.05, 0.06) },
   { key: 'tshirt', name: 'T-Shirt', icon: 'tshirt', tier: 'clothing',
-    slots: ['chest'], layer: 1, protection: P(0.03, 0.05, 0, 0.05, 0, 0) },
+    slots: ['chest'], layer: 1, protection: P(0.15, 0.15, 0, 0.06, 0.03, 0.05) },
 
   // ───── LEGS ─────
   { key: 'ballistic.legs', name: 'Ballistic Leg Armor', icon: 'ballistic.legarmor', tier: 'ballistic',
-    slots: ['legs'], layer: 2, protection: P(0.55, 0.55, 0.55, -0.10, 0.07, 0.20) },
+    slots: ['legs'], layer: 2, protection: P(0.30, 0.40, 0.03, -0.03, 0, 0.10) },
   { key: 'heavy.plate.pants', name: 'Heavy Plate Pants', icon: 'heavy.plate.pants', tier: 'heavy',
-    slots: ['legs'], layer: 2, dualLayer: true, speedPenalty: 0.1, blocksSlots: ['feet'], protection: P(0.75, 0.70, 1.00, -0.17, 0.07, 0.12) },
+    slots: ['legs'], layer: 2, dualLayer: true, speedPenalty: 0.1, blocksSlots: ['feet'], protection: P(0.75, 0.70, 0.17, -0.17, 0.07, 0.12) },
   { key: 'roadsign.kilt', name: 'Road Sign Kilt', icon: 'roadsign.kilt', tier: 'roadsign',
-    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.20, 0.20, 0, -0.08, 0, 0.10) },
+    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.20, 0.25, 0, -0.08, 0, 0.10) },
   { key: 'wood.armor.pants', name: 'Wood Armor Pants', icon: 'wood.armor.pants', tier: 'wood',
-    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.30, 0, 0.05, 0.05) },
+    slots: ['legs'], layer: 2, insertSlots: 3, protection: P(0.10, 0.40, 0.05, 0, 0.05, 0.05) },
   { key: 'pants', name: 'Pants', icon: 'pants', tier: 'clothing',
     slots: ['legs'], layer: 1, protection: P(0.15, 0.15, 0, 0.08, 0.05, 0.03) },
   { key: 'bdu.pants', name: 'BDU Pants', icon: 'bdu.pants', tier: 'clothing',
-    slots: ['legs'], layer: 1, protection: P(0.10, 0.10, 0, 0.20, 0.05, 0.10) },
+    slots: ['legs'], layer: 1, protection: P(0.20, 0.15, 0, 0.06, 0.05, 0.03) },
   { key: 'shorts', name: 'Shorts', icon: 'pants.shorts', tier: 'clothing',
     slots: ['legs'], layer: 1, protection: P(0.10, 0.10, 0, 0.07, 0.02, 0.03) },
 
@@ -201,11 +201,11 @@ export const ARMOR_PIECES: ArmorPiece[] = [
 
   // ───── FEET ─────
   { key: 'shoes.boots', name: 'Boots', icon: 'shoes.boots', tier: 'clothing',
-    slots: ['feet'], layer: 2, protection: P(0.05, 0.10, 0, 0.05, 0, 0) },
+    slots: ['feet'], layer: 2, protection: P(0.10, 0.10, 0, 0.08, 0.03, 0.03) },
   { key: 'attire.hide.boots', name: 'Hide Boots', icon: 'attire.hide.boots', tier: 'clothing',
-    slots: ['feet'], layer: 2, protection: P(0.03, 0.08, 0, 0.05, 0, 0) },
+    slots: ['feet'], layer: 2, protection: P(0.05, 0.05, 0, 0.05, 0.02, 0.03) },
   { key: 'burlap.shoes', name: 'Burlap Shoes', icon: 'burlap.shoes', tier: 'clothing',
-    slots: ['feet'], layer: 2, protection: P(0.02, 0.05, 0, 0.05, 0, 0) },
+    slots: ['feet'], layer: 2, protection: P(0.05, 0.05, 0, 0.03, 0.02, 0.02) },
 
   // ───── FULL-BODY SUITS ─────
   { key: 'hazmatsuit', name: 'Hazmat Suit', icon: 'hazmatsuit', tier: 'hazmat',
@@ -216,14 +216,14 @@ export const ARMOR_PIECES: ArmorPiece[] = [
       { name: 'Arctic Suit', icon: 'hazmatsuit.arcticsuit', waterproof: true, protection: P(0.30, 0.30, 0.03, 0.33, 0.33, 0.05) },
     ] },
   { key: 'scientistsuit_heavy', name: 'Heavy Scientist Suit', icon: 'scientistsuit.heavy', tier: 'hazmat',
-    slots: ['head', 'chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.40, 0.40, 0.40, 0.30, 0.30, 0.40) },
+    slots: ['head', 'chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, protection: P(0.30, 0.30, 0.05, 0.08, 0.50, 0.08) },
   { key: 'attire.ninja.suit', name: 'Ninja Suit', icon: 'attire.ninja.suit', tier: 'hazmat',
     slots: ['head', 'chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, waterproof: true, protection: P(0.25, 0.30, 0.05, 0.08, 0.15, 0.08) },
   { key: 'halloween.surgeonsuit', name: 'Surgeon Scrubs', icon: 'halloween.surgeonsuit', tier: 'hazmat',
     slots: ['head', 'chest', 'legs', 'hands', 'feet'], layer: 2, dualLayer: true, waterproof: true, protection: P(0.25, 0.30, 0.05, 0.08, 0.15, 0.08) },
   // Partial suit — covers head/chest/legs but leaves hands & feet free.
   { key: 'paintballoveralls.suit', name: 'Paintball Overalls', icon: 'paintballoveralls.suit', tier: 'hazmat',
-    slots: ['head', 'chest', 'legs'], layer: 2, dualLayer: true, protection: P(0.25, 0.30, 0.30, 0.50, 0.15, 0.50) },
+    slots: ['head', 'chest', 'legs'], layer: 2, dualLayer: true, protection: P(0.25, 0.30, 0.05, 0.08, 0.15, 0.08) },
 ];
 
 export interface RustWeapon {

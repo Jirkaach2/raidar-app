@@ -1,6 +1,6 @@
 [package]
 name = "raidar"
-version = "1.1.0"
+version = "1.1.1"
 description = "Raidar - Rust raid intelligence & companion HUD"
 authors = ["you"]
 edition = "2021"

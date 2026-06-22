@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.0",
-    "notes":  "Raidar 1.1.0: Raid Cost explosive counts re-verified against the WikiRust June 2026 chart; Loadout Lab weapon \u0026 armor data verified against RustLabs/RustClash. Removed the Craft Cost and Wipe Timer tools.",
-    "pub_date":  "2026-06-22T15:48:09Z",
+    "version":  "1.1.1",
+    "notes":  "Raidar 1.1.1: Major accuracy overhaul of Loadout Lab and Raid Cost. All armor protection values (ballistic, heavy plate, roadsign, metal, wood, suits) re-verified against the RustClash wearable database. Fixed the global Explosive resistance calc. Corrected HV Rocket counts for all wall tiers (sheet metal = 67) and sheet-metal melee/explosive-ammo costs.",
+    "pub_date":  "2026-06-22T16:49:43Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdndrT29jdXRwa0JUWVRtNTQ5Uk1Zd21YdUhXeWU0MEJLNnJFRmxIdDFZeXdhRHhtak1iNXppZUIxaUpwbjU3TDdYZWZYTUZ5NTlhbzBuUG9QTnpOZWdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQzMjcxCWZpbGU6UmFpZGFyXzEuMS4wX3g2NC1zZXR1cC5leGUKQ1NhWExuRmMrL29pYzRyVDBjKzJzVjZTMFlhRi9JdTI4TW1uMG5ZbklUUUxBeXNwUmcvWWRXQlZWaUVUbVY0S1dSWUZJVlZxUXFNeE4rT3Z1NExIQ1E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.0/Raidar_1.1.0_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKditLVGxUMXJXQks3T1FIV1JkQ2h1KzVUdWNnV0pLMmZQcEVjMjFIODgxNHJwZEk0ajZ6Nm96YitUNEQvL1dFK0k1T0V2My9EbnRUWHBSVXJ4Sm4wa2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQ2OTU3CWZpbGU6UmFpZGFyXzEuMS4xX3g2NC1zZXR1cC5leGUKanFYYXdHT2YzVU9uVEp0NlgyRkt3cEJtMVdNbXVYTTRDV1BDMWVvcGg3Y2ZkMFVlbHJ1ZlkwdFpPdVlGWStyVlBWSVNmM3hSamNOOVBRekZjNFZQQ0E9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.1/Raidar_1.1.1_x64-setup.exe"
                                          }
                   }
 }

@@ -24,7 +24,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'wood_wall', name: 'Wood Wall', hp: 250, category: 'wall', icon: 'wood',
     blurb: 'Burns and chops. Soft side melts to a hatchet.',
     counts: {
-      c4: 1, rocket: 2, propane: 2, hv_rocket: 7, incendiary: 1, satchel: 3, beancan: 13, explo_ammo: 48,
+      c4: 1, rocket: 2, propane: 2, hv_rocket: 17, incendiary: 1, satchel: 3, beancan: 13, explo_ammo: 48,
       battering_ram: 3, incendiary_bolt: 10, molotov: 4, flamethrower: 400, salvaged_sword: 10, machete: 15,
       bone_club: 150, wooden_spear: 95, stone_spear: 48, f1_grenade: 15,
       hatchet_soft: 3, hatchet_hard: 8, salvaged_axe_soft: 2, salvaged_axe_hard: 5,
@@ -36,7 +36,7 @@ export const RAID_TARGETS: RaidTarget[] = [
     key: 'stone_wall', name: 'Stone Wall', hp: 500, category: 'wall', icon: 'stones',
     blurb: 'Standard stone tier. Fire-proof, weak to soft-side pickaxes/jackhammers.',
     counts: {
-      c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46,
+      c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46,
       jackhammer_soft: 1.25, jackhammer_hard: 45, pickaxe_soft: 7, pickaxe_hard: 40,
       icepick_soft: 6, icepick_hard: 35, wooden_spear_soft: 125, stone_spear_soft: 63, salvaged_sword_soft: 35,
       mortar_shell: 17
@@ -54,7 +54,7 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'armored_wall', name: 'Armored Wall (HQM)', hp: 2000, category: 'wall', icon: 'metal.refined',
     blurb: 'Toughest building tier. Highly explosive-resistant. Melee immune.',
-    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 63, satchel: 46, beancan: 223, explo_ammo: 799, mortar_shell: 67 },
+    counts: { c4: 8, rocket: 15, propane: 26, hv_rocket: 134, satchel: 46, beancan: 223, explo_ammo: 799, mortar_shell: 67 },
   },
   // ── Doors (No soft side in Rust) ──
   {
@@ -106,12 +106,12 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'ext_stone', name: 'High External Stone Wall', hp: 500, category: 'external', icon: 'wall.external.high.stone',
     blurb: 'Compound stone perimeter. Immune to flame/fire. Heavy melee resistant.',
-    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
+    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
   },
   {
     key: 'ext_stone_gate', name: 'High External Stone Gate', hp: 500, category: 'external', icon: 'gates.external.high.stone',
     blurb: 'Compound stone gatehouse. Identical raid cost as stone external wall.',
-    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
+    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
   },
   {
     key: 'ext_wood', name: 'High External Wood Wall', hp: 500, category: 'external', icon: 'wall.external.high',
@@ -145,17 +145,17 @@ export const RAID_TARGETS: RaidTarget[] = [
   {
     key: 'metal_window_bars', name: 'Metal Window Bars', hp: 500, category: 'window', icon: 'wall.window.bars.metal',
     blurb: 'Solid iron bars. Same durability profile as a stone wall.',
-    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
+    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
   },
   {
     key: 'reinforced_window_bars', name: 'Reinforced Window Bars', hp: 500, category: 'window', icon: 'wall.window.bars.toptier',
     blurb: 'HQM steel bars. Identical explosive durability as metal window bars.',
-    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
+    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
   },
   {
     key: 'reinforced_glass_window', name: 'Reinforced Glass Window', hp: 500, category: 'window', icon: 'wall.window.glass.reinforced',
     blurb: 'Bulletproof reinforced glass. Same raid counts as metal window bars.',
-    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 16, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
+    counts: { c4: 2, rocket: 4, propane: 7, hv_rocket: 34, satchel: 10, beancan: 46, explo_ammo: 185, f1_grenade: 46, mortar_shell: 17 },
   },
   {
     key: 'prison_cell', name: 'Prison Cell Wall/Gate', hp: 250, category: 'window', icon: 'wall.frame.cell',
