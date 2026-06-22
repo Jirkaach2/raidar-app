@@ -78,6 +78,12 @@ async fn run_update(app: &AppHandle, auto_install: bool) -> Result<bool, String>
 
     let mut downloaded: u64 = 0;
     let app_for_progress = app.clone();
+
+    // Terminate the FCM sidecar before the installer runs — otherwise its
+    // running exe stays locked and the NSIS update fails with
+    // "Error opening file for writing: fcm-sidecar.exe".
+    crate::kill_sidecar(app);
+
     update
         .download_and_install(
             move |chunk, total| {

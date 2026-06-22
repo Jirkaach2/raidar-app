@@ -80,6 +80,34 @@ fn take_pending_deep_link(state: tauri::State<'_, AppState>) -> Option<String> {
     state.pending_deep_link.lock().ok().and_then(|mut g| g.take())
 }
 
+/// Holds the FCM sidecar child so we can terminate it on app exit. Stored as
+/// managed state and killed explicitly from the run-event handler — relying on
+/// `Drop` is unreliable on Windows (the process exits without unwinding), which
+/// left `fcm-sidecar.exe` running and locking the binary during updates.
+struct SidecarKiller(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
+
+/// Terminate the FCM sidecar. Tries the tracked child first, then falls back to
+/// a hard taskkill on Windows so no orphan can lock the file during an update.
+fn kill_sidecar(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(killer) = app.try_state::<SidecarKiller>() {
+        if let Ok(mut lock) = killer.0.lock() {
+            if let Some(child) = lock.take() {
+                let _ = child.kill();
+            }
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "fcm-sidecar.exe", "/T"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -162,17 +190,7 @@ pub fn run() {
             if let Ok(sidecar_command) = sidecar {
                 let sidecar_command = sidecar_command.args(&[app_data_str]);
                 let (mut rx, child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
-                
-                struct SidecarKiller(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
-                impl Drop for SidecarKiller {
-                    fn drop(&mut self) {
-                        if let Ok(mut lock) = self.0.lock() {
-                            if let Some(c) = lock.take() {
-                                c.kill().ok();
-                            }
-                        }
-                    }
-                }
+
                 app.manage(SidecarKiller(std::sync::Mutex::new(Some(child))));
 
                 let app_handle = app.handle().clone();
@@ -312,8 +330,18 @@ pub fn run() {
             close_steam_in_app_webview,
             resize_steam_webview,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // Kill the FCM sidecar whenever the app is shutting down so its exe
+            // isn't left locked (which blocked installer/updater overwrites).
+            match event {
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                    kill_sidecar(app_handle);
+                }
+                _ => {}
+            }
+        });
 }
 
 #[tauri::command]
