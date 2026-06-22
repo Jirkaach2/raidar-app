@@ -892,3 +892,8 @@ export function monumentAllowsLockedCrate(token: string): boolean {
   if (info.hasChinookDropZone) return true;
   return info.key === 'oil_rig_small' || info.key === 'oil_rig_large';
 }
+
+/** Flat list of all known monuments (for search / command palette). */
+export function listMonuments(): { key: string; name: string }[] {
+  return Object.values(MONUMENT_DB).map((m) => ({ key: m.key, name: m.name }));
+}

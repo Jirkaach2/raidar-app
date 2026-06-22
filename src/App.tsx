@@ -38,6 +38,7 @@ import { useUiStore } from './stores/ui-store';
 import { useAuthStore } from './stores/auth-store';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { UpdateBanner } from './components/common/UpdateBanner';
+import { CommandPalette } from './components/common/CommandPalette';
 import AppShellLogin from './components/layout/LoginGate';
 /**
  * Returns a poll delay that backs off hard when the window is hidden, so the
@@ -1524,6 +1525,7 @@ function App() {
 
       <ConfirmDialog />
       <UpdateBanner />
+      {authUser && <CommandPalette />}
 
       {steamUrl && (
         <SteamLoginOverlay initialUrl={steamUrl} onClose={() => setSteamUrl(null)} />
