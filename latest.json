@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.4",
-    "notes":  "Raidar 1.0.4: Rust missions integrated into the live map — open any safe-zone monument (Fishing Village, Large Fishing Village, Outpost, Bandit Camp) to see the missions offered there with objectives, rewards, providers and cooldowns. Also adds the Craft Cost Calculator, Wipe Schedule \u0026 Countdown, and a Ctrl+K command palette.",
-    "pub_date":  "2026-06-22T14:59:10Z",
+    "version":  "1.0.5",
+    "notes":  "Raidar 1.0.5: Fixes the FCM sidecar staying alive after the app closed, which locked fcm-sidecar.exe and broke installs/updates. The sidecar is now terminated on exit and before every in-app update.",
+    "pub_date":  "2026-06-22T15:12:11Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjBTbzVnUDFLRTFIem5xaEgxZXdNTTAvcnlJRFJPM3UwcnBMcEk5eVBpbiszWU13N0RPcjN2Q1l5VkljUVpwcmxhL2YrNS9aam5ERmZMRHh1aVpTU0E0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQwMzM0CWZpbGU6UmFpZGFyXzEuMC40X3g2NC1zZXR1cC5leGUKeVp1aWZORWNIUjIwc2t1akYxcXZRaVlKRWlGRE5RMkhOUDBPUXYyOEdHTWFvb0VNUjdJN1dKMW5wd0tSTjlZb1BndkxMQUF0eDlyRGd6dTIwakVkRHc9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.4/Raidar_1.0.4_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnp5YzlIb0ZDUm4yd3hYUGZXL3dRanBHbERrM3FrNkc0OW9icW1mMWdCTDcrRkNscEZROVYzOEVLZ3VHbUtZL3Z5NEhPcUwyQzc0Y05VV0FyYkJnb0FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQxMDc5CWZpbGU6UmFpZGFyXzEuMC41X3g2NC1zZXR1cC5leGUKVnlESENTSmJabGRYc0d1YjRtN3ROM3piQWp0UHphVlBOQyt5NFdRQTBUOWJ1Q3NjRFd5VnZUUGMyTGt6TGlnMWR4eVRvd1ZUT2ZvaU1mQ3FEejNVRGc9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.5/Raidar_1.0.5_x64-setup.exe"
                                          }
                   }
 }
