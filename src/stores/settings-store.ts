@@ -82,6 +82,8 @@ interface SettingsState {
   soundEnabled: boolean;
   soundVolume: number;
   customSounds: Record<string, string | null>;
+  /** Per-event enable flags. Missing key = enabled (default on). */
+  soundEvents: Record<string, boolean>;
 
   // Vending sales rate multiplier
   vendingMultiplier: number;
@@ -132,6 +134,7 @@ interface SettingsState {
   setSoundEnabled: (v: boolean) => void;
   setSoundVolume: (v: number) => void;
   setCustomSound: (action: string, base64: string | null) => void;
+  setSoundEvent: (action: string, enabled: boolean) => void;
   setVendingMultiplier: (v: number) => void;
 }
 
@@ -183,9 +186,11 @@ export const useSettingsStore = create<SettingsState>()(
       tcDecayNotifyDiscord: false,
       discordWebhooks: {},
 
-      soundEnabled: true,
+      soundEnabled: false,
       soundVolume: 0.5,
       customSounds: {},
+      // Per-event opt-outs (all remaining events default on once sound is enabled).
+      soundEvents: {},
       vendingMultiplier: 1,
 
       setBroadcastEvents: (v) => set({ broadcastEvents: v }),
@@ -237,6 +242,9 @@ export const useSettingsStore = create<SettingsState>()(
       setSoundVolume: (v) => set({ soundVolume: v }),
       setCustomSound: (action, base64) => set((s) => ({
         customSounds: { ...s.customSounds, [action]: base64 },
+      })),
+      setSoundEvent: (action, enabled) => set((s) => ({
+        soundEvents: { ...s.soundEvents, [action]: enabled },
       })),
       setVendingMultiplier: (v) => set({ vendingMultiplier: Math.max(1, v) }),
     }),

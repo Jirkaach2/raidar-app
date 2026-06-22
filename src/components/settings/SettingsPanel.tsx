@@ -697,70 +697,96 @@ export function SettingsPanel() {
 
               {/* Sound Actions List */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
-                <h4 style={{ color: 'var(--color-text-muted)', fontSize: 11, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.5px' }}>Configure Sound Events</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { id: 'teammate_death', label: 'Teammate Died (Online)' },
-                    { id: 'teammate_offline_death', label: 'Teammate Died (Offline)' },
-                    { id: 'smart_alarm', label: 'Smart Alarm Triggered' },
-                    { id: 'event_spawn', label: 'Event Spawned (Heli/Cargo/Crate)' },
-                    { id: 'fish_catch', label: 'Fish Caught (Trap Splash)' },
-                  ].map((act) => {
-                    const hasCustom = !!settings.customSounds?.[act.id];
-                    return (
-                      <div key={act.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.02)', borderRadius: 4 }}>
-                        <span style={{ fontSize: 11, color: '#e8e2d9' }}>{act.label}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {/* Test Play */}
-                          <button
-                            onClick={() => {
-                              import('../../utils/sounds').then(({ triggerSound }) => triggerSound(act.id));
-                            }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
-                            title="Test Sound"
-                          >
-                            <Play size={10} /> Test
-                          </button>
-                          
-                          {/* Custom Upload */}
-                          <label
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: hasCustom ? 'rgba(110,207,115,0.1)' : 'rgba(255,255,255,0.05)', border: hasCustom ? '1px solid rgba(110,207,115,0.3)' : '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: hasCustom ? 'var(--color-success)' : 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
-                            title="Upload custom WAV/MP3 sound"
-                          >
-                            <Upload size={10} /> {hasCustom ? 'Custom' : 'Upload'}
-                            <input
-                              type="file"
-                              accept="audio/*"
-                              style={{ display: 'none' }}
-                              onChange={(ev) => {
-                                const file = ev.target.files?.[0];
-                                if (!file) return;
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  if (typeof reader.result === 'string') {
-                                    settings.setCustomSound(act.id, reader.result);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
-                              }}
-                            />
-                          </label>
+                <h4 style={{ color: 'var(--color-text-muted)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.5px' }}>Configure Sound Events</h4>
+                <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 10 }}>Toggle each alert on or off, preview it, or upload your own WAV/MP3.</p>
+                {[
+                  {
+                    section: 'Combat',
+                    events: [
+                      { id: 'teammate_offline_death', label: 'Teammate Died (Offline)', desc: 'A teammate was killed while logged off — likely being raided.' },
+                    ],
+                  },
+                  {
+                    section: 'Base & Raid',
+                    events: [
+                      { id: 'smart_alarm', label: 'Smart Alarm Triggered', desc: 'A paired smart alarm fired — possible base intrusion.' },
+                    ],
+                  },
+                  {
+                    section: 'World Events',
+                    events: [
+                      { id: 'event_spawn', label: 'Event Spawned', desc: 'Patrol Heli, Cargo Ship, or a locked crate appeared.' },
+                    ],
+                  },
+                ].map((grp) => (
+                  <div key={grp.section} style={{ marginBottom: 14 }}>
+                    <span style={{ display: 'block', color: 'var(--color-text-dim)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>{grp.section}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {grp.events.map((act) => {
+                        const hasCustom = !!settings.customSounds?.[act.id];
+                        const enabled = settings.soundEvents?.[act.id] !== false;
+                        return (
+                          <div key={act.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.02)', borderRadius: 4, opacity: enabled ? 1 : 0.55 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <Toggle checked={enabled} onChange={(v) => settings.setSoundEvent(act.id, v)} />
+                              <div style={{ minWidth: 0 }}>
+                                <span style={{ display: 'block', fontSize: 11.5, color: '#e8e2d9' }}>{act.label}</span>
+                                <span className="text-dim" style={{ fontSize: 9.5, lineHeight: 1.3 }}>{act.desc}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                              {/* Test Play (always previews, even when disabled) */}
+                              <button
+                                onClick={() => {
+                                  import('../../utils/sounds').then(({ triggerSound }) => triggerSound(act.id, { force: true }));
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
+                                title="Preview sound"
+                              >
+                                <Play size={10} /> Test
+                              </button>
 
-                          {/* Delete Custom */}
-                          {hasCustom && (
-                            <button
-                              onClick={() => settings.setCustomSound(act.id, null)}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, background: 'rgba(232,69,69,0.1)', border: '1px solid rgba(232,69,69,0.2)', borderRadius: 3, color: 'var(--color-danger)', cursor: 'pointer' }}
-                              title="Reset to default sound"
-                            >
-                              <Trash2 size={10} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                              {/* Custom Upload */}
+                              <label
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: hasCustom ? 'rgba(110,207,115,0.1)' : 'rgba(255,255,255,0.05)', border: hasCustom ? '1px solid rgba(110,207,115,0.3)' : '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: hasCustom ? 'var(--color-success)' : 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
+                                title="Upload custom WAV/MP3 sound"
+                              >
+                                <Upload size={10} /> {hasCustom ? 'Custom' : 'Upload'}
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  style={{ display: 'none' }}
+                                  onChange={(ev) => {
+                                    const file = ev.target.files?.[0];
+                                    if (!file) return;
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                      if (typeof reader.result === 'string') {
+                                        settings.setCustomSound(act.id, reader.result);
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }}
+                                />
+                              </label>
+
+                              {/* Delete Custom */}
+                              {hasCustom && (
+                                <button
+                                  onClick={() => settings.setCustomSound(act.id, null)}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, background: 'rgba(232,69,69,0.1)', border: '1px solid rgba(232,69,69,0.2)', borderRadius: 3, color: 'var(--color-danger)', cursor: 'pointer' }}
+                                  title="Reset to default sound"
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

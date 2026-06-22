@@ -10,8 +10,10 @@
  *   finalDamage = baseDamage × bodyMultiplier × (1 − coverageProtection[type])
  * where coverageProtection is the COMBINED reduction of all armor layers
  * covering that body part for the relevant damage TYPE (projectile / melee /
- * explosion). Layers stack multiplicatively. Armor only reduces damage on the
- * parts it covers — exposed skin takes full damage.
+ * explosion). Rust SUMS the protection values of every covering item (additive,
+ * capped at 100%) — e.g. a 32% kilt + 20% pants + 10% boots = 62% on the legs.
+ * Armor only reduces damage on the parts it covers — exposed skin takes full
+ * damage.
  */
 
 export type ArmorSlot = 'head' | 'chest' | 'legs' | 'hands' | 'feet';
@@ -396,15 +398,16 @@ export function defaultAmmo(weapon: RustWeapon): AmmoType | null {
 }
 
 /**
- * Combined protection fraction covering a body part for a damage type. Layers
- * stack MULTIPLICATIVELY (each reduces the remaining damage), matching Rust.
- * Socketed inserts add their per-type protection to the host piece.
+ * Combined protection fraction covering a body part for a damage type. Rust
+ * SUMS the protection values of every item covering the part (additive), then
+ * applies the total as the damage reduction. Socketed inserts add their
+ * per-type protection to the host piece. Capped at 100%.
  */
 export function partProtection(loadout: Loadout, slot: ArmorSlot, type: DamageType): number {
   const pieces = loadout[slot] || [];
-  let remaining = 1;
-  for (const p of pieces) remaining *= (1 - pieceProtection(p, type));
-  return 1 - remaining;
+  let total = 0;
+  for (const p of pieces) total += pieceProtection(p, type);
+  return Math.min(1, Math.max(0, total));
 }
 
 /** A single piece's protection for a damage type, including socketed inserts. */
@@ -432,17 +435,17 @@ export function pieceMisc(p: ArmorPiece, kind: 'radiation' | 'cold'): number {
 }
 
 /**
- * Combined protection across MULTIPLE slots for a damage type (multiplicative,
- * like layering). Used to group the minor hitboxes into Rust's 3 display zones:
+ * Combined protection across MULTIPLE slots for a damage type. Rust SUMS the
+ * protection values of every covering item (additive), so we add them and cap
+ * at 100%. Used to group the minor hitboxes into Rust's 3 display zones:
  * arms/hands fold into Chest, feet fold into Legs.
  *
  * A single multi-slot piece (full-body suit) is stored in every slot it covers,
- * so we dedupe by piece key per zone — otherwise the suit gets multiplied
- * against itself (e.g. chest 30% × hands 30% = 51%) and shows inflated, uneven
- * per-zone values. A suit applies its one protection value uniformly.
+ * so we dedupe by piece key per zone — otherwise the suit's value would be
+ * added against itself and double-count.
  */
 function groupProtection(loadout: Loadout, slots: ArmorSlot[], type: DamageType): number {
-  let remaining = 1;
+  let total = 0;
   const counted = new Set<string>();
   for (const slot of slots) {
     for (const p of loadout[slot] || []) {
@@ -451,10 +454,10 @@ function groupProtection(loadout: Loadout, slots: ArmorSlot[], type: DamageType)
         if (counted.has(p.key)) continue;
         counted.add(p.key);
       }
-      remaining *= (1 - pieceProtection(p, type));
+      total += pieceProtection(p, type);
     }
   }
-  return 1 - remaining;
+  return Math.min(1, Math.max(0, total));
 }
 
 export interface HitResult {

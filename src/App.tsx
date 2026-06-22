@@ -858,8 +858,9 @@ function App() {
                 broadcastToTeam(msg);
               }
               
-              // Trigger sound!
-              triggerSound(isOffline ? 'teammate_offline_death' : 'teammate_death');
+              // Trigger sound (offline deaths only — the online-death cue was
+              // removed for being too intrusive).
+              if (isOffline) triggerSound('teammate_offline_death');
             }
             // Update alive snapshot for all players (online & offline)
             prevAlive.set(sid, !!m.is_alive);

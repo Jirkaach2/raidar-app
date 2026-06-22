@@ -24,20 +24,7 @@ function playSynthSound(action: string, volume: number) {
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
     gainNode.connect(ctx.destination);
 
-    if (action === 'teammate_death') {
-      // Somber descending pitch sweep (dramatic defeat tone)
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(260, ctx.currentTime); // C4
-      osc.frequency.exponentialRampToValueAtTime(65, ctx.currentTime + 0.6); // C2
-      
-      gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-      
-      osc.connect(gainNode);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.6);
-    } else if (action === 'teammate_offline_death') {
+    if (action === 'teammate_offline_death') {
       // Double deep bass drum synth drone (offline raid/kill warning)
       const playDrum = (delay: number) => {
         const osc = ctx.createOscillator();
@@ -96,40 +83,6 @@ function playSynthSound(action: string, volume: number) {
         osc.start(ctx.currentTime + delay);
         osc.stop(ctx.currentTime + delay + 0.4);
       });
-    } else if (action === 'fish_catch') {
-      // Splashing water bubble noise effect
-      const bufferSize = ctx.sampleRate * 0.75;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        // White noise
-        data[i] = Math.random() * 2 - 1;
-      }
-      
-      const noiseNode = ctx.createBufferSource();
-      noiseNode.buffer = buffer;
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(1400, ctx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + 0.75);
-      filter.Q.setValueAtTime(4, ctx.currentTime);
-      
-      const splashGain = ctx.createGain();
-      splashGain.gain.setValueAtTime(volume, ctx.currentTime);
-      
-      // Amplitude modulation for bubble/splash texture
-      for (let t = 0; t < 0.75; t += 0.05) {
-        splashGain.gain.setValueAtTime(volume * (1 - t / 0.75) * (0.4 + 0.6 * Math.sin(t * 50)), ctx.currentTime + t);
-      }
-      splashGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75);
-      
-      noiseNode.connect(filter);
-      filter.connect(splashGain);
-      splashGain.connect(ctx.destination);
-      
-      noiseNode.start();
-      noiseNode.stop(ctx.currentTime + 0.75);
     }
   } catch (err) {
     console.error('Failed to play synthesized sound:', err);
@@ -140,9 +93,14 @@ function playSynthSound(action: string, volume: number) {
  * Triggers sound for a given action. Respects user settings volume and mute status,
  * playing their custom base64-encoded sound if uploaded, otherwise falls back to synthesized audio.
  */
-export function triggerSound(action: string) {
+export function triggerSound(action: string, opts?: { force?: boolean }) {
   const settings = useSettingsStore.getState();
-  if (!settings.soundEnabled) return;
+  const force = opts?.force === true;
+  if (!force) {
+    if (!settings.soundEnabled) return;
+    // Per-event opt-out (missing key = enabled). Intrusive events default off.
+    if (settings.soundEvents?.[action] === false) return;
+  }
   
   const volume = settings.soundVolume ?? 0.5;
   const customSound = settings.customSounds?.[action];

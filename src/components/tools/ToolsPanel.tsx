@@ -47,27 +47,37 @@ export function ToolsPanel() {
       ],
     },
     {
-      label: 'RAIDING',
+      label: 'COMBAT & RAIDING',
       tabs: [
-        { id: 'crates', name: 'LOCKED CRATES', icon: Lock },
         { id: 'raidcost', name: 'RAID COST', icon: Flame },
         { id: 'loadout', name: 'LOADOUT LAB', icon: Shield },
-        { id: 'recycler', name: 'RECYCLER', icon: RefreshCw },
+        { id: 'crates', name: 'LOCKED CRATES', icon: Lock },
       ],
     },
     {
-      label: 'INTEL',
+      label: 'MARKET & ECONOMY',
       tabs: [
         { id: 'pricewatch', name: 'PRICE WATCH', icon: DollarSign },
         { id: 'marketindex', name: 'MARKET INDEX', icon: BarChart3 },
         { id: 'profit', name: 'PROFIT SCAN', icon: Calculator },
-        { id: 'richbase', name: 'RICH BASES', icon: Compass },
-        { id: 'cctv', name: 'CCTV CODES', icon: Video },
-        { id: 'activity', name: 'ACTIVITY', icon: Activity },
+        { id: 'recycler', name: 'RECYCLER', icon: RefreshCw },
+      ],
+    },
+    {
+      label: 'RECON & INTEL',
+      tabs: [
         { id: 'lookup', name: 'PLAYER LOOKUP', icon: Search },
+        { id: 'richbase', name: 'RICH BASES', icon: Compass },
+        { id: 'activity', name: 'ACTIVITY', icon: Activity },
+        { id: 'combatlog', name: 'COMBAT LOG', icon: Terminal },
+        { id: 'cctv', name: 'CCTV CODES', icon: Video },
+      ],
+    },
+    {
+      label: 'SURVIVAL',
+      tabs: [
         { id: 'fishing', name: 'FISHING GUIDE', icon: Fish },
         { id: 'farming', name: 'FARMING SOLVER', icon: Sprout },
-        { id: 'combatlog', name: 'COMBAT LOG', icon: Terminal },
       ],
     },
   ];

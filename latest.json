@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.1",
-    "notes":  "Raidar 1.1.1: Major accuracy overhaul of Loadout Lab and Raid Cost. All armor protection values (ballistic, heavy plate, roadsign, metal, wood, suits) re-verified against the RustClash wearable database. Fixed the global Explosive resistance calc. Corrected HV Rocket counts for all wall tiers (sheet metal = 67) and sheet-metal melee/explosive-ammo costs.",
-    "pub_date":  "2026-06-22T16:49:43Z",
+    "version":  "1.1.2",
+    "notes":  "Raidar 1.1.2: Fixed Loadout Lab protection math - armor now correctly SUMS protection across worn items (additive, matching in-game) instead of stacking multiplicatively, so per-zone totals are accurate. Sound alerts are now OFF by default; removed the intrusive online-teammate-death and fish-caught cues.",
+    "pub_date":  "2026-06-22T17:13:54Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKditLVGxUMXJXQks3T1FIV1JkQ2h1KzVUdWNnV0pLMmZQcEVjMjFIODgxNHJwZEk0ajZ6Nm96YitUNEQvL1dFK0k1T0V2My9EbnRUWHBSVXJ4Sm4wa2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQ2OTU3CWZpbGU6UmFpZGFyXzEuMS4xX3g2NC1zZXR1cC5leGUKanFYYXdHT2YzVU9uVEp0NlgyRkt3cEJtMVdNbXVYTTRDV1BDMWVvcGg3Y2ZkMFVlbHJ1ZlkwdFpPdVlGWStyVlBWSVNmM3hSamNOOVBRekZjNFZQQ0E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.1/Raidar_1.1.1_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjYyNm1LaGFxaGZVR2pTRHNNYk5peDNMZHZOSmZDbnN5WjdvSEtFSjI2a3VvM20xYnVtS1NTOVJaR1pYaTlvYlJTY0U0RW1NdFUrVDN1WlFQL2UwdlFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTQ4NDI0CWZpbGU6UmFpZGFyXzEuMS4yX3g2NC1zZXR1cC5leGUKVHd6eG0yMVdaWisxb29LVXR6cFVtTlU0U0JzcTBINnBDVUtUZG0xRlpLeE1JNHk2MTRNcWd4WjM0U1NMbWtDczJEWXllcmlNL09JVjNPQi9HcnBOQlE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.2/Raidar_1.1.2_x64-setup.exe"
                                          }
                   }
 }
