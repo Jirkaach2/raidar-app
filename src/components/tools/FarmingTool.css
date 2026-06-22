@@ -875,3 +875,13 @@
   color: var(--farm-red);
   border: 1px solid rgba(239, 68, 68, 0.18);
 }
+
+
+/* Solver "searching" spinner */
+.farm-empty-icon-spin {
+  animation: farm-spin 1.1s linear infinite;
+}
+@keyframes farm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

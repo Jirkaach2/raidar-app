@@ -27,6 +27,7 @@ export function FarmingTool() {
   const [target, setTarget] = useState('YYYYGG');
   const [solution, setSolution] = useState<any | null>(null);
   const [solved, setSolved] = useState(false);
+  const [solving, setSolving] = useState(false);
 
   // Validate gene string
   const validateGenes = (str: string) => {
@@ -77,24 +78,42 @@ export function FarmingTool() {
       return;
     }
 
-    // We will search neighbor combinations of size 2 to 8
-    for (let size = 2; size <= 8; size++) {
+    // Combinations-with-replacement grows as C(n+k-1, k); cap the search depth so
+    // large inventories cannot freeze the UI. A planter only has 8 neighbour slots
+    // anyway, so 8 is the hard ceiling regardless.
+    const n = clones.length;
+    let maxSize = 8;
+    if (n >= 16) maxSize = 5;
+    else if (n >= 10) maxSize = 6;
+    else if (n >= 7) maxSize = 7;
+
+    setSolving(true);
+    setSolution(null);
+
+    // Defer to next tick so the "solving" spinner can paint before the heavy loop.
+    setTimeout(() => {
+      const result = runSolver(cleanedTarget, maxSize);
+      setSolution(result);
+      setSolving(false);
+    }, 30);
+  };
+
+  const runSolver = (cleanedTarget: string, maxSize: number): any => {
+    // Search exact matches first, smallest planting first (fewest neighbours).
+    for (let size = 2; size <= maxSize; size++) {
       const combos = getCombinationsWithReplacement(clones, size);
-      
+
       for (const combo of combos) {
-        // Try each slot
         let matchesAll = true;
         const slotDetails: any[] = [];
 
         for (let slot = 0; slot < 6; slot++) {
-          // Count weights of genes in this slot
           const weights: Record<string, number> = { G: 0, Y: 0, H: 0, W: 0, X: 0 };
           for (const clone of combo) {
             const gene = clone.genes[slot];
             weights[gene] = (weights[gene] || 0) + GENE_WEIGHTS[gene];
           }
 
-          // Find winning gene
           let maxVal = -1;
           let winner = '';
           let isTie = false;
@@ -119,24 +138,18 @@ export function FarmingTool() {
         }
 
         if (matchesAll) {
-          // Found a solution!
-          setSolution({
-            success: true,
-            neighbors: combo,
-            size,
-            slotDetails,
-          });
-          return;
+          return { success: true, neighbors: combo, size, slotDetails };
         }
       }
     }
 
-    // If no exact solution, look for closest matches (combos of size 3 to 6)
+    // No exact solution — return the closest match found.
     let bestCombo: Clone[] = [];
     let bestScore = -1;
     let bestSlotDetails: any[] = [];
 
-    for (let size = 3; size <= 6; size++) {
+    const closestMax = Math.min(maxSize, 6);
+    for (let size = 3; size <= closestMax; size++) {
       const combos = getCombinationsWithReplacement(clones, size);
       for (const combo of combos) {
         let score = 0;
@@ -173,12 +186,12 @@ export function FarmingTool() {
       }
     }
 
-    setSolution({
+    return {
       success: false,
       closestNeighbors: bestCombo,
       score: bestScore,
       slotDetails: bestSlotDetails,
-    });
+    };
   };
 
   // Map neighbor combination to a 3x3 layout
@@ -276,8 +289,8 @@ export function FarmingTool() {
                   className="farm-target-input font-mono"
                 />
               </div>
-              <button onClick={solveCrossbreed} className="farm-solve-btn font-display">
-                SOLVE MATRIX
+              <button onClick={solveCrossbreed} className="farm-solve-btn font-display" disabled={solving}>
+                {solving ? 'SOLVING…' : 'SOLVE MATRIX'}
               </button>
             </div>
             
@@ -346,6 +359,11 @@ export function FarmingTool() {
               <div className="farm-empty-state">
                 <Sprout size={36} className="farm-empty-icon" />
                 <span className="farm-empty-text">Enter your inventory clones and click <strong>SOLVE MATRIX</strong> to compute planting layout.</span>
+              </div>
+            ) : solving ? (
+              <div className="farm-empty-state">
+                <Sprout size={36} className="farm-empty-icon farm-empty-icon-spin" />
+                <span className="farm-empty-text">Searching breeding combinations…</span>
               </div>
             ) : solution?.error ? (
               <div className="farm-error-text">{solution.error}</div>

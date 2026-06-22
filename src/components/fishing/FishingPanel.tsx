@@ -21,6 +21,7 @@ export function FishingPanel() {
   const [simWater, setSimWater] = useState<'river' | 'ocean'>('ocean');
   const [simBaitLvl, setSimBaitLvl] = useState<'5' | '3' | '1'>('5');
   const [simRuns, setSimRuns] = useState<number>(50);
+  const [simFailRate, setSimFailRate] = useState<number>(50);
   const [simResults, setSimResults] = useState<any | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
@@ -108,8 +109,8 @@ export function FishingPanel() {
       };
 
       for (let i = 0; i < simRuns; i++) {
-        // 50% Trap Fail Rate
-        if (Math.random() < 0.5) {
+        // Configurable trap fail chance
+        if (Math.random() < (simFailRate / 100)) {
           fails++;
         } else {
           successes++;
@@ -243,6 +244,10 @@ export function FishingPanel() {
               <div className="info-box info">
                 <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
                 <span><b>5m DEPTH LIMIT:</b> Traps always act as if they are in 5-meter deep water. They <b>cannot</b> catch Small Sharks or Orange Roughies, but can catch Salmon and Catfish.</span>
+              </div>
+              <div className="info-box info">
+                <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span><b>DURABILITY:</b> A trap has 100 durability and loses <b className="highlight-text">10 per successful catch</b> — roughly <b>10 fish</b> before it needs repairing. The fish caught (small fish vs. trout) is decided by the total <b>calorie value</b> of the loaded bait.</span>
               </div>
             </div>
           </div>
@@ -378,6 +383,20 @@ export function FishingPanel() {
                 >
                   {isSimulating ? 'SIMULATING...' : 'RUN SIMULATION'}
                 </button>
+              </div>
+
+              <div className="sim-control-group">
+                <label>Trap Fail Chance — {simFailRate}%</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={90}
+                  step={5}
+                  value={simFailRate}
+                  onChange={(e) => setSimFailRate(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+                />
+                <div className="slider-label font-mono text-muted">Adjust to match your server / experience</div>
               </div>
             </div>
 

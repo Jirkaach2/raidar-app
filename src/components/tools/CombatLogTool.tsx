@@ -54,6 +54,8 @@ export function CombatLogTool() {
     headshots: 0,
     totalHitsDealt: 0,
     invalids: 0,
+    kills: 0,
+    deaths: 0,
   });
   const [opponents, setOpponents] = useState<Record<string, OpponentStat>>({});
   const [hitDistribution, setHitDistribution] = useState({
@@ -79,6 +81,8 @@ export function CombatLogTool() {
       headshots: 0,
       totalHitsDealt: 0,
       invalids: 0,
+      kills: 0,
+      deaths: 0,
     });
     setOpponents({});
     setHitDistribution({
@@ -102,6 +106,8 @@ export function CombatLogTool() {
     let headshotCount = 0;
     let totalHits = 0;
     let invalidCount = 0;
+    let killCount = 0;
+    let deathCount = 0;
     const opponentMap: Record<string, OpponentStat> = {};
 
     let headHits = 0;
@@ -220,6 +226,9 @@ export function CombatLogTool() {
 
       parsedEvents.push(event);
 
+      if (type === 'kill') killCount++;
+      else if (type === 'death') deathCount++;
+
       const opponentName = isAttackerYou ? victim : attacker;
       if (opponentName && opponentName !== 'you' && opponentName !== 'unknown') {
         if (!opponentMap[opponentName]) {
@@ -288,6 +297,8 @@ export function CombatLogTool() {
       headshots: headshotCount,
       totalHitsDealt: totalHits,
       invalids: invalidCount,
+      kills: killCount,
+      deaths: deathCount,
     });
     setOpponents(opponentMap);
     setHitDistribution({
@@ -370,6 +381,12 @@ export function CombatLogTool() {
   const chestHeat = `rgba(34, 197, 94, ${0.12 + (chestPct / 100) * 0.85})`;
   const stomachHeat = `rgba(245, 158, 11, ${0.12 + (stomachPct / 100) * 0.85})`;
   const limbsHeat = `rgba(229, 92, 37, ${0.12 + (limbsPct / 100) * 0.85})`;
+
+  // Combat performance metrics
+  const shotsFired = stats.totalHitsDealt + stats.invalids;
+  const accuracyPct = shotsFired > 0 ? Math.round((stats.totalHitsDealt / shotsFired) * 100) : 0;
+  const headshotRate = stats.totalHitsDealt > 0 ? Math.round((stats.headshots / stats.totalHitsDealt) * 100) : 0;
+  const kdRatio = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : String(stats.kills);
 
   return (
     <div className="combatlog">
@@ -513,6 +530,26 @@ export function CombatLogTool() {
                   <div className={`combatlog__stat-card ${stats.invalids > 0 ? 'combatlog__stat-card--invalid-active' : 'combatlog__stat-card--invalid'}`}>
                     <span className="combatlog__stat-label">Invalids</span>
                     <span className={`combatlog__stat-value ${stats.invalids > 0 ? 'combatlog__stat-value--invalid-active' : 'combatlog__stat-value--invalid'}`}>{stats.invalids}</span>
+                  </div>
+                </div>
+
+                {/* Performance Metrics Row */}
+                <div className="combatlog__stats-row">
+                  <div className="combatlog__stat-card combatlog__stat-card--dealt">
+                    <span className="combatlog__stat-label">K / D</span>
+                    <span className="combatlog__stat-value combatlog__stat-value--dealt">{stats.kills}/{stats.deaths} <span style={{ fontSize: 12, opacity: 0.7 }}>({kdRatio})</span></span>
+                  </div>
+                  <div className="combatlog__stat-card combatlog__stat-card--headshot">
+                    <span className="combatlog__stat-label">Accuracy</span>
+                    <span className="combatlog__stat-value combatlog__stat-value--headshot">{accuracyPct}%</span>
+                  </div>
+                  <div className="combatlog__stat-card combatlog__stat-card--headshot">
+                    <span className="combatlog__stat-label">Headshot Rate</span>
+                    <span className="combatlog__stat-value combatlog__stat-value--headshot">{headshotRate}%</span>
+                  </div>
+                  <div className="combatlog__stat-card combatlog__stat-card--taken">
+                    <span className="combatlog__stat-label">Shots Fired</span>
+                    <span className="combatlog__stat-value combatlog__stat-value--taken">{shotsFired}</span>
                   </div>
                 </div>
 
