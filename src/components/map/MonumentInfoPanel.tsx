@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMapStore } from '../../stores/map-store';
 import { getMonumentInfo, getMonumentName, getMonumentImageUrl, getItemIcon, getRequiredCards, CardType, PuzzleItem } from '../../utils/monuments';
 import { getLootTable, lootIconUrl } from '../../utils/loot';
+import { getMissionsForMonument, missionIcon, rewardIcon, Mission } from '../../utils/missions';
 
 const CARD_COLORS: Record<CardType, string> = {
   green: '#2fe06d',
@@ -81,6 +82,51 @@ function FlagChip({ on, label }: { on: boolean; label: string }) {
   );
 }
 
+/** A single mission row: header always visible, details expand on click. */
+function MissionCard({ mission, open, onToggle }: { mission: Mission; open: boolean; onToggle: () => void }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid #5ac8e8', overflow: 'hidden' }}>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
+        <img src={missionIcon(mission.id)} alt="" width={26} height={26} style={{ objectFit: 'contain', flexShrink: 0 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#e8e2d9' }}>{mission.name}</span>
+          <span style={{ fontSize: 9, color: '#5ac8e8' }}>{mission.provider}</span>
+        </span>
+        <span style={{ color: '#8b857c', fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 10px 10px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 10.5, color: '#9aa0a6', lineHeight: 1.45 }}>{mission.desc}</p>
+
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.8px', color: '#8b857c', marginBottom: 4 }}>OBJECTIVES</div>
+          <ul style={{ margin: '0 0 8px', paddingLeft: 14, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {mission.objectives.map((o, i) => <li key={i} style={{ fontSize: 10.5, color: '#c4bdb1', lineHeight: 1.4 }}>{o}</li>)}
+          </ul>
+
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.8px', color: '#6fcf73', marginBottom: 4 }}>REWARDS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: mission.requires || mission.cooldown ? 8 : 0 }}>
+            {mission.rewards.map((r, i) => (
+              <div key={i} title={r.name} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(111,207,115,0.08)', border: '1px solid rgba(111,207,115,0.2)', borderRadius: 4, padding: '3px 6px' }}>
+                <img src={rewardIcon(r)} alt="" width={16} height={16} style={{ objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                <span style={{ fontSize: 9.5, color: '#e8e2d9' }}>{r.name}{r.qty ? <span style={{ color: '#6fcf73', fontWeight: 700 }}> ×{r.qty}</span> : null}</span>
+              </div>
+            ))}
+            {mission.rewardNote && <span style={{ fontSize: 9.5, color: '#6fcf73', fontStyle: 'italic' }}>{mission.rewardNote}</span>}
+          </div>
+
+          {mission.bonus && <div style={{ fontSize: 9.5, color: '#f5c451', marginBottom: 6 }}>★ {mission.bonus}</div>}
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 9, color: '#8b857c' }}>
+            {mission.cooldown && <span>Cooldown: <b style={{ color: '#c4bdb1' }}>{mission.cooldown}</b></span>}
+            {mission.timeLimit && <span>Time limit: <b style={{ color: '#c4bdb1' }}>{mission.timeLimit}</b></span>}
+            {mission.requires && <span>Requires: <b style={{ color: '#c4bdb1' }}>{mission.requires.join(', ')}</b></span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Inline loot-table popup shown when a crate/scientist row is clicked. */
 function LootTablePopup({ tableId, onClose }: { tableId: string; onClose: () => void }) {
   const table = getLootTable(tableId);
@@ -136,8 +182,9 @@ const MonumentInfoPanel = React.memo(function MonumentInfoPanel() {
   const selectMonument = useMapStore(s => s.selectMonument);
   const [imgError, setImgError] = useState(false);
   const [lootPopup, setLootPopup] = useState<string | null>(null);
+  const [openMission, setOpenMission] = useState<string | null>(null);
 
-  React.useEffect(() => { setImgError(false); setLootPopup(null); }, [token]);
+  React.useEffect(() => { setImgError(false); setLootPopup(null); setOpenMission(null); }, [token]);
 
   if (!token) return null;
 
@@ -269,6 +316,26 @@ const MonumentInfoPanel = React.memo(function MonumentInfoPanel() {
                   </div>
                 ))}
               </Section>
+
+              {/* Missions offered at this monument */}
+              {(() => {
+                const missions = getMissionsForMonument(info.key);
+                if (missions.length === 0) return null;
+                return (
+                  <Section title={`MISSIONS · ${missions.length} (tap to expand)`}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {missions.map((m) => (
+                        <MissionCard
+                          key={m.id}
+                          mission={m}
+                          open={openMission === m.id}
+                          onToggle={() => setOpenMission(openMission === m.id ? null : m.id)}
+                        />
+                      ))}
+                    </div>
+                  </Section>
+                );
+              })()}
 
               {/* Mining */}
               {info.mining && (
