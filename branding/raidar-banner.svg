@@ -1,115 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
   <defs>
-    <radialGradient id="bbg" cx="32%" cy="42%" r="90%">
-      <stop offset="0" stop-color="#34251a"/>
-      <stop offset="0.45" stop-color="#1d160f"/>
-      <stop offset="0.8" stop-color="#12100c"/>
-      <stop offset="1" stop-color="#08090c"/>
-    </radialGradient>
-    <radialGradient id="glass2" cx="50%" cy="42%" r="62%">
-      <stop offset="0" stop-color="#1d1712"/>
-      <stop offset="0.7" stop-color="#120f0c"/>
-      <stop offset="1" stop-color="#0a0807"/>
-    </radialGradient>
-    <linearGradient id="sweep2" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#ff7a44" stop-opacity="0"/>
-      <stop offset="1" stop-color="#ff7a44" stop-opacity="0.9"/>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF6E3C"/>
+      <stop offset="1" stop-color="#E0341E"/>
     </linearGradient>
-    <radialGradient id="blip2" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#ffd9b0"/>
-      <stop offset="0.35" stop-color="#ff8a4d"/>
-      <stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fdf7ef"/>
-      <stop offset="1" stop-color="#cdbfb0"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101318"/>
+      <stop offset="1" stop-color="#0a0c10"/>
     </linearGradient>
-    <linearGradient id="accentline" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#ff6a3d"/>
-      <stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="rustspot2" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#a8552a" stop-opacity="0.4"/>
-      <stop offset="1" stop-color="#a8552a" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glow2" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="6" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="tsh" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
-    </filter>
-    <clipPath id="bannerClip"><rect width="1280" height="400"/></clipPath>
-    <clipPath id="scope2Clip"><circle cx="215" cy="200" r="150"/></clipPath>
+    <clipPath id="clip"><rect width="1280" height="400"/></clipPath>
   </defs>
 
-  <g clip-path="url(#bannerClip)">
-    <!-- plate -->
-    <rect width="1280" height="400" fill="url(#bbg)"/>
-    <circle cx="180" cy="330" r="260" fill="url(#rustspot2)"/>
-    <circle cx="1080" cy="80" r="240" fill="url(#rustspot2)"/>
+  <g clip-path="url(#clip)">
+    <!-- Flat backdrop -->
+    <rect width="1280" height="400" fill="url(#bg)"/>
 
-    <!-- brushed striations -->
-    <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="2">
-      <line x1="0" y1="70" x2="1280" y2="70"/>
-      <line x1="0" y1="120" x2="1280" y2="120"/>
-      <line x1="0" y1="300" x2="1280" y2="300"/>
-      <line x1="0" y1="350" x2="1280" y2="350"/>
-    </g>
-
-    <!-- decorative range rings bleeding off the right edge -->
-    <g fill="none" stroke="#ff6a3d" stroke-opacity="0.10" stroke-width="2.5">
-      <circle cx="1170" cy="200" r="130"/>
-      <circle cx="1170" cy="200" r="220"/>
-      <circle cx="1170" cy="200" r="310"/>
-      <circle cx="1170" cy="200" r="400"/>
-    </g>
-    <line x1="1170" y1="200" x2="900" y2="40" stroke="#ff7a44" stroke-opacity="0.18" stroke-width="3" stroke-linecap="round"/>
-
-    <!-- ── radar emblem ── -->
-    <circle cx="215" cy="200" r="150" fill="url(#glass2)"/>
-    <g clip-path="url(#scope2Clip)">
-      <g fill="none" stroke="#ff6a3d" stroke-opacity="0.22" stroke-width="2.5">
-        <circle cx="215" cy="200" r="50"/>
-        <circle cx="215" cy="200" r="100"/>
-        <circle cx="215" cy="200" r="140"/>
+    <!-- ── Mark tile ── -->
+    <g transform="translate(150 112)">
+      <rect width="176" height="176" rx="40" fill="url(#brand)"/>
+      <g transform="scale(0.34375)">
+        <g fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round">
+          <path d="M216.4 178.3 A96 96 0 0 1 216.4 333.7"/>
+          <path d="M258.8 120.1 A168 168 0 0 1 258.8 391.9"/>
+        </g>
+        <circle cx="160" cy="256" r="30" fill="#ffffff"/>
+        <circle cx="372" cy="176" r="26" fill="#ffffff"/>
       </g>
-      <g stroke="#ff6a3d" stroke-opacity="0.16" stroke-width="2.5">
-        <line x1="215" y1="60" x2="215" y2="340"/>
-        <line x1="75" y1="200" x2="355" y2="200"/>
-      </g>
-      <!-- sweep -->
-      <path d="M215 200 L202 56 A145 145 0 0 1 276 69 Z" fill="#ff7a44" opacity="0.12"/>
-      <path d="M215 200 L276 69 A145 145 0 0 1 326 107 Z" fill="url(#sweep2)" opacity="0.55"/>
-      <line x1="215" y1="200" x2="326" y2="107" stroke="#ffae7d" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
-      <!-- blip -->
-      <circle cx="283" cy="120" r="22" fill="url(#blip2)"/>
-      <circle cx="283" cy="120" r="6.5" fill="#fff2e6"/>
-      <circle cx="283" cy="120" r="12" fill="none" stroke="#ffd9b0" stroke-width="2" stroke-opacity="0.7"/>
-    </g>
-    <circle cx="215" cy="200" r="150" fill="none" stroke="#0a0807" stroke-width="7"/>
-    <circle cx="215" cy="200" r="150" fill="none" stroke="#ff6a3d" stroke-opacity="0.4" stroke-width="2.5"/>
-    <g stroke="#ff8a5a" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round">
-      <line x1="356" y1="200" x2="368" y2="200"/>
-      <line x1="306" y1="306" x2="315" y2="315"/>
-      <line x1="215" y1="356" x2="215" y2="368"/>
-      <line x1="124" y1="306" x2="115" y2="315"/>
-      <line x1="74" y1="200" x2="62" y2="200"/>
-      <line x1="124" y1="94" x2="115" y2="85"/>
-      <line x1="215" y1="44" x2="215" y2="32"/>
-      <line x1="306" y1="94" x2="315" y2="85"/>
-    </g>
-    <g filter="url(#glow2)">
-      <circle cx="215" cy="200" r="11" fill="none" stroke="#ff8a5a" stroke-width="3" stroke-opacity="0.8"/>
-      <circle cx="215" cy="200" r="5.5" fill="#ff7a44"/>
     </g>
 
-    <!-- ── wordmark ── -->
-    <g filter="url(#tsh)" font-family="'Arial Black','Segoe UI',Impact,sans-serif">
-      <text x="432" y="218" font-size="128" font-weight="900" letter-spacing="6" fill="url(#word)">RAIDAR</text>
-    </g>
-    <text x="438" y="282" font-family="'Consolas','JetBrains Mono',monospace" font-size="27" font-weight="600"
-          letter-spacing="7.5" fill="#b9a994">RUST INTELLIGENCE APP</text>
-    <rect x="438" y="304" width="430" height="3" rx="1.5" fill="url(#accentline)"/>
+    <!-- ── Wordmark ── -->
+    <text x="392" y="214" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif"
+          font-size="118" font-weight="800" letter-spacing="-2" fill="#f5f6f8">Raidar</text>
+    <text x="396" y="266" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif"
+          font-size="26" font-weight="600" letter-spacing="8" fill="#8b93a0">RUST INTELLIGENCE</text>
+    <rect x="398" y="286" width="64" height="4" rx="2" fill="url(#brand)"/>
   </g>
 </svg>

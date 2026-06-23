@@ -462,8 +462,9 @@ function MonumentFeatureIcons({ monuments }: { monuments: any[] }) {
   const wantBasicBp = selectedResources.includes('basic_bp');
   const wantAdvBp = selectedResources.includes('advanced_bp');
   const wantDiesel = selectedResources.includes('diesel');
+  const wantPumpJacks = selectedResources.includes('pump_jacks');
 
-  if (!wantGreen && !wantBlue && !wantRed && !wantRecycler && !wantResearch && !wantRefinery && !wantSam && !wantTurret && !wantBasicBp && !wantAdvBp && !wantDiesel) return null;
+  if (!wantGreen && !wantBlue && !wantRed && !wantRecycler && !wantResearch && !wantRefinery && !wantSam && !wantTurret && !wantBasicBp && !wantAdvBp && !wantDiesel && !wantPumpJacks) return null;
 
   const CardIcon = ({ color }: { color: string }) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" style={{ width: 12, height: 12 }}>
@@ -517,6 +518,15 @@ function MonumentFeatureIcons({ monuments }: { monuments: any[] }) {
       <path d="M12 22V10M18 10h-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16h14v-6h4v6M18 10v6" />
     </svg>
   );
+  const PumpJackIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#0c0e12" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 11, height: 11 }}>
+      <path d="M4 9l16-3" />
+      <circle cx="4" cy="9" r="1.3" fill="#0c0e12" stroke="none" />
+      <path d="M20 6v5M18 11h4" />
+      <path d="M9 11l3 9M15 11l-3 9" />
+      <line x1="7" y1="20" x2="17" y2="20" />
+    </svg>
+  );
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
@@ -556,6 +566,9 @@ function MonumentFeatureIcons({ monuments }: { monuments: any[] }) {
         }
         if (wantDiesel && monumentHasFeature(m.token, 'diesel')) {
           badges.push(<FeatureBadge key="dsl" bg="#37474f"><DieselIcon /></FeatureBadge>);
+        }
+        if (wantPumpJacks && monumentHasFeature(m.token, 'pump_jacks')) {
+          badges.push(<FeatureBadge key="pj" bg="#c98a3c"><PumpJackIcon /></FeatureBadge>);
         }
 
         if (badges.length === 0) return null;

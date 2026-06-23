@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.6",
-    "notes":  "Raidar 1.1.6: Player Lookup now correctly pulls full live Rust stats for public profiles (fixed the PRIVATE/UNSYNCED bug - Steam stopped exposing stat values in its XML, so we now fall through to RustStats); Workflows and Sequences are integrated into Smart Devices with new custom dropdowns; Pump Jacks added to monument markers (Power Plant, Train Yard, Water Treatment); live-map notifications moved back to the top-right; a new tactical background texture fills the space around the map; and the custom user map markers were reworked into premium glossy pins.",
-    "pub_date":  "2026-06-23T13:42:44Z",
+    "version":  "1.1.7",
+    "notes":  "Raidar 1.1.7: Brand refresh - a clean, modern logo and banner plus a regenerated app icon; Pump Jacks now correctly show on the map (Power Plant, Train Yard, Water Treatment) when the monument-markers filter is on; and the Marker size slider was removed from the Overlays panel (per-marker sizing still lives in each marker\u0027s editor).",
+    "pub_date":  "2026-06-23T14:00:24Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjZQNVZ1cnFMdEYvejVNeUhqMis4ZjYyTFE0RkIvRjlMRHpWTzJrS0ZWcUg1bHRtbk51SEo3amJremtMb0gyU1M3Q0M3dmdPbmVjd0Zua1FnRDgxK2c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjIyMDc5CWZpbGU6UmFpZGFyXzEuMS42X3g2NC1zZXR1cC5leGUKZnIyV3ltb3Fuam9ISk1RVjE5ZWczUTY3SVpYTW9MNlh4NzllVzMzS2ROOS9pY1lyVFBGZEhBTnp4WUtYNHVvcG1JNWZlU1psQzRIdUhUVU5ZaU1JQnc9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.6/Raidar_1.1.6_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdno0VkZVVWVkUzVOMlczWmRpODByc3V6Rk1KNGpFenZVTTVXUjA5NGRBRExnbWdNQStPWHh5RDZiUlRkYnhHSkJwSDlBUy9uMXNEVFFzcjV1WDVCNUFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjIzMTc1CWZpbGU6UmFpZGFyXzEuMS43X3g2NC1zZXR1cC5leGUKY3RSS05qM0ZlcDc0alJGVUhqakZrYUVCWTFTUTg4VFFZQTljTjhjNkdQK2xIelRDd2thV2k2MWVYT25zdGdkbWRmMVpwZnNFMVNhd056RUxmUlJGQnc9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.7/Raidar_1.1.7_x64-setup.exe"
                                          }
                   }
 }

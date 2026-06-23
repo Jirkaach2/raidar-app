@@ -258,8 +258,6 @@ export const TacticalOverlays = React.memo(function TacticalOverlays() {
   const showRustExtras = useMapStore(s => s.showRustExtras);
   const toggleRustExtras = useMapStore(s => s.toggleRustExtras);
   const hasRustMapsKey = useSettingsStore(s => s.rustmapsKey.trim().length > 0);
-  const markerScale = useSettingsStore(s => s.markerScale);
-  const setMarkerScale = useSettingsStore(s => s.setMarkerScale);
   const toggleResources = useMapStore(s => s.toggleResources);
   const toggleResource = useMapStore(s => s.toggleResource);
 
@@ -374,25 +372,6 @@ export const TacticalOverlays = React.memo(function TacticalOverlays() {
                   onToggle={toggleDayNight}
                   title="Show the Day/Night tracker"
                 />
-              </div>
-
-              {/* Display */}
-              <div className="overlay-group">
-                <div className="overlay-group-label">Display</div>
-                <div className="overlay-slider-row" title="Shrink or grow every map marker">
-                  <span className="overlay-slider-label">Marker size</span>
-                  <input
-                    type="range"
-                    min={0.15}
-                    max={2}
-                    step={0.05}
-                    value={markerScale}
-                    onChange={(e) => setMarkerScale(parseFloat(e.target.value))}
-                    className="overlay-slider"
-                    aria-label="Marker size"
-                  />
-                  <span className="overlay-slider-val">{Math.round(markerScale * 100)}%</span>
-                </div>
               </div>
             </div>
           )}
