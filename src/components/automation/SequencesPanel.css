@@ -1,0 +1,310 @@
+/* ══════════════════════════════════════════════════════════
+   SEQUENCES — turret flip-flop control. Dark-glass, accent-red.
+   Reuses the app tokens (--color-*, --font-*, --radius-*, --space-*).
+   ══════════════════════════════════════════════════════════ */
+.seq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  height: 100%;
+  overflow-y: auto;
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.seq-head__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-accent);
+}
+.seq-head__title h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+.seq-head__sub {
+  margin: var(--space-xs) 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Explainer ──────────────────────────────────────────── */
+.seq-explain {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: linear-gradient(90deg, var(--color-accent-glow), rgba(0, 0, 0, 0.15) 70%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.seq-explain__icon { flex-shrink: 0; color: var(--color-accent); margin-top: 2px; }
+.seq-explain strong { color: var(--color-text); }
+.seq-explain b { color: var(--color-accent); }
+
+/* ── Create row ─────────────────────────────────────────── */
+.seq-create { display: flex; gap: var(--space-sm); }
+
+.seq-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.seq-input:focus {
+  border-color: var(--color-accent-dim);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
+}
+.seq-create .seq-input { flex: 1; }
+.seq-input--num { width: 70px; }
+.seq-input--inline { flex: 1; }
+.seq-input--group {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border-color: transparent;
+  padding: 3px 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.seq-input--group:focus { background: rgba(0, 0, 0, 0.4); border-color: var(--color-accent-dim); }
+
+/* ── Buttons ────────────────────────────────────────────── */
+.seq-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+.seq-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.seq-btn--accent { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.seq-btn--accent:hover:not(:disabled) { box-shadow: var(--glow-accent); }
+.seq-btn--stop { background: var(--color-danger-dim); border-color: rgba(232, 69, 69, 0.4); color: #ff8b8b; }
+.seq-btn--stop:hover { background: rgba(232, 69, 69, 0.28); }
+.seq-btn--ghost { background: rgba(255, 255, 255, 0.04); color: var(--color-text-muted); }
+.seq-btn--ghost:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--color-border-strong); }
+
+.seq-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.seq-icon-btn:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.06); }
+.seq-icon-btn--danger:hover { color: var(--color-danger); background: rgba(232, 69, 69, 0.12); }
+
+/* ── Empty state ────────────────────────────────────────── */
+.seq-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-3xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-text-dim);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.seq-empty p { margin: 0; font-size: 12px; max-width: 380px; line-height: 1.5; }
+
+/* ── Sequence list / card ───────────────────────────────── */
+.seq-list { display: flex; flex-direction: column; gap: var(--space-lg); }
+
+.seq-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.seq-card.is-running { border-color: var(--color-border-strong); }
+.seq-card.is-frozen {
+  border-color: rgba(232, 168, 56, 0.5);
+  box-shadow: 0 0 0 1px rgba(232, 168, 56, 0.25), var(--shadow-panel);
+}
+
+.seq-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
+.seq-card__name { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; color: var(--color-accent); }
+.seq-card__name h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+}
+.seq-name-edit { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ── Status pills ───────────────────────────────────────── */
+.seq-status { display: inline-flex; }
+.seq-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 1px solid var(--color-border);
+}
+.seq-pill--run { color: var(--color-success); background: var(--color-success-dim); border-color: rgba(111, 207, 115, 0.4); }
+.seq-pill--idle { color: var(--color-text-dim); }
+.seq-pill--frozen { color: var(--color-warning); background: var(--color-warning-dim); border-color: rgba(232, 168, 56, 0.45); }
+
+/* ── Controls ───────────────────────────────────────────── */
+.seq-controls { display: flex; align-items: flex-end; gap: var(--space-sm); flex-wrap: wrap; }
+.seq-field { display: flex; flex-direction: column; gap: 3px; }
+.seq-field--grow { flex: 1; min-width: 140px; }
+.seq-field > span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* ── Groups ─────────────────────────────────────────────── */
+.seq-no-groups {
+  padding: var(--space-md);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--color-text-dim);
+  text-align: center;
+}
+.seq-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+.seq-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.seq-group.is-active {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent-glow), var(--glow-accent);
+}
+.seq-group__head { display: flex; align-items: center; gap: 6px; color: var(--color-accent); }
+.seq-group__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  padding: 1px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.seq-group__switches { display: flex; flex-direction: column; gap: 5px; min-height: 24px; }
+.seq-group__drop {
+  padding: var(--space-sm);
+  font-size: 10px;
+  font-style: italic;
+  text-align: center;
+  color: var(--color-text-dim);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.seq-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  cursor: grab;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.seq-switch:hover { background: rgba(255, 255, 255, 0.07); border-color: var(--color-border-strong); }
+.seq-switch:active { cursor: grabbing; }
+.seq-switch__grip { color: var(--color-text-dim); flex-shrink: 0; }
+.seq-switch__on { color: var(--color-success); flex-shrink: 0; }
+.seq-switch__off { color: var(--color-text-dim); flex-shrink: 0; }
+.seq-switch__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); }
+
+.seq-add-switch {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 7px;
+  cursor: pointer;
+  outline: none;
+}
+.seq-add-switch:focus { border-color: var(--color-accent-dim); }
+
+/* ── Freeze block ───────────────────────────────────────── */
+.seq-freeze {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(232, 168, 56, 0.05);
+  border: 1px solid rgba(232, 168, 56, 0.2);
+  border-radius: var(--radius-md);
+}
+.seq-freeze__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-warning);
+}
+.seq-freeze__hint { margin: 0; font-size: 10.5px; line-height: 1.45; color: var(--color-text-dim); }
+.seq-freeze__row { display: flex; align-items: flex-end; gap: var(--space-sm); flex-wrap: wrap; }
+.seq-freeze__row .seq-input { width: 100%; }

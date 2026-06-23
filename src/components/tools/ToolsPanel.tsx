@@ -15,11 +15,13 @@ import { MarketIndexTool } from './MarketIndexTool';
 import { FishingPanel } from '../fishing/FishingPanel';
 import { FarmingTool } from './FarmingTool';
 import { CombatLogTool } from './CombatLogTool';
+import { WorkflowsPanel } from '../automation/WorkflowsPanel';
+import { SequencesPanel } from '../automation/SequencesPanel';
 import {
   Home, Clock, Lock, Flame, RefreshCw,
   DollarSign, Calculator, Compass, Video,
   Activity, Search, Shield, BarChart3, LucideIcon,
-  Fish, Sprout, Terminal
+  Fish, Sprout, Terminal, Workflow, Repeat,
 } from 'lucide-react';
 import './ToolsPanel.css';
 
@@ -39,6 +41,13 @@ export function ToolsPanel() {
   }
 
   const GROUPS: ToolGroup[] = [
+    {
+      label: 'AUTOMATION',
+      tabs: [
+        { id: 'workflows', name: 'WORKFLOWS', icon: Workflow },
+        { id: 'sequences', name: 'SEQUENCES', icon: Repeat },
+      ],
+    },
     {
       label: 'BASE & DEFENSE',
       tabs: [
@@ -129,6 +138,8 @@ export function ToolsPanel() {
         {tab === 'fishing' && <FishingPanel />}
         {tab === 'farming' && <FarmingTool />}
         {tab === 'combatlog' && <CombatLogTool />}
+        {tab === 'workflows' && <WorkflowsPanel />}
+        {tab === 'sequences' && <SequencesPanel />}
       </div>
     </div>
   );

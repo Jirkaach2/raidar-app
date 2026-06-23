@@ -1,0 +1,320 @@
+/* ══════════════════════════════════════════════════════════════════
+   TEAM LEADERBOARD — dark-glass ranked playtime board
+   ══════════════════════════════════════════════════════════════════ */
+
+.tlb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.tlb-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+.tlb-header__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+.tlb-header__title svg { color: var(--color-accent); }
+.tlb-header__sub {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.tlb-header__sub strong { color: var(--color-text); font-weight: 600; }
+
+.tlb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-xxs);
+}
+.tlb-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+.tlb-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+/* ── Meta strip ─────────────────────────────────────────────────── */
+.tlb-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.tlb-meta__sep { color: var(--color-text-dim); }
+
+/* ── List & rows ────────────────────────────────────────────────── */
+.tlb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.tlb-row {
+  background: linear-gradient(135deg, rgba(26, 22, 16, 0.55), rgba(11, 13, 17, 0.65));
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.tlb-row:hover { border-color: var(--color-border-strong); }
+.tlb-row--offline { opacity: 0.55; }
+
+.tlb-row__main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 1.4fr) auto auto 1fr 18px;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+/* ── Rank medallion ─────────────────────────────────────────────── */
+.tlb-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+}
+.tlb-rank--gold   { color: #1a1610; background: #e8c14a; border-color: #f0d97a; box-shadow: 0 0 10px rgba(232,193,74,.35); }
+.tlb-rank--silver { color: #1a1610; background: #cfd4dc; border-color: #e6ebf2; }
+.tlb-rank--bronze { color: #1a1610; background: #cd8c54; border-color: #e0a875; }
+
+/* ── Identity ───────────────────────────────────────────────────── */
+.tlb-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.tlb-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tlb-crown { color: #e8c14a; flex-shrink: 0; }
+.tlb-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tlb-zone__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+.tlb-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  justify-content: flex-end;
+}
+.tlb-badge {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  background: rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
+/* ── Times ──────────────────────────────────────────────────────── */
+.tlb-times {
+  display: inline-flex;
+  gap: var(--space-md);
+}
+.tlb-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.tlb-time__label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--color-text-dim);
+}
+.tlb-time__val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.tlb-time__val--real { color: var(--color-success); }
+.tlb-time__val--afk  { color: var(--color-danger); }
+
+/* ── Segmented activity bar ─────────────────────────────────────── */
+.tlb-bar {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border);
+}
+.tlb-bar__seg { height: 100%; transition: width var(--transition-normal); }
+.tlb-bar__empty { width: 100%; height: 100%; }
+
+.tlb-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dim);
+}
+
+/* ── Expanded detail ────────────────────────────────────────────── */
+.tlb-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.25);
+}
+.tlb-detail__zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm) var(--space-lg);
+}
+.tlb-zoneStat {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.tlb-zoneStat__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  min-width: 92px;
+}
+.tlb-zoneStat__val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text);
+  grid-column: 3;
+  grid-row: 1;
+  text-align: right;
+}
+.tlb-zoneStat__track {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.tlb-zoneStat__fill { height: 100%; transition: width var(--transition-normal); }
+.tlb-zoneStat__pct { display: none; }
+
+.tlb-detail__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+.tlb-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.tlb-fact svg { color: var(--color-text-dim); }
+
+/* ── Empty state ────────────────────────────────────────────────── */
+.tlb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-3xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-text-dim);
+}
+.tlb-empty svg { color: var(--color-accent-dim); }
+.tlb-empty__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.tlb-empty__hint {
+  margin: 0;
+  font-size: 11px;
+  max-width: 280px;
+  color: var(--color-text-dim);
+}

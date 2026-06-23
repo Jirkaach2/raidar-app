@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isCurrentServer } from '@/utils/server';
 
 /**
  * Custom user map markers — player-placed pins for bases, stashes, farms,
@@ -56,6 +57,12 @@ interface MarkerState {
   addMarker: (m: Omit<CustomMarker, 'id' | 'createdAt'>) => void;
   updateMarker: (id: string, data: Partial<CustomMarker>) => void;
   removeMarker: (id: string) => void;
+  /**
+   * Bulk-delete markers. `scope: 'current'` (default) only removes markers on
+   * the currently-connected server (matching the map's render filter), while
+   * `scope: 'all'` wipes every saved marker across all servers.
+   */
+  clearMarkers: (scope?: 'current' | 'all') => void;
 }
 
 const STORAGE_KEY = 'raidar.customMarkers';
@@ -111,6 +118,14 @@ export const useMarkerStore = create<MarkerState>((set, get) => ({
 
   removeMarker: (id) => {
     const markers = get().markers.filter((m) => m.id !== id);
+    save(markers);
+    set({ markers });
+  },
+
+  clearMarkers: (scope = 'current') => {
+    const markers = scope === 'all'
+      ? []
+      : get().markers.filter((m) => !isCurrentServer(m.serverId));
     save(markers);
     set({ markers });
   },

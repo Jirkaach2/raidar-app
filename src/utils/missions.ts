@@ -155,8 +155,12 @@ function canonicalKey(key: string): string | null {
   const k = (key || '').toLowerCase();
   if (k.includes('large_fishing') || k.includes('largefishing') || k.includes('large fishing')) return 'large_fishing_village';
   if (k.includes('fishing')) return 'fishing_village';
-  if (k.includes('outpost')) return 'outpost';
+  // Mining Outpost / quarries / warehouse have NO NPC missions. Guard this
+  // BEFORE the outpost check, since "mining_outpost" contains "outpost".
+  if (k.includes('mining') || k.includes('quarry') || k.includes('warehouse')) return null;
+  if (k.includes('outpost') || k.includes('compound')) return 'outpost';
   if (k.includes('bandit')) return 'bandit_camp';
+  if (k.includes('ranch') || k.includes('stables')) return 'ranch';
   return null;
 }
 

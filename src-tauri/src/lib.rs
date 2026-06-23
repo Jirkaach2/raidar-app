@@ -239,6 +239,10 @@ pub fn run() {
                                     app_handle.emit("entity-paired", parsed).ok();
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("alarm") {
                                     app_handle.emit("smart-alarm", parsed).ok();
+                                } else if parsed.get("type").and_then(|t| t.as_str()) == Some("death") {
+                                    // Player death push — delivered even while offline / on
+                                    // another server. Forwarded to the frontend to notify.
+                                    app_handle.emit("player-death", parsed).ok();
                                 } else if parsed.get("type").and_then(|t| t.as_str()) == Some("open_login") {
                                     let url = parsed.get("url").unwrap().as_str().unwrap().to_string();
                                     let state = app_handle.state::<AppState>();

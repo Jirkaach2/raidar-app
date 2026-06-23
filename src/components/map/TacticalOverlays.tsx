@@ -2,14 +2,32 @@ import { useMapStore } from '@/stores/map-store';
 import { useTeamStore } from '@/stores/team-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { confirmDialog } from '@/stores/confirm-store';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import {
+  Layers, Users, ClipboardList, Skull, Store, Mountain, MapPin,
+  Zap, SunMoon, ChevronDown, Crown, Trash2,
+} from 'lucide-react';
 import './TacticalOverlays.css';
+
+/** Status sort priority — online first, then dead, then offline. */
+const STATUS_ORDER: Record<string, number> = { online: 0, dead: 1, offline: 2 };
 
 /** Compact team roster shown above the tactical overlays on the map. */
 const RosterStatus = React.memo(function RosterStatus() {
   const members = useTeamStore(s => s.members);
   const showRoster = useMapStore(s => s.showRoster);
   const [collapsed, setCollapsed] = useState(false);
+
+  // Online → dead → offline, then alphabetical for quick scanning.
+  const sorted = useMemo(
+    () =>
+      [...members].sort((a, b) => {
+        const order = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+        return order !== 0 ? order : a.name.localeCompare(b.name);
+      }),
+    [members],
+  );
+
   if (!showRoster || members.length === 0) return null;
 
   const online = members.filter(m => m.status === 'online').length;
@@ -17,37 +35,41 @@ const RosterStatus = React.memo(function RosterStatus() {
   return (
     <div className="roster-panel glass-panel">
       <div className="roster-header" onClick={() => setCollapsed(c => !c)}>
-        <span className="overlays-header-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8, width: 14, height: 14 }}>
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          </svg>
-          ROSTER STATUS
+        <span className="roster-title">
+          <Users size={13} className="roster-title-icon" />
+          TEAM
         </span>
-        <span className="roster-count">{online}/{members.length}</span>
+        <span className="roster-header-right">
+          <span className="roster-count" title="Online / total teammates">
+            <strong>{online}</strong>
+            <span className="roster-count-sep">/</span>
+            {members.length}
+          </span>
+          <ChevronDown size={14} className={`roster-chevron ${collapsed ? 'is-collapsed' : ''}`} />
+        </span>
       </div>
-      {!collapsed && (
-        <div className="roster-body">
-          {members.map(m => {
-            const dead = m.status === 'dead';
-            const offline = m.status === 'offline';
-            return (
-              <div key={m.id} className="roster-row">
-                <span className={`status-dot status-${m.status}`} />
-                <div className="roster-info">
-                  <div className="roster-line">
-                    <span className={`roster-name ${m.isSelf ? 'is-self' : ''}`}>{m.name}{m.isLeader ? ' ★' : ''}</span>
-                    <span className={`roster-grid ${dead ? 'dead' : offline ? 'offline' : ''}`}>
-                      {dead ? 'DEAD' : offline ? 'OFF' : (m.grid || '??')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+
+      <div className={`roster-body ${collapsed ? 'is-collapsed' : ''}`}>
+        {sorted.map(m => {
+          const dead = m.status === 'dead';
+          const offline = m.status === 'offline';
+          return (
+            <div
+              key={m.id}
+              className={`roster-row status-${m.status} ${m.isSelf ? 'is-self' : ''}`}
+            >
+              <span className={`status-dot status-${m.status}`} />
+              <span className="roster-name" title={m.name}>
+                {m.name}
+                {m.isLeader && <Crown size={11} className="roster-leader-icon" />}
+              </span>
+              <span className={`roster-grid ${dead ? 'dead' : offline ? 'offline' : ''}`}>
+                {dead ? 'DEAD' : offline ? 'OFF' : (m.grid || '??')}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 });
@@ -162,6 +184,48 @@ export const RESOURCE_ITEMS = [
   { key: 'diesel', name: 'Diesel', color: '#37474f', icon: 'diesel' },
 ];
 
+/** A single overlay layer row with an icon, label and a sliding toggle switch.
+ *  The whole row is the click target; `trailing` slots an extra action (e.g.
+ *  the death-marker clear button) that stops propagation. */
+function LayerToggle({
+  icon,
+  label,
+  active,
+  onToggle,
+  title,
+  trailing,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onToggle: () => void;
+  title?: string;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`overlay-row ${active ? 'is-active' : ''}`}
+      onClick={onToggle}
+      title={title}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+    >
+      <span className="overlay-row-icon">{icon}</span>
+      <span className="overlay-row-label">{label}</span>
+      {trailing}
+      <span className={`overlay-switch ${active ? 'on' : ''}`} aria-hidden="true">
+        <span className="overlay-switch-knob" />
+      </span>
+    </div>
+  );
+}
+
 export const TacticalOverlays = React.memo(function TacticalOverlays() {
   const showDeathMarkers = useMapStore(s => s.showDeathMarkers);
   const showEventTimers = useMapStore(s => s.showEventTimers);
@@ -181,6 +245,8 @@ export const TacticalOverlays = React.memo(function TacticalOverlays() {
   const showRustExtras = useMapStore(s => s.showRustExtras);
   const toggleRustExtras = useMapStore(s => s.toggleRustExtras);
   const hasRustMapsKey = useSettingsStore(s => s.rustmapsKey.trim().length > 0);
+  const markerScale = useSettingsStore(s => s.markerScale);
+  const setMarkerScale = useSettingsStore(s => s.setMarkerScale);
   const toggleResources = useMapStore(s => s.toggleResources);
   const toggleResource = useMapStore(s => s.toggleResource);
 
@@ -193,161 +259,130 @@ export const TacticalOverlays = React.memo(function TacticalOverlays() {
 
         {/* ── TACTICAL OVERLAYS PANEL ── */}
         <div className={`tactical-panel glass-panel ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="overlays-header" onClick={() => setIsCollapsed(!isCollapsed)}>
-          <span className="overlays-header-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8, width: 14, height: 14 }}>
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-            TACTICAL OVERLAYS
-          </span>
-          <span className="chevron-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </span>
-        </div>
+          <div className="overlays-header" onClick={() => setIsCollapsed(!isCollapsed)}>
+            <span className="overlays-header-title">
+              <Layers size={14} className="overlays-header-icon" />
+              OVERLAYS
+            </span>
+            <ChevronDown size={14} className={`chevron-icon ${isCollapsed ? 'is-collapsed' : ''}`} />
+          </div>
 
-        {!isCollapsed && (
-          <div className="overlays-body">
-            {/* Team Players */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Team Players</span>
-              <button
-                onClick={toggleTeam}
-                className={`overlay-toggle-btn ${showTeam ? 'active' : ''}`}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </button>
-            </div>
+          {!isCollapsed && (
+            <div className="overlays-body">
+              {/* Team */}
+              <div className="overlay-group">
+                <div className="overlay-group-label">Team</div>
+                <LayerToggle
+                  icon={<Users size={14} />}
+                  label="Team Players"
+                  active={showTeam}
+                  onToggle={toggleTeam}
+                  title="Show teammates on the map"
+                />
+                <LayerToggle
+                  icon={<ClipboardList size={14} />}
+                  label="Roster Status"
+                  active={showRoster}
+                  onToggle={toggleRoster}
+                  title="Show the team roster panel"
+                />
+              </div>
 
-            {/* Roster Status */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Roster Status</span>
-              <button
-                onClick={toggleRoster}
-                className={`overlay-toggle-btn ${showRoster ? 'active' : ''}`}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <line x1="3" y1="6" x2="3.01" y2="6" />
-                  <line x1="3" y1="12" x2="3.01" y2="12" />
-                  <line x1="3" y1="18" x2="3.01" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Death Markers — single master toggle. The teammate/own split is
-                controlled in Settings (disable teammate deaths → only yours). */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Death Markers</span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={async () => { if (await confirmDialog({ title: 'CLEAR DEATH MARKERS', message: 'Remove all death markers from the map and log?', confirmLabel: 'Clear', danger: true })) clearDeathLog(); }}
-                  className="overlay-toggle-btn"
-                  title="Clear all death markers"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-                <button
-                  onClick={toggleDeathMarkers}
-                  className={`overlay-toggle-btn ${showDeathMarkers ? 'active' : ''}`}
+              {/* Map Layers */}
+              <div className="overlay-group">
+                <div className="overlay-group-label">Map Layers</div>
+                <LayerToggle
+                  icon={<Skull size={14} />}
+                  label="Death Markers"
+                  active={showDeathMarkers}
+                  onToggle={toggleDeathMarkers}
                   title="Show death markers on the map"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </button>
+                  trailing={
+                    <button
+                      type="button"
+                      className="overlay-mini-btn"
+                      title="Clear all death markers"
+                      onClick={async e => {
+                        e.stopPropagation();
+                        if (
+                          await confirmDialog({
+                            title: 'CLEAR DEATH MARKERS',
+                            message: 'Remove all death markers from the map and log?',
+                            confirmLabel: 'Clear',
+                            danger: true,
+                          })
+                        )
+                          clearDeathLog();
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  }
+                />
+                <LayerToggle
+                  icon={<Store size={14} />}
+                  label="Vending Shops"
+                  active={showVendingShops}
+                  onToggle={toggleVendingShops}
+                  title="Show vending machines"
+                />
+                {hasRustMapsKey && (
+                  <LayerToggle
+                    icon={<Mountain size={14} />}
+                    label="Caves & Wells"
+                    active={showRustExtras}
+                    onToggle={toggleRustExtras}
+                    title="Show caves & the Water Well shopkeeper (RustMaps)"
+                  />
+                )}
+                <LayerToggle
+                  icon={<MapPin size={14} />}
+                  label="Map Markers"
+                  active={showResources}
+                  onToggle={toggleResources}
+                  title="Show monument marker filters"
+                />
+              </div>
+
+              {/* HUD Widgets */}
+              <div className="overlay-group">
+                <div className="overlay-group-label">HUD Widgets</div>
+                <LayerToggle
+                  icon={<Zap size={14} />}
+                  label="Active Events"
+                  active={showEventTimers}
+                  onToggle={toggleEventTimers}
+                  title="Show the Active Events panel"
+                />
+                <LayerToggle
+                  icon={<SunMoon size={14} />}
+                  label="Day / Night"
+                  active={showDayNight}
+                  onToggle={toggleDayNight}
+                  title="Show the Day/Night tracker"
+                />
+              </div>
+
+              {/* Display */}
+              <div className="overlay-group">
+                <div className="overlay-group-label">Display</div>
+                <div className="overlay-slider-row" title="Shrink or grow every map marker">
+                  <span className="overlay-slider-label">Marker size</span>
+                  <input
+                    type="range"
+                    min={0.15}
+                    max={2}
+                    step={0.05}
+                    value={markerScale}
+                    onChange={(e) => setMarkerScale(parseFloat(e.target.value))}
+                    className="overlay-slider"
+                    aria-label="Marker size"
+                  />
+                  <span className="overlay-slider-val">{Math.round(markerScale * 100)}%</span>
+                </div>
               </div>
             </div>
-
-            {/* Vending Shops */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Vending Shops</span>
-              <button 
-                onClick={toggleVendingShops}
-                className={`overlay-toggle-btn ${showVendingShops ? 'active' : ''}`}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <circle cx="9" cy="21" r="1" />
-                  <circle cx="20" cy="21" r="1" />
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Caves & Water Well (RustMaps) — only when an API key is set */}
-            {hasRustMapsKey && (
-            <div className="overlay-row">
-              <span className="overlay-row-label">Caves &amp; Wells</span>
-              <button
-                onClick={toggleRustExtras}
-                className={`overlay-toggle-btn ${showRustExtras ? 'active' : ''}`}
-                title="Show caves & the Water Well shopkeeper (RustMaps)"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <path d="M3 21V13a9 9 0 0 1 18 0v8h-5v-5a4 4 0 0 0-8 0v5H3z" />
-                </svg>
-              </button>
-            </div>
-            )}
-
-            {/* Map Markers */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Map Markers</span>
-              <button 
-                onClick={toggleResources}
-                className={`overlay-toggle-btn ${showResources ? 'active' : ''}`}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-                  <line x1="12" y1="2" x2="12" y2="12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Active Events widget */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Active Events</span>
-              <button
-                onClick={toggleEventTimers}
-                className={`overlay-toggle-btn ${showEventTimers ? 'active' : ''}`}
-                title="Show the Active Events panel"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Day / Night tracker */}
-            <div className="overlay-row">
-              <span className="overlay-row-label">Day / Night</span>
-              <button
-                onClick={toggleDayNight}
-                className={`overlay-toggle-btn ${showDayNight ? 'active' : ''}`}
-                title="Show the Day/Night tracker"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
 
@@ -358,10 +393,14 @@ export const TacticalOverlays = React.memo(function TacticalOverlays() {
 
           {/* Checklist */}
           <div className="resource-grid scrollable">
-            {RESOURCE_ITEMS.map((item) => {
+            {RESOURCE_ITEMS.map(item => {
               const checked = selectedResources.includes(item.key);
               return (
-                <div key={item.key} className={`resource-chk-row ${checked ? 'is-checked' : ''}`} onClick={() => toggleResource(item.key)}>
+                <div
+                  key={item.key}
+                  className={`resource-chk-row ${checked ? 'is-checked' : ''}`}
+                  onClick={() => toggleResource(item.key)}
+                >
                   <div className={`resource-checkbox ${checked ? 'checked' : ''}`} />
                   <span className="resource-chk-icon">{getResourceIcon(item.icon, item.color)}</span>
                   <span className="resource-chk-label">{item.name}</span>

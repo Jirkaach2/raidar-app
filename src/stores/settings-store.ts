@@ -81,6 +81,8 @@ interface SettingsState {
   // Sounds settings
   soundEnabled: boolean;
   soundVolume: number;
+  /** Map marker size multiplier (0.25 = tiny, 1 = default, 2 = large). */
+  markerScale: number;
   customSounds: Record<string, string | null>;
   /** Per-event enable flags. Missing key = enabled (default on). */
   soundEvents: Record<string, boolean>;
@@ -133,6 +135,7 @@ interface SettingsState {
 
   setSoundEnabled: (v: boolean) => void;
   setSoundVolume: (v: number) => void;
+  setMarkerScale: (v: number) => void;
   setCustomSound: (action: string, base64: string | null) => void;
   setSoundEvent: (action: string, enabled: boolean) => void;
   setVendingMultiplier: (v: number) => void;
@@ -188,6 +191,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       soundEnabled: false,
       soundVolume: 0.5,
+      markerScale: 1,
       customSounds: {},
       // Per-event opt-outs (all remaining events default on once sound is enabled).
       soundEvents: {},
@@ -240,6 +244,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       setSoundEnabled: (v) => set({ soundEnabled: v }),
       setSoundVolume: (v) => set({ soundVolume: v }),
+      setMarkerScale: (v) => set({ markerScale: v }),
       setCustomSound: (action, base64) => set((s) => ({
         customSounds: { ...s.customSounds, [action]: base64 },
       })),

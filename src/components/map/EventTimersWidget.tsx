@@ -86,12 +86,23 @@ const EventTimersWidget = React.memo(function EventTimersWidget() {
     } else if (e.kind === 'vendor') {
       rows.push({ key: e.id, icon: <VendorIcon />, label: e.label, value: '', accent: '#9c7dff' });
     } else if (e.kind === 'crash') {
-      // Only show the crash event entry if there's NO active heli crash crate
-      // timer — otherwise the crate timer row already covers it with an unlock
-      // countdown and showing both is redundant.
+      // The downed Patrol Heli leaves locked crates that open ~4:30 after the
+      // crash. Show that countdown so the Active Events panel has a live timer
+      // (we don't spawn a separate crate-store timer to avoid a duplicate
+      // marker). If a dedicated heli-crash crate timer does exist, defer to it.
       const hasHeliCrateTimer = crates.some(c => isCurrentServer(c.serverId) && c.target.startsWith('heli_crash_'));
       if (!hasHeliCrateTimer) {
-        rows.push({ key: e.id, icon: <CrashIcon />, label: e.label, value: '', accent: '#ff7043' });
+        const HELI_CRATE_MS = 270_000; // 4:30
+        const unlockAt = e.startedAt + HELI_CRATE_MS;
+        const remaining = unlockAt - now;
+        const open = remaining <= 0;
+        rows.push({
+          key: e.id,
+          icon: <CrashIcon />,
+          label: e.grid ? `Heli Crate · ${e.grid}` : e.label,
+          value: open ? 'OPEN' : `unlocks ${fmt(remaining)}`,
+          accent: open ? '#6fcf73' : remaining < 60_000 ? '#f5c451' : '#ff7043',
+        });
       }
     } else if (e.kind === 'deep_sea') {
       rows.push({ key: e.id, icon: <DeepSeaIcon />, label: 'Deep Sea active', value: '', accent: '#38bdf8' });

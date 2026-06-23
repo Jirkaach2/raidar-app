@@ -829,6 +829,8 @@ function CustomMapMarkers() {
   const markers = useMarkerStore((s) => s.markers);
   const removeMarker = useMarkerStore((s) => s.removeMarker);
   const updateMarker = useMarkerStore((s) => s.updateMarker);
+  // Global marker-size multiplier (from the Overlays "Marker size" slider).
+  const globalScale = useSettingsStore((s) => s.markerScale);
   const [openId, setOpenId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string } | null>(null);
 
@@ -859,7 +861,9 @@ function CustomMapMarkers() {
         const style = MARKER_KINDS[m.kind] || MARKER_KINDS.pin;
         const Icon = CUSTOM_MARKER_ICON[m.kind] || MapPin;
         const isOpen = openId === m.id;
-        const sc = m.scale || 1;
+        // Per-marker scale × the global multiplier, so the Overlays slider can
+        // shrink every custom marker (down to really small) at once.
+        const sc = Math.max(0.1, (m.scale || 1) * (globalScale || 1));
         const pinSize = 22 * sc;
         return (
           <div
@@ -937,11 +941,11 @@ function CustomMapMarkers() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 0.5, color: '#8b857c' }}>SIZE</span>
                   <input
-                    type="range" min={0.6} max={2} step={0.1} value={sc}
+                    type="range" min={0.3} max={2} step={0.1} value={m.scale || 1}
                     onChange={(e) => updateMarker(m.id, { scale: parseFloat(e.target.value) })}
                     style={{ flex: 1, accentColor: style.color, cursor: 'pointer' }}
                   />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#c4bdb1', width: 26, textAlign: 'right' }}>{sc.toFixed(1)}×</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#c4bdb1', width: 26, textAlign: 'right' }}>{(m.scale || 1).toFixed(1)}×</span>
                 </div>
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 6 }}>

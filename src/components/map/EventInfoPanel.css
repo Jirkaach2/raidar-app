@@ -1,0 +1,451 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   EVENT INFO PANEL
+   Live world-event card · dark glass · per-event accent · scannable sections
+   Pairs with MonumentInfoPanel for a consistent companion-card aesthetic.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.eip-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: eip-fade 0.16s ease;
+}
+
+@keyframes eip-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.eip-card {
+  position: relative;
+  width: 360px;
+  max-width: 92%;
+  max-height: 88%;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(19, 16, 13, 0.99), rgba(11, 13, 17, 0.99));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popup);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  animation: eip-rise 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes eip-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.eip-header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: 16px 16px 14px;
+  border-top: 3px solid var(--eip-accent, var(--color-accent));
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  border-bottom: 1px solid var(--color-border);
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--eip-accent, var(--color-accent)) 14%, transparent), transparent 60%);
+}
+
+.eip-header__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  color: var(--eip-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--eip-accent, var(--color-accent)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--eip-accent, var(--color-accent)) 45%, transparent);
+}
+
+.eip-header__titles {
+  flex: 1;
+  min-width: 0;
+  padding-right: 26px;
+}
+
+.eip-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 1.1;
+  color: var(--eip-accent, var(--color-accent));
+}
+
+.eip-tagline {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.eip-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.eip-grid {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--eip-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--eip-accent, var(--color-accent)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--eip-accent, var(--color-accent)) 45%, transparent);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.eip-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--eip-live, var(--color-accent));
+  background: color-mix(in srgb, var(--eip-live, var(--color-accent)) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--eip-live, var(--color-accent)) 45%, transparent);
+}
+.eip-live svg { flex-shrink: 0; }
+.eip-live--pulse { animation: eip-pulse 1.4s ease-in-out infinite; }
+
+@keyframes eip-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.eip-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-md);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.eip-close:hover {
+  background: var(--eip-accent, var(--color-accent));
+  border-color: var(--eip-accent, var(--color-accent));
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────── */
+.eip-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eip-section__label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.eip-section__label::before {
+  content: '';
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--eip-accent, var(--color-accent));
+  flex-shrink: 0;
+}
+
+/* ── Info rows ─────────────────────────────────────────────────────────── */
+.eip-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.eip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+}
+.eip-row__label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.eip-row__value {
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ── Crate loot buttons ────────────────────────────────────────────────── */
+.eip-loot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.eip-loot-btn {
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  background: rgba(227, 193, 120, 0.07);
+  border: 1px solid rgba(227, 193, 120, 0.22);
+  transition: filter 0.12s;
+}
+.eip-loot-btn:hover { filter: brightness(1.25); }
+.eip-loot-btn__left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.eip-loot-btn__left svg { flex-shrink: 0; color: var(--color-warning); }
+.eip-loot-btn__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.eip-loot-btn__count { color: var(--color-warning); font-weight: 700; }
+.eip-loot-btn__more { color: var(--color-text-muted); font-size: 9px; }
+
+/* ── Notes ─────────────────────────────────────────────────────────────── */
+.eip-notes {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.eip-notes li {
+  font-size: 10.5px;
+  color: #c4bdb1;
+  line-height: 1.45;
+}
+
+/* ── Vendor loot table ─────────────────────────────────────────────────── */
+.eip-vendor {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+.eip-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.eip-tab {
+  flex: 1;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.eip-tab:hover { color: var(--color-text); }
+.eip-tab--active {
+  color: var(--eip-accent, var(--color-accent));
+  background: color-mix(in srgb, var(--eip-accent, var(--color-accent)) 15%, transparent);
+  border-color: color-mix(in srgb, var(--eip-accent, var(--color-accent)) 45%, transparent);
+}
+
+.eip-vendor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  padding: 0 6px 5px;
+}
+
+.eip-vendor-list {
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.eip-vendor-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+.eip-vendor-row--alt { background: rgba(255, 255, 255, 0.025); }
+.eip-vendor-row__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+.eip-vendor-row__icon img { object-fit: contain; }
+.eip-vendor-row__name {
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.eip-vendor-row__price {
+  color: #cfae6d;
+  font-weight: 600;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.eip-vendor-row__chance {
+  color: var(--color-text-muted);
+  font-size: 8.5px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: right;
+}
+
+/* ── Loot table popup ──────────────────────────────────────────────────── */
+.eip-popup {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: eip-fade 0.14s ease;
+}
+.eip-popup__card {
+  width: 322px;
+  max-width: 88%;
+  max-height: 80%;
+  overflow-y: auto;
+  background: rgba(16, 18, 24, 0.99);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  font-family: var(--font-mono);
+}
+.eip-popup__head {
+  position: sticky;
+  top: 0;
+  background: rgba(16, 18, 24, 0.99);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.eip-popup__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.eip-popup__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-warning);
+  letter-spacing: 0.5px;
+}
+.eip-popup__close {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+}
+.eip-popup__close:hover { background: var(--color-accent); border-color: var(--color-accent); }
+.eip-popup__note {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+.eip-popup__list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.eip-loot-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+.eip-loot-entry--alt { background: rgba(255, 255, 255, 0.03); }
+.eip-loot-entry__icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+.eip-loot-entry__icon img { object-fit: contain; }
+.eip-loot-entry__name { color: var(--color-text); flex: 1; }
+.eip-loot-entry__amount { color: var(--color-text-muted); }
+.eip-loot-entry__chance { color: var(--color-success); font-weight: 700; flex-shrink: 0; }

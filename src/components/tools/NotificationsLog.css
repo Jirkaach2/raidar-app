@@ -1,0 +1,297 @@
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATIONS LOG — dark-glass event feed
+   ══════════════════════════════════════════════════════════ */
+
+.ntf-log {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--color-text);
+}
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.ntf-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(90deg, var(--color-accent-glow), transparent 60%);
+}
+
+.ntf-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.ntf-title svg { color: var(--color-accent); }
+
+.ntf-unread-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--color-accent);
+  padding: 3px 6px;
+  border-radius: 999px;
+  box-shadow: var(--glow-accent);
+}
+
+.ntf-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ntf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ntf-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-dim);
+  color: var(--color-text);
+}
+
+.ntf-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ntf-btn--danger:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ── Filter chips ────────────────────────────────────────── */
+.ntf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ntf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  padding: var(--space-xxs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ntf-chip:hover {
+  border-color: var(--color-accent-dim);
+  color: var(--color-text);
+}
+
+.ntf-chip.is-active {
+  border-color: var(--color-accent-dim);
+  background: var(--color-accent-glow);
+  color: var(--color-text);
+}
+
+.ntf-chip-count {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+}
+
+.ntf-chip.is-active .ntf-chip-count { color: var(--color-accent); }
+
+/* ── List ────────────────────────────────────────────────── */
+.ntf-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* ── Row ─────────────────────────────────────────────────── */
+.ntf-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.01);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ntf-row:hover { background: rgba(255, 255, 255, 0.03); }
+
+.ntf-row.is-unread {
+  background: var(--color-accent-glow);
+  border-color: var(--color-border-strong);
+}
+
+.ntf-dot {
+  position: absolute;
+  top: 10px;
+  left: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.ntf-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ntf-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ntf-row-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.ntf-chip-inline {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ntf-grid {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(206, 66, 43, 0.15);
+  border: 1px solid rgba(206, 66, 43, 0.25);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.ntf-title-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ntf-message {
+  margin-top: var(--space-xxs);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-text-dim);
+  word-break: break-word;
+}
+
+.ntf-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.ntf-time {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+
+.ntf-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.ntf-row:hover .ntf-remove { opacity: 1; }
+.ntf-remove:hover { color: var(--color-danger); }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.ntf-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-3xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-text-dim);
+}
+
+.ntf-empty svg { opacity: 0.5; }
+
+.ntf-empty-title {
+  margin: var(--space-sm) 0 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.ntf-empty-sub {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-dim);
+}

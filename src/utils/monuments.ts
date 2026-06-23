@@ -574,7 +574,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
       { loot: 'heavy_scientist', label: 'Heavy Flamethrower Scientist', count: 1 },
     ],
     hasTunnelEntrance: false, hasChinookDropZone: false, allowsHeliCrash: false,
-    requiresCards: ['blue', 'red'], optionalCards: ['green'], givesCards: [],
+    requiresCards: ['red'], optionalCards: ['blue', 'green'], givesCards: [],
     puzzles: [
       {
         bring: [RED],
@@ -584,7 +584,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
       { bring: [BLUE], rewards: [MIL('x')], resetTime: '~65m' },
       { bring: [GREEN], rewards: [NORMAL('x'), GREEN], resetTime: '~65m' },
     ],
-    notes: ['Red + Blue mandatory (Green optional). The hardest monument — 27 Heavy Scientists across multiple decks.'],
+    notes: ['Only the Red card is needed (Blue & Green just open optional side rooms). The hardest monument — 27 Heavy Scientists across multiple decks.'],
   },
   missile_silo: {
     key: 'missile_silo', name: 'MISSILE SILO', imageSlug: 'nuclear-missile-silo',
@@ -705,11 +705,11 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
     crates: [{ loot: 'military', label: 'Military Crate', count: '~1' }, { loot: 'basic', label: 'Basic Crate', count: 'several' }],
     scientists: [],
     hasTunnelEntrance: true, hasChinookDropZone: false, allowsHeliCrash: true,
-    requiresCards: ['green'], givesCards: ['blue'],
+    requiresCards: ['green'], givesCards: ['green', 'blue'],
     puzzles: [
       { bring: [FUSE, GREEN], rewards: [BLUE, BASIC_BP('x1'), NORMAL('x')], resetTime: '~30m' },
     ],
-    notes: ['Coastal monument — green puzzle yields a Blue Keycard. 32 barrels, tunnel entrance on site.'],
+    notes: ['Coastal monument — a free Green Keycard spawns on site, and the green puzzle yields a Blue Keycard. 32 barrels, tunnel entrance on site.'],
   },
   jungle_ziggurat: {
     key: 'jungle_ziggurat', name: 'JUNGLE ZIGGURAT', imageSlug: 'jungle-ziggurat',
@@ -754,14 +754,12 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   ranch: {
     key: 'ranch', name: 'RANCH', imageSlug: 'ranch',
-    type: 'Small', tier: '1', safezone: false, radiation: 'none',
-    recyclers: 1, crateCount: 8,
-    crates: [{ loot: 'basic', label: 'Basic Crate', count: '~8' }],
-    scientists: [],
+    type: 'Safe Zone', tier: '0', safezone: true, radiation: 'none',
+    recyclers: 0, crates: [], scientists: [],
     hasTunnelEntrance: false, hasChinookDropZone: false, allowsHeliCrash: false,
     requiresCards: [], givesCards: [],
     puzzles: [],
-    notes: ['Small farm monument with a recycler and barrels. No puzzle.'],
+    notes: ['Safe zone — buy and stable horses here. Hunter (boar/deer hunt) & Vagabond mission givers on site. No crates, no recycler, no combat or building.'],
   },
   fishing_village: {
     key: 'fishing_village', name: 'FISHING VILLAGE', imageSlug: 'fishing_village_a',

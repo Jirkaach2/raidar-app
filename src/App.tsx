@@ -11,14 +11,18 @@ import { DevicePanel } from './components/devices/DevicePanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { ToolsPanel } from './components/tools/ToolsPanel';
 import { SpyPanel } from './components/spy/SpyPanel';
+import { NotificationsLog } from './components/tools/NotificationsLog';
 
 import { useRustPlusEvents } from './hooks/useRustPlusEvents';
 import { useOverlayMode } from './hooks/useOverlayMode';
 import { useAutomationRunner, fireAutomationEvent } from './hooks/useAutomationRunner';
+import { useWorkflowRunner } from './hooks/useWorkflowRunner';
+import { useSequenceRunner } from './hooks/useSequenceRunner';
 import { useConnectionStore } from './stores/connection-store';
 import { useTeamStore, TeamMember, ChatMessage } from './stores/team-store';
 import { useMapStore } from './stores/map-store';
 import { useActivityStore } from './stores/activity-store';
+import { useLeaderboardStore } from './stores/leaderboard-store';
 import { useSpyStore } from './stores/spy-store';
 import { useSettingsStore, broadcastToTeam, sendDiscordWebhook } from './stores/settings-store';
 import { useDecayStore } from './stores/decay-store';
@@ -29,8 +33,9 @@ import { useShopSalesStore } from './stores/shop-sales-store';
 import { usePriceHistoryStore } from './stores/price-history-store';
 import { getGridCoordinate, getNormalizedCoordinates } from './utils/grid';
 import { isCurrentServer, getCurrentServer } from './utils/server';
+import { isNpcShop } from './utils/shops';
 import { getMonumentInfo, normalizeMonumentKey } from './utils/monuments';
-import { getItemName, getItemIconUrl } from './utils/items';
+import { getItemName } from './utils/items';
 import './App.css';
 import { triggerSound } from './utils/sounds';
 
@@ -39,6 +44,7 @@ import { useAuthStore } from './stores/auth-store';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { UpdateBanner } from './components/common/UpdateBanner';
 import { CommandPalette } from './components/common/CommandPalette';
+import { ToastStack } from './components/common/ToastStack';
 import AppShellLogin from './components/layout/LoginGate';
 /**
  * Returns a poll delay that backs off hard when the window is hidden, so the
@@ -483,13 +489,13 @@ function App() {
     setActivePage(page);
     if (page === 'team') useTeamStore.getState().clearUnread();
   };
-  const toasts = useMapStore(s => s.toasts);
-  const removeToast = useMapStore(s => s.removeToast);
 
   // Initialize event listeners
   useRustPlusEvents();
   useOverlayMode();
   useAutomationRunner();
+  useWorkflowRunner();
+  useSequenceRunner();
 
   // Restore any existing Raidar session on startup (gates the whole app).
   useEffect(() => { authInit(); }, [authInit]);
@@ -568,6 +574,7 @@ function App() {
     let unlistenEntity: () => void;
     let unlistenConnection: () => void;
     let unlistenAlarm: () => void;
+    let unlistenDeath: () => void;
     
     async function setupListeners() {
       unlistenEntity = await listen('entity-paired', (event: any) => {
@@ -631,6 +638,36 @@ function App() {
         ], settings.discordAlarms);
       });
 
+      unlistenDeath = await listen('player-death', (event: any) => {
+        const payload = event.payload || {};
+        const settings = useSettingsStore.getState();
+        const title = payload.title || 'You were killed';
+        const deathServerId = payload.ip ? `${payload.ip}:${payload.port ?? ''}` : '';
+        const foreign = deathServerId !== '' && !isCurrentServer(deathServerId);
+        const srvName = payload.serverName || 'another server';
+        const suffix = foreign ? ` (${srvName})` : '';
+
+        // De-dupe rapid duplicate pushes (FCM can deliver the same one twice).
+        const fired = (window as any).__fcmDeathFired || ((window as any).__fcmDeathFired = new Map<string, number>());
+        const key = `${title}|${deathServerId}`;
+        if (Date.now() - (fired.get(key) || 0) < 5000) return;
+        fired.set(key, Date.now());
+
+        // Rust+ only pushes the account owner's OWN death — but it arrives even
+        // while offline or on a different server, which the live team poll can't
+        // see. Surface it per the death-notification settings (cross-server too).
+        if (settings.notifyDeaths) {
+          useMapStore.getState().addToast(foreign ? `You Died · ${srvName}` : 'You Died', title, 'warning');
+          triggerSound('teammate_offline_death');
+        }
+        if (settings.broadcastDeaths) {
+          broadcastToTeam(`[DEATH] ${title}${suffix}`);
+        }
+        sendDiscordWebhook(`☠️ **You Died**${suffix} — ${title}`, 'event', [
+          { name: 'Server', value: srvName, inline: true },
+        ], settings.broadcastDeaths);
+      });
+
       unlistenConnection = await listen('connection-success', () => {
         // A (re)connect happened — could be a NEW server. Clear stale map/team
         // data and bump the epoch so the map-fetch effect re-runs even though
@@ -659,6 +696,7 @@ function App() {
       if (unlistenEntity) unlistenEntity();
       if (unlistenConnection) unlistenConnection();
       if (unlistenAlarm) unlistenAlarm();
+      if (unlistenDeath) unlistenDeath();
       clearInterval(interval);
     };
   }, [authUser]);
@@ -913,6 +951,13 @@ function App() {
             };
           });
           useTeamStore.getState().setMembers(mapped);
+          // Record real-playtime / AFK / zone telemetry for the Team Leaderboard.
+          useLeaderboardStore.getState().record(
+            mapped,
+            useMapStore.getState().monuments,
+            mapSize,
+            Date.now(),
+          );
         }
 
         // Fetch Map Markers
@@ -943,12 +988,13 @@ function App() {
             const timestamp = prev ? prev.timestamp : Date.now();
 
             // Heading for moving events: derive it from the actual direction of travel (prev → current).
-            // For vendor, use the server-reported rotation directly to avoid computed angle wobbling.
+            // The travelling vendor is a ground vehicle on roads, so its facing is
+            // best derived from travel direction too — the server-reported vendor
+            // rotation is unreliable/jittery and pointed the truck the wrong way.
             const isMovingEvent = type === 'cargo_ship' || type === 'patrol_heli' || type === 'chinook';
+            const usesHeading = isMovingEvent || type === 'vendor';
             let rotation = m.rotation || 0;
-            if (type === 'vendor') {
-              rotation = m.rotation || 0;
-            } else if (isMovingEvent && prev) {
+            if (usesHeading && prev) {
               const dx = normX - prev.x;
               const dy = normY - prev.y;
               const dist = Math.hypot(dx, dy);
@@ -1104,13 +1150,12 @@ function App() {
               const rawX = mk.raw?.x ?? 0;
               const rawY = mk.raw?.y ?? 0;
               const grid = getGridCoordinate(rawX, rawY, mapSize);
-              const inSafeZone = isShopInSafeZone(mk.x, mk.y);
               salesStore.ingest(
                 {
                   shopName: mk.label || 'Vending Machine',
                   grid, x: mk.x, y: mk.y,
                   serverId: srv?.id, serverName: srv?.name,
-                  isNpc: inSafeZone,
+                  isNpc: isNpcShop(mk.label || '', mk.x, mk.y),
                 },
                 orders,
               );
@@ -1506,34 +1551,6 @@ function App() {
     };
   }, []);
 
-  const handleToastClick = (t: any) => {
-    removeToast(t.id);
-    if (t.shopName) {
-      const mapSize = useMapStore.getState().mapSize;
-      // Many shops share a name ("A Shop"), so disambiguate by grid: prefer a
-      // marker whose computed grid matches the toast's grid, then fall back to
-      // name-only.
-      const candidates = useMapStore.getState().markers.filter(
-        (m) => m.type === 'vending_machine' && m.label === t.shopName,
-      );
-      const marker = (t.grid
-        ? candidates.find((m) => getGridCoordinate(m.raw?.x ?? 0, m.raw?.y ?? 0, mapSize) === t.grid)
-        : null) || candidates[0];
-      if (marker) {
-        // Center the viewport on this marker (assuming 800x800 map size)
-        useMapStore.setState({
-          selectedMarkerId: marker.id,
-          viewport: {
-            x: -(marker.x * 800 - 400) * 2.5,
-            y: -(marker.y * 800 - 400) * 2.5,
-            zoom: 2.5
-          }
-        });
-        setActivePage('map');
-      }
-    }
-  };
-
   return (
     <div className="app-container">
       {authLoading ? (
@@ -1548,6 +1565,7 @@ function App() {
         {activePage === 'devices' && <DevicePanel />}
         {activePage === 'tools' && <ToolsPanel />}
         {activePage === 'spy' && <SpyPanel />}
+        {activePage === 'notifications' && <NotificationsLog />}
         {activePage === 'settings' && <SettingsPanel />}
       </AppShell>
       )}
@@ -1561,72 +1579,8 @@ function App() {
       )}
 
 
-      {/* Toast notifications container */}
-      <div className="toasts-container">
-        {toasts.map((t) => {
-          const hasOrders = t.orders && t.orders.length > 0;
-          return (
-            <div key={t.id} className={`toast-card toast-card--${t.type}`} onClick={() => handleToastClick(t)}>
-              <div className="toast-card-header">
-                <span className="toast-card-title">{t.title}</span>
-                <button className="toast-card-close-btn" onClick={(e) => { e.stopPropagation(); removeToast(t.id); }}>&times;</button>
-              </div>
-              <div className="toast-card-body">
-                <p className="toast-card-message">{t.message}</p>
-                {t.shopName && t.grid && (
-                  <div className="toast-shop-meta">
-                    <span className="toast-shop-name">{t.shopName}</span>
-                    <span className="toast-shop-grid">{t.grid}</span>
-                  </div>
-                )}
-                {hasOrders && (
-                  <div className="toast-orders-list">
-                    {t.orders!.slice(0, 3).map((o: any, idx: number) => {
-                      const itemIcon = getItemIconUrl(o.item_id);
-                      const currencyIcon = getItemIconUrl(o.currency_id);
-                      
-                      return (
-                        <div key={idx} className="toast-order-row">
-                          <div className="toast-order-item">
-                            {itemIcon && (
-                              <img 
-                                src={itemIcon} 
-                                alt={o.item_name}
-                                className="toast-item-icon"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            )}
-                            <span className="toast-order-qty">{o.quantity}x</span>
-                            <span className="toast-order-name">{o.item_name || 'Item'}</span>
-                          </div>
-                          <span className="toast-order-arrow">&rarr;</span>
-                          <div className="toast-order-cost">
-                            <span className="toast-order-price">{o.cost_per_item}x</span>
-                            {currencyIcon && (
-                              <img 
-                                src={currencyIcon} 
-                                alt={o.currency_name}
-                                className="toast-item-icon"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            )}
-                            <span className="toast-order-cname">{o.currency_name || 'Scrap'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {t.orders!.length > 3 && (
-                      <div className="toast-more-listings">
-                        + {t.orders!.length - 3} more listings
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Toast notifications (compact top-right stack) */}
+      <ToastStack />
     </div>
   );
 }

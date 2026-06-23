@@ -1,216 +1,310 @@
-/* ── Tactical Overlays Panel ── */
+/* ════════════════════════════════════════════════════════════════════════
+   Map Overlays + Team widgets
+   Styled as siblings of the Events / Day-Night HUD widgets:
+   dark-glass chrome, subtle white borders, JetBrains Mono, compact spacing,
+   accent reserved for active states only.
+   ════════════════════════════════════════════════════════════════════════ */
+
 .overlays-wrapper {
   position: absolute;
-  bottom: 60px; /* offset to sit above statusbar */
+  bottom: 60px; /* sit above the statusbar */
   left: var(--space-lg);
   z-index: var(--z-overlay);
   display: flex;
   align-items: flex-end;
-  gap: var(--space-md);
-  pointer-events: none; /* Let clicks pass to map except inside panels */
+  gap: var(--space-sm);
+  pointer-events: none; /* let clicks pass to the map except inside panels */
   animation: slide-in-bottom 500ms var(--ease-out-expo) both;
 }
 
-.tactical-panel, .resource-popover {
-  pointer-events: auto; /* Enable clicks inside panels */
-  background: rgba(11, 13, 17, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-}
-
-.tactical-panel {
-  width: 250px;
+.overlays-left-col {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
 }
 
-.overlays-header {
+/* ── Shared widget chrome (matches Events / Day-Night) ── */
+.tactical-panel,
+.resource-popover,
+.roster-panel {
+  pointer-events: auto;
+  background: rgba(11, 13, 17, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.tactical-panel,
+.roster-panel {
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Widget header ── */
+.overlays-header,
+.roster-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  gap: var(--space-sm);
+  padding: 8px 10px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background var(--transition-fast);
 }
 
-.overlays-header-title {
+.tactical-panel.collapsed .overlays-header {
+  border-bottom-color: transparent;
+}
+
+.overlays-header:hover,
+.roster-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.overlays-header-title,
+.roster-title {
   display: flex;
   align-items: center;
+  gap: 7px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
+  text-transform: uppercase;
   color: var(--color-text);
-  text-shadow: var(--text-glow);
 }
 
-.chevron-icon {
+.overlays-header-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.roster-title-icon {
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+/* Header right cluster (roster count + chevron) */
+.roster-header-right {
   display: flex;
   align-items: center;
-  color: var(--color-text-muted);
-}
-
-.overlays-body {
-  padding: 8px 16px 12px 16px;
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.overlay-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 32px;
-}
-
-.overlay-row-label {
-  font-family: var(--font-main);
-  font-size: 13px;
-  color: var(--color-text-dim);
-}
-
-.overlay-toggle-btn {
-  width: 36px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border);
+.roster-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
-.overlay-toggle-btn:hover {
-  border-color: var(--color-border-strong);
+.roster-count strong {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.roster-count-sep {
+  margin: 0 1px;
+  opacity: 0.6;
+}
+
+/* Collapse chevron — shared */
+.chevron-icon,
+.roster-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  transition: transform 0.25s var(--ease-out-expo), color var(--transition-fast);
+}
+
+.overlays-header:hover .chevron-icon,
+.roster-header:hover .roster-chevron {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.05);
 }
 
-.overlay-toggle-btn.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent-dim);
-  color: #fff;
-  box-shadow: 0 0 8px var(--color-accent-dim);
+.chevron-icon.is-collapsed,
+.roster-chevron.is-collapsed {
+  transform: rotate(-90deg);
 }
 
-/* ── Monument Markers Popover ── */
-.resource-popover {
-  width: auto;
-  min-width: 230px;
-  max-width: 80vw;
-  padding: 12px;
+/* ── Overlays body / groups ── */
+.overlays-body {
+  padding: 8px 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.overlay-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.overlay-group-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 0 4px 3px;
+}
+
+/* ── Layer toggle row ── */
+.overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  outline: none;
+}
+
+.overlay-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.overlay-row:focus-visible {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.overlay-row.is-active {
+  background: var(--color-accent-glow);
+}
+
+.overlay-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.overlay-row:hover .overlay-row-icon {
+  color: var(--color-text-dim);
+}
+
+.overlay-row.is-active .overlay-row-icon {
+  color: var(--color-accent);
+  background: rgba(206, 66, 43, 0.14);
+}
+
+.overlay-row-label {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+.overlay-row.is-active .overlay-row-label {
+  color: var(--color-text);
+}
+
+/* Inline secondary action (clear death markers) */
+.overlay-mini-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.overlay-mini-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-dim);
+  border-color: rgba(232, 69, 69, 0.4);
+}
+
+/* ── Sliding toggle switch ── */
+.overlay-switch {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.overlay-switch-knob {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transform: translateY(-50%);
+  transition: transform 0.2s var(--ease-out-expo), background var(--transition-fast);
+}
+
+.overlay-switch.on {
+  background: var(--color-accent);
+  border-color: var(--color-accent-dim);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.overlay-switch.on .overlay-switch-knob {
+  transform: translateY(-50%) translateX(14px);
+  background: #fff;
+}
+
+/* ── Monument Markers popover ── */
+.resource-popover {
+  width: auto;
+  min-width: 210px;
+  max-width: 80vw;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: 60vh;
 }
 
 .resource-popover-header {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--color-text);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-bottom: 6px;
-}
-
-/* Tabs */
-.resource-popover-tabs {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.resource-tab {
-  flex: 1;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: var(--color-text-dim);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.resource-tab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
-.resource-tab.active {
-  background: rgba(206, 66, 43, 0.08);
-  border-color: var(--color-accent-dim);
-  color: var(--color-accent);
-}
-
-/* Density Slider */
-.density-slider-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.density-slider-labels {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.density-title {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 1px;
+  text-transform: uppercase;
   color: var(--color-text-muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 7px;
 }
 
-.density-val {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--color-accent);
-}
-
-.density-range {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  outline: none;
-}
-
-.density-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  border: 2px solid #fff;
-  cursor: pointer;
-  box-shadow: 0 0 5px rgba(206, 66, 43, 0.5);
-  transition: transform 0.1s;
-}
-
-.density-range::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-
-/* Checklist Grid — flows top→bottom then wraps into more columns to the SIDE
+/* Checklist grid — flows top→bottom then wraps into more columns to the SIDE
    so the popover grows wider instead of taller. */
 .resource-grid {
   flex: 1;
@@ -218,7 +312,7 @@
   flex-direction: column;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 3px 6px;
+  gap: 2px 6px;
   max-height: 250px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -226,32 +320,31 @@
 }
 
 .resource-chk-row {
-  width: 200px;
+  width: 190px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  padding: 5px 7px;
-  background: rgba(255, 255, 255, 0.015);
+  height: 30px;
+  padding: 0 7px;
+  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .resource-chk-row:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .resource-chk-row.is-checked {
-  background: rgba(206, 66, 43, 0.08);
-  border-color: var(--color-accent-dim);
+  background: var(--color-accent-glow);
 }
 
 .resource-checkbox {
   width: 13px;
   height: 13px;
-  border: 1.5px solid var(--color-border-strong);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   background: rgba(0, 0, 0, 0.3);
   border-radius: 3px;
   margin-right: 9px;
@@ -260,7 +353,9 @@
   flex-shrink: 0;
 }
 
-.resource-chk-row:hover .resource-checkbox { border-color: var(--color-text-muted); }
+.resource-chk-row:hover .resource-checkbox {
+  border-color: var(--color-text-muted);
+}
 
 .resource-checkbox.checked {
   border-color: var(--color-accent);
@@ -283,18 +378,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   margin-right: 8px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
   flex-shrink: 0;
 }
 
-.resource-chk-row:hover .resource-chk-icon { background: rgba(255, 255, 255, 0.09); }
+.resource-chk-row:hover .resource-chk-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
 
 .resource-chk-label {
-  font-family: var(--font-main);
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-dim);
@@ -303,56 +400,153 @@
   text-overflow: ellipsis;
 }
 
-.resource-chk-row:hover .resource-chk-label { color: var(--color-text); }
+.resource-chk-row:hover .resource-chk-label,
+.resource-chk-row.is-checked .resource-chk-label {
+  color: var(--color-text);
+}
 
-
-/* ── Roster Status (map) ── */
-.overlays-left-col {
+/* ── Team roster body ── */
+.roster-body {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-md);
+  gap: 2px;
+  padding: 6px;
+  max-height: 246px;
+  overflow-y: auto;
+  transition: max-height 0.28s var(--ease-out-expo), padding 0.28s var(--ease-out-expo);
 }
-.roster-panel {
-  pointer-events: auto;
-  width: 210px;
-  background: rgba(11, 13, 17, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  margin-bottom: 8px;
+
+.roster-body.is-collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
 }
-.roster-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04);
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  transition: background var(--transition-fast);
 }
-.roster-count { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--color-success); }
-.roster-body { padding: 6px 14px 10px; display: flex; flex-direction: column; gap: 7px; max-height: 220px; overflow-y: auto; }
-.roster-row { display: flex; align-items: center; gap: 8px; }
-.roster-row .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.roster-row .status-online { background: var(--color-success); box-shadow: 0 0 5px var(--color-success); }
-.roster-row .status-dead { background: var(--color-danger); }
-.roster-row .status-offline { background: var(--color-text-dim); }
-.roster-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.roster-line { display: flex; align-items: center; gap: 6px; }
-.roster-name { flex: 1; font-size: 11px; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.roster-name.is-self { color: var(--color-success); font-weight: 700; }
+
+.roster-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.roster-row.status-online { border-left-color: var(--color-success); }
+.roster-row.status-dead { border-left-color: var(--color-danger); }
+.roster-row.status-offline { border-left-color: transparent; }
+
+.roster-row.is-self {
+  background: rgba(111, 207, 115, 0.08);
+}
+
+.roster-row.status-offline .roster-name { color: var(--color-text-muted); }
+.roster-row.status-offline .status-dot,
+.roster-row.status-offline .roster-name { opacity: 0.7; }
+
+.roster-row .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.roster-row .status-online {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+}
+
+.roster-row .status-dead {
+  background: var(--color-danger);
+  box-shadow: 0 0 6px rgba(232, 69, 69, 0.5);
+}
+
+.roster-row .status-offline {
+  background: var(--color-text-muted);
+}
+
+.roster-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.roster-row.is-self .roster-name {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.roster-leader-icon {
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
+
 .roster-grid {
-  font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-info);
-  background: rgba(88,198,232,0.12); border: 1px solid rgba(88,198,232,0.25);
-  padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-info);
+  background: var(--color-info-dim);
+  border: 1px solid rgba(88, 198, 232, 0.25);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
-.roster-grid.dead { color: var(--color-danger); background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); }
-.roster-grid.offline { color: var(--color-text-dim); background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
-.roster-hp-bar {
-  position: relative; height: 9px; border-radius: 3px;
-  background: rgba(255,255,255,0.06); overflow: hidden;
+
+.roster-grid.dead {
+  color: var(--color-danger);
+  background: var(--color-danger-dim);
+  border-color: rgba(232, 69, 69, 0.3);
 }
-.roster-hp-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.3s ease; }
-.roster-hp-text {
-  position: absolute; top: 0; right: 4px; line-height: 9px;
-  font-family: var(--font-mono); font-size: 7px; font-weight: 700;
-  color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.9);
+
+.roster-grid.offline {
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Marker-size slider (Display group) ────────────────────────────────── */
+.overlay-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px;
+}
+.overlay-slider-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+.overlay-slider {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+.overlay-slider-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 34px;
+  text-align: right;
 }

@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.4",
-    "notes":  "Raidar 1.1.4: Combat Log Analyzer rebuilt (accurate parsing + cleaner UI), Profit Scanner redesigned, Best Shops fixes (map jump, NPC toggle off by default, accurate sale detection), Steam playtime parsing fixed, RustMaps key now saves + shows active status (caves/wells off by default), oil-rig crate timer deducts chinook delay, Raid Cost propane recipe corrected, and the Underwater Lab now lists all 9 puzzle rooms with collapsible, tier-coloured monument cards.",
-    "pub_date":  "2026-06-23T00:12:02Z",
+    "version":  "1.1.5",
+    "notes":  "Raidar 1.1.5: Player Lookup now pulls full live Rust stats (RustStats) with a richer card; offline/cross-server death notifications; Workflows \u0026 Sequences automation (turret flip-flop); Team Control Center gets a Leaderboard + summary cards; Notifications moved to their own tab with compact non-blocking toasts; Overlays + custom markers reworked with a global marker-size slider; event cards redesigned; and monument fixes (Ferry Terminal green card, Ranch is now a safe zone, Mining Outpost has no missions, Large Oil Rig needs only Red).",
+    "pub_date":  "2026-06-23T12:48:23Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjFuSGlieS8vanBUY1RlUFErcWdPOUpyNk9FK1F3NGc1L1Y3Q1FWVXQwTmNrVTlBc1UwRWl2Q0NrTjVNTThMR3NnWkVwWCsyOGlWS0x0SmNMVWVaWVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTczNDc5CWZpbGU6UmFpZGFyXzEuMS40X3g2NC1zZXR1cC5leGUKQzFMSTAvQ3I4Z0JmRnFuZzZSSi96NitZcC9lT216TG80NGJyQTdkU2E1SjU4WG13TUVGdXZ6ZGhDZUJqSjV6WnlBZ0JmOXg3aFk1Sy9VTUxra3YvQUE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.4/Raidar_1.1.4_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnd5dUNIc3VEVXkyb3pyV3F3LzF1SCtENVh1QVpHeC8yMHVzcldpRTBRanhadVJWUk5DTUxJeU5kRzhKK1Z0c0dCeFZxdFA1bGtMVzdsaFg5N2UxakFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjE4ODIxCWZpbGU6UmFpZGFyXzEuMS41X3g2NC1zZXR1cC5leGUKUnBidDBpMXREeEh1bmkvSWJLYlJraXVrV3NhZmRwekFqR2JldjBXakhjTlBIdUs5OERnbjVxOE4rQllrd0IrOCtyNU5Sa0RCajNubWVBUmF5RmhSQkE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.5/Raidar_1.1.5_x64-setup.exe"
                                          }
                   }
 }

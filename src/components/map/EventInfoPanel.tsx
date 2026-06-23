@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { useMapStore } from '../../stores/map-store';
+import React, { useEffect, useState } from 'react';
+import { X, Ship, Plane, Package, Flame, Crosshair, Store, Lock, Clock } from 'lucide-react';
+import { useMapStore, MapMarker } from '../../stores/map-store';
 import { useEventsStore } from '../../stores/events-store';
 import { getGridCoordinate } from '../../utils/grid';
 import { getLootTable, lootIconUrl } from '../../utils/loot';
+import './EventInfoPanel.css';
 
 /**
- * Detail popup for dynamic map events (Patrol Heli, Chinook, Cargo Ship,
- * Locked Crate) — shown when the user clicks the event's marker. Crates listed
- * are tappable to open their loot table.
+ * Detail card for dynamic map events (Patrol Heli, Chinook, Cargo Ship,
+ * Locked Crate, Heli Crash, Travelling Vendor) — shown when the user clicks the
+ * event's marker. Where the event has live timing (heli-crate unlock, cargo
+ * dock window) the header surfaces a ticking countdown. Crates are tappable to
+ * open their loot table.
  */
 
 interface CrateRef { loot: string; label: string; count: string; }
@@ -20,6 +24,19 @@ interface EventData {
   crates?: CrateRef[];
   notes: string[];
 }
+
+/** Per-event accent icon (lucide), keyed by marker type. */
+const EVENT_ICON: Record<string, React.ReactNode> = {
+  patrol_heli: <Crosshair size={20} />,
+  chinook: <Plane size={20} />,
+  cargo_ship: <Ship size={20} />,
+  crate: <Lock size={20} />,
+  explosion: <Flame size={20} />,
+  vendor: <Store size={20} />,
+};
+
+/** Heli-crash locked crates open ~4:30 after the wreck hits the ground. */
+const HELI_CRATE_MS = 270_000;
 
 function getEventData(type: string): EventData | null {
   switch (type) {
@@ -148,100 +165,138 @@ function getEventData(type: string): EventData | null {
   }
 }
 
+/** mm:ss countdown formatter. */
+function fmt(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+/** Ticks once a second while `active`, so live countdowns stay current. */
+function useNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+  return now;
+}
+
 const EventInfoPanel = React.memo(function EventInfoPanel() {
   const selectedMarkerId = useMapStore(s => s.selectedMarkerId);
   const selectMarker = useMapStore(s => s.selectMarker);
   const markers = useMapStore(s => s.markers);
-  const mapSize = useMapStore(s => s.mapSize);
   const crashEvent = useEventsStore(s => s.events['crash']);
-  const [lootPopup, setLootPopup] = useState<string | null>(null);
 
   if (!selectedMarkerId) return null;
   // The persistent heli-crash marker is injected locally by MapMarkers and
   // isn't in the map store — resolve it from the crash event instead.
-  const marker = selectedMarkerId === 'crash_persistent'
-    ? (crashEvent ? { id: 'crash_persistent', type: 'explosion', label: crashEvent.label, detail: crashEvent.grid || '', x: crashEvent.x, y: crashEvent.y } as any : null)
-    : markers.find(m => m.id === selectedMarkerId);
+  const marker: MapMarker | null = selectedMarkerId === 'crash_persistent'
+    ? (crashEvent
+      ? { id: 'crash_persistent', type: 'explosion', label: crashEvent.label, detail: crashEvent.grid || '', x: crashEvent.x ?? 0, y: crashEvent.y ?? 0, timestamp: crashEvent.startedAt } as MapMarker
+      : null)
+    : (markers.find(m => m.id === selectedMarkerId) ?? null);
   if (!marker) return null;
 
   const data = getEventData(marker.type);
   if (!data) return null;
 
+  return <EventCard marker={marker} data={data} onClose={() => selectMarker(null)} />;
+});
+
+interface LiveStatus { text: string; color: string; }
+
+function EventCard({ marker, data, onClose }: { marker: MapMarker; data: EventData; onClose: () => void }) {
+  const mapSize = useMapStore(s => s.mapSize);
+  const events = useEventsStore(s => s.events);
+  const [lootPopup, setLootPopup] = useState<string | null>(null);
+
   const grid = marker.raw ? getGridCoordinate(marker.raw.x, marker.raw.y, mapSize) : (marker.detail || '');
 
+  // Only run the per-second ticker for events that actually have live timing.
+  const isTimed = marker.type === 'explosion' || marker.type === 'cargo_ship';
+  const now = useNow(isTimed);
+
+  let live: LiveStatus | null = null;
+  if (marker.type === 'explosion') {
+    const crash = events['crash'];
+    if (crash) {
+      const remaining = crash.startedAt + HELI_CRATE_MS - now;
+      live = remaining <= 0
+        ? { text: 'CRATES OPEN', color: '#6fcf73' }
+        : { text: `Unlocks ${fmt(remaining)}`, color: remaining < 60_000 ? '#e8a838' : data.color };
+    }
+  } else if (marker.type === 'cargo_ship') {
+    const dock = Object.values(events).find(e => e.kind === 'cargo_dock');
+    if (dock) {
+      const remaining = dock.endsAt - now;
+      live = remaining > 0
+        ? { text: `Leaves ${fmt(remaining)}`, color: remaining < 90_000 ? '#e8a838' : data.color }
+        : { text: 'Leaving', color: '#e8a838' };
+    }
+  }
+
+  const accentStyle = { ['--eip-accent' as string]: data.color } as React.CSSProperties;
+
   return (
-    <div
-      onClick={() => selectMarker(null)}
-      onWheel={(e) => e.stopPropagation()}
-      style={{
-        position: 'absolute', inset: 0, zIndex: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="scrollable"
-        style={{
-          position: 'relative',
-          width: 340, maxWidth: '90%', maxHeight: '85%', overflowY: 'auto',
-          background: 'rgba(14, 16, 21, 0.98)', border: `1px solid ${data.color}55`,
-          borderRadius: 10, boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
-          fontFamily: 'var(--font-mono)', color: '#e8e2d9',
-        }}
-      >
-        {/* Header */}
-        <div style={{ position: 'relative', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', borderTop: `3px solid ${data.color}`, borderTopLeftRadius: 10, borderTopRightRadius: 10 }}>
-          <button
-            onClick={() => selectMarker(null)}
-            title="Close"
-            style={{
-              position: 'absolute', top: 12, right: 12, width: 24, height: 24,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 5, color: '#fff', cursor: 'pointer',
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 11, height: 11 }}>
-              <line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" />
-            </svg>
-          </button>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: '1px', color: data.color }}>{data.title}</h2>
-          <div style={{ marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: '#9aa0a6' }}>{data.tagline}</span>
-            {grid && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: data.color, background: `${data.color}22`, border: `1px solid ${data.color}55`, padding: '1px 5px', borderRadius: 3 }}>
-                {grid}
-              </span>
+    <div className="eip-overlay" onClick={onClose} onWheel={(e) => e.stopPropagation()}>
+      <div className="eip-card scrollable" style={accentStyle} onClick={(e) => e.stopPropagation()}>
+        {/* ── Header ──────────────────────────────────────────── */}
+        <div className="eip-header">
+          <span className="eip-header__icon">{EVENT_ICON[marker.type] ?? <Package size={20} />}</span>
+          <div className="eip-header__titles">
+            <h2 className="eip-title">{data.title}</h2>
+            <span className="eip-tagline">{data.tagline}</span>
+            {(grid || live) && (
+              <div className="eip-header__meta">
+                {grid && <span className="eip-grid">{grid}</span>}
+                {live && (
+                  <span
+                    className={`eip-live${live.color !== data.color ? ' eip-live--pulse' : ''}`}
+                    style={{ ['--eip-live' as string]: live.color } as React.CSSProperties}
+                  >
+                    <Clock size={10} />{live.text}
+                  </span>
+                )}
+              </div>
             )}
           </div>
+          <button className="eip-close" onClick={onClose} title="Close"><X size={13} /></button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {data.rows.map((r, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, background: 'rgba(255,255,255,0.03)', borderRadius: 4, padding: '5px 8px' }}>
-                <span style={{ color: '#8b857c' }}>{r.label}</span>
-                <span style={{ color: '#e8e2d9', fontWeight: 600, textAlign: 'right' }}>{r.value}</span>
+        {/* ── Body ────────────────────────────────────────────── */}
+        <div className="eip-body">
+          {/* Intel rows */}
+          {data.rows.length > 0 && (
+            <div>
+              <div className="eip-section__label">Intel</div>
+              <div className="eip-rows">
+                {data.rows.map((r, i) => (
+                  <div key={i} className="eip-row">
+                    <span className="eip-row__label">{r.label}</span>
+                    <span className="eip-row__value">{r.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* Clickable crates */}
           {data.crates && data.crates.length > 0 && (
             <div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1px', color: '#8b857c', marginBottom: 6 }}>CRATES (tap for loot %)</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="eip-section__label">Crates · Tap for Loot %</div>
+              <div className="eip-loot-list">
                 {data.crates.map((c, i) => (
-                  <button key={i} onClick={() => setLootPopup(c.loot)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 11, background: 'rgba(245,196,81,0.06)', border: '1px solid rgba(245,196,81,0.2)', borderRadius: 4, padding: '6px 8px', color: '#e8e2d9', fontFamily: 'var(--font-mono)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#f5c451" strokeWidth="2" style={{ width: 12, height: 12 }}><path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" /><path d="M3 7l9 4 9-4" /><path d="M12 11v10" /></svg>
+                  <button key={i} className="eip-loot-btn" onClick={() => setLootPopup(c.loot)}>
+                    <span className="eip-loot-btn__left">
+                      <Package size={13} />
                       {c.label}
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: '#f5c451', fontWeight: 700 }}>×{c.count}</span>
-                      <span style={{ color: '#8b857c', fontSize: 9 }}>loot ›</span>
+                    <span className="eip-loot-btn__right">
+                      <span className="eip-loot-btn__count">×{c.count}</span>
+                      <span className="eip-loot-btn__more">loot ›</span>
                     </span>
                   </button>
                 ))}
@@ -249,17 +304,20 @@ const EventInfoPanel = React.memo(function EventInfoPanel() {
             </div>
           )}
 
+          {/* Field notes */}
           {data.notes.length > 0 && (
-            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {data.notes.map((n, i) => (
-                <li key={i} style={{ fontSize: 10.5, color: '#c4bdb1', lineHeight: 1.45 }}>{n}</li>
-              ))}
-            </ul>
+            <div>
+              <div className="eip-section__label">Field Notes</div>
+              <ul className="eip-notes">
+                {data.notes.map((n, i) => <li key={i}>{n}</li>)}
+              </ul>
+            </div>
           )}
 
+          {/* Vendor shop */}
           {marker.type === 'vendor' && (
-            <div style={{ marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1px', color: '#8b857c', marginBottom: 8 }}>VEHICLE SHOP CATEGORIES</div>
+            <div>
+              <div className="eip-section__label">Vehicle Shop Categories</div>
               <VendorLootTableWidget />
             </div>
           )}
@@ -269,91 +327,88 @@ const EventInfoPanel = React.memo(function EventInfoPanel() {
       </div>
     </div>
   );
-});
+}
+
+const VENDOR_CATEGORIES = {
+  weapons: {
+    label: 'Weapons',
+    items: [
+      { item: 'M39 Rifle', price: '250 Scrap', chance: '15%' },
+      { item: 'SPAS-12 Shotgun', price: '250 Scrap', chance: '15%' },
+      { item: 'M92 Pistol', price: '125 Scrap', chance: '20%' },
+      { item: 'Hazmat Suit', price: '125 Scrap', chance: '20%' },
+      { item: 'Jackhammer', price: '150 Scrap', chance: '25%' },
+      { item: 'Chainsaw', price: '125 Scrap', chance: '25%' },
+      { item: 'Revolver', price: '100 Scrap', chance: '30%' },
+      { item: 'Double Barrel', price: '100 Scrap', chance: '30%' },
+      { item: 'Crossbow', price: '75 Scrap', chance: '40%' },
+    ],
+  },
+  components: {
+    label: 'Components',
+    items: [
+      { item: 'Rifle Body', price: '125 Scrap', chance: '15%' },
+      { item: 'SMG Body', price: '75 Scrap', chance: '25%' },
+      { item: 'Semi Auto Body', price: '75 Scrap', chance: '25%' },
+      { item: 'Tech Trash', price: '60 Scrap', chance: '30%' },
+      { item: 'Road Signs', price: '30 Scrap', chance: '40%' },
+      { item: 'Sheet Metal', price: '30 Scrap', chance: '40%' },
+      { item: 'Gears', price: '25 Scrap', chance: '50%' },
+      { item: 'Metal Spring', price: '15 Scrap', chance: '50%' },
+      { item: 'High Quality Metal x10', price: '25 Scrap', chance: '60%' },
+    ],
+  },
+  medical: {
+    label: 'Meds',
+    items: [
+      { item: 'Pure Ore Tea', price: '150 Scrap', chance: '15%' },
+      { item: 'Pure Wood Tea', price: '150 Scrap', chance: '15%' },
+      { item: 'Pure Max Health Tea', price: '150 Scrap', chance: '15%' },
+      { item: 'Advanced Ore Tea', price: '80 Scrap', chance: '30%' },
+      { item: 'Advanced Wood Tea', price: '80 Scrap', chance: '30%' },
+      { item: 'Large Medkit', price: '30 Scrap', chance: '40%' },
+      { item: 'Medical Syringe', price: '15 Scrap', chance: '60%' },
+      { item: 'Bandage', price: '5 Scrap', chance: '80%' },
+    ],
+  },
+} as const;
+
+type VendorTab = keyof typeof VENDOR_CATEGORIES;
 
 function VendorLootTableWidget() {
-  const [activeTab, setActiveTab] = useState<'weapons' | 'components' | 'medical'>('weapons');
-
-  const categories = {
-    weapons: {
-      name: 'Weapons / Gear',
-      items: [
-        { item: 'M39 Rifle', price: '250 Scrap', chance: '15%' },
-        { item: 'SPAS-12 Shotgun', price: '250 Scrap', chance: '15%' },
-        { item: 'M92 Pistol', price: '125 Scrap', chance: '20%' },
-        { item: 'Hazmat Suit', price: '125 Scrap', chance: '20%' },
-        { item: 'Jackhammer', price: '150 Scrap', chance: '25%' },
-        { item: 'Chainsaw', price: '125 Scrap', chance: '25%' },
-        { item: 'Revolver', price: '100 Scrap', chance: '30%' },
-        { item: 'Double Barrel', price: '100 Scrap', chance: '30%' },
-        { item: 'Crossbow', price: '75 Scrap', chance: '40%' },
-      ]
-    },
-    components: {
-      name: 'Components / Mats',
-      items: [
-        { item: 'Rifle Body', price: '125 Scrap', chance: '15%' },
-        { item: 'SMG Body', price: '75 Scrap', chance: '25%' },
-        { item: 'Semi Auto Body', price: '75 Scrap', chance: '25%' },
-        { item: 'Tech Trash', price: '60 Scrap', chance: '30%' },
-        { item: 'Road Signs', price: '30 Scrap', chance: '40%' },
-        { item: 'Sheet Metal', price: '30 Scrap', chance: '40%' },
-        { item: 'Gears', price: '25 Scrap', chance: '50%' },
-        { item: 'Metal Spring', price: '15 Scrap', chance: '50%' },
-        { item: 'High Quality Metal x10', price: '25 Scrap', chance: '60%' },
-      ]
-    },
-    medical: {
-      name: 'Meds & Buff Teas',
-      items: [
-        { item: 'Pure Ore Tea', price: '150 Scrap', chance: '15%' },
-        { item: 'Pure Wood Tea', price: '150 Scrap', chance: '15%' },
-        { item: 'Pure Max Health Tea', price: '150 Scrap', chance: '15%' },
-        { item: 'Advanced Ore Tea', price: '80 Scrap', chance: '30%' },
-        { item: 'Advanced Wood Tea', price: '80 Scrap', chance: '30%' },
-        { item: 'Large Medkit', price: '30 Scrap', chance: '40%' },
-        { item: 'Medical Syringe', price: '15 Scrap', chance: '60%' },
-        { item: 'Bandage', price: '5 Scrap', chance: '80%' },
-      ]
-    }
-  };
-
-  const active = categories[activeTab];
+  const [activeTab, setActiveTab] = useState<VendorTab>('weapons');
+  const active = VENDOR_CATEGORIES[activeTab];
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: 8 }}>
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-        {(Object.keys(categories) as Array<keyof typeof categories>).map((tab) => (
+    <div className="eip-vendor">
+      <div className="eip-tabs">
+        {(Object.keys(VENDOR_CATEGORIES) as VendorTab[]).map((tab) => (
           <button
             key={tab}
+            className={`eip-tab${activeTab === tab ? ' eip-tab--active' : ''}`}
             onClick={() => setActiveTab(tab)}
-            style={{
-              flex: 1, padding: '5px 2px', borderRadius: 4, border: 'none',
-              background: activeTab === tab ? 'rgba(156, 125, 255, 0.15)' : 'rgba(0,0,0,0.25)',
-              color: activeTab === tab ? '#9c7dff' : '#8b857c',
-              fontSize: 8.5, fontWeight: 700, cursor: 'pointer',
-              textTransform: 'uppercase', fontFamily: 'var(--font-mono)',
-              borderBottom: activeTab === tab ? '1.5px solid #9c7dff' : 'none',
-            }}
           >
-            {tab === 'weapons' ? 'Weapons' : tab === 'components' ? 'Components' : 'Meds'}
+            {VENDOR_CATEGORIES[tab].label}
           </button>
         ))}
       </div>
 
-      {/* Item List */}
-      <div className="scrollable" style={{ maxHeight: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="eip-vendor-head">
+        <span>{active.items.length} items</span>
+        <span>Price · Chance</span>
+      </div>
+
+      <div className="eip-vendor-list scrollable">
         {active.items.map((e, idx) => {
           const icon = lootIconUrl(e.item);
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, padding: '4px 6px', borderRadius: 4, background: idx % 2 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-              <span style={{ width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
-                {icon ? <img src={icon} alt="" width={15} height={15} style={{ objectFit: 'contain' }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
+            <div key={idx} className={`eip-vendor-row${idx % 2 ? '' : ' eip-vendor-row--alt'}`}>
+              <span className="eip-vendor-row__icon">
+                {icon ? <img src={icon} alt="" width={15} height={15} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
               </span>
-              <span style={{ color: '#e8e2d9', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{e.item}</span>
-              <span style={{ color: '#cfae6d', fontWeight: 600, fontSize: 9, flexShrink: 0 }}>{e.price}</span>
-              <span style={{ color: '#8b857c', fontSize: 8.5, flexShrink: 0, width: 30, textAlign: 'right' }}>{e.chance}</span>
+              <span className="eip-vendor-row__name">{e.item}</span>
+              <span className="eip-vendor-row__price">{e.price}</span>
+              <span className="eip-vendor-row__chance">{e.chance}</span>
             </div>
           );
         })}
@@ -366,31 +421,25 @@ function EventLootPopup({ tableId, onClose }: { tableId: string; onClose: () => 
   const table = getLootTable(tableId);
   if (!table) return null;
   return (
-    <div
-      onClick={(e) => { e.stopPropagation(); onClose(); }}
-      onWheel={(e) => e.stopPropagation()}
-      style={{ position: 'absolute', inset: 0, zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="scrollable" style={{ width: 300, maxWidth: '88%', maxHeight: '80%', overflowY: 'auto', background: 'rgba(16,18,24,0.99)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, boxShadow: '0 20px 60px rgba(0,0,0,0.8)', fontFamily: 'var(--font-mono)' }}>
-        <div style={{ position: 'sticky', top: 0, background: 'rgba(16,18,24,0.99)', padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#f5c451' }}>{table.name}</h3>
-            <button onClick={onClose} style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 5, color: '#fff', cursor: 'pointer' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 10, height: 10 }}><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
-            </button>
+    <div className="eip-popup" onClick={(e) => { e.stopPropagation(); onClose(); }} onWheel={(e) => e.stopPropagation()}>
+      <div className="eip-popup__card scrollable" onClick={(e) => e.stopPropagation()}>
+        <div className="eip-popup__head">
+          <div className="eip-popup__title-row">
+            <h3 className="eip-popup__title">{table.name}</h3>
+            <button className="eip-popup__close" onClick={onClose}><X size={11} /></button>
           </div>
-          {table.note && <div style={{ fontSize: 9, color: '#8b857c', marginTop: 4 }}>{table.note}</div>}
+          {table.note && <div className="eip-popup__note">{table.note}</div>}
         </div>
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div className="eip-popup__list">
           {table.entries.map((e, i) => {
             const icon = lootIconUrl(e.item);
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, padding: '4px 8px', borderRadius: 4, background: i % 2 ? 'transparent' : 'rgba(255,255,255,0.03)' }}>
-                <span style={{ width: 22, height: 22, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
-                  {icon ? <img src={icon} alt="" width={20} height={20} style={{ objectFit: 'contain' }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
+              <div key={i} className={`eip-loot-entry${i % 2 ? '' : ' eip-loot-entry--alt'}`}>
+                <span className="eip-loot-entry__icon">
+                  {icon ? <img src={icon} alt="" width={20} height={20} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
                 </span>
-                <span style={{ color: '#e8e2d9', flex: 1 }}>{e.item}{e.amount ? <span style={{ color: '#8b857c' }}> {e.amount}</span> : null}</span>
-                <span style={{ color: '#6fcf73', fontWeight: 700, flexShrink: 0 }}>{e.chance}</span>
+                <span className="eip-loot-entry__name">{e.item}{e.amount ? <span className="eip-loot-entry__amount"> {e.amount}</span> : null}</span>
+                <span className="eip-loot-entry__chance">{e.chance}</span>
               </div>
             );
           })}

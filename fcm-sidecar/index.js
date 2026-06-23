@@ -185,6 +185,24 @@ async function listen() {
                     ip: parsed.ip || '',
                     port: parsed.port ? parseInt(parsed.port) : null,
                 }));
+            } else if (parsed.type === 'death') {
+                // Player death push — delivered even when the app is offline or
+                // connected to a DIFFERENT server. The human-readable title
+                // (e.g. "You were killed by X") lives in the FCM appData.
+                let title = 'You were killed';
+                if (data.appData && Array.isArray(data.appData)) {
+                    const t = data.appData.find(x => x.key === 'title');
+                    if (t && t.value) title = t.value;
+                }
+                console.log(JSON.stringify({
+                    type: "death",
+                    title,
+                    targetName: parsed.targetName || '',
+                    targetId: parsed.targetId || '',
+                    serverName: parsed.name || '',
+                    ip: parsed.ip || '',
+                    port: parsed.port ? parseInt(parsed.port) : null,
+                }));
             }
         } catch (e) {
             console.log(JSON.stringify({ status: "Failed to parse JSON body", body: bodyString }));

@@ -1,0 +1,139 @@
+/* ── Minimal toast stack (bottom-right, non-blocking) ──────────────────────
+   Anchored to the bottom-right corner, well clear of the top account bar and
+   map content. Hard width cap keeps it from ever growing across the screen;
+   only a few slim pills show at once (rest live in the Notifications tab). */
+.ts-stack {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  width: 240px;
+  max-width: calc(100vw - var(--space-2xl));
+  pointer-events: none;
+}
+
+.ts-stack > * {
+  pointer-events: auto;
+}
+
+/* ── Clear-all control (only shown when 2+) ────────────────────────────── */
+.ts-clear-all {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  background: rgba(14, 16, 21, 0.7);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xxs) var(--space-sm);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.ts-clear-all:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+/* ── Slim pill ─────────────────────────────────────────────────────────── */
+.ts-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  background: rgba(14, 16, 21, 0.82);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-info);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  padding: var(--space-xs) var(--space-sm);
+  animation: ts-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ts-pill--success { border-left-color: var(--color-success); }
+.ts-pill--warning { border-left-color: var(--color-warning); }
+.ts-pill--info    { border-left-color: var(--color-info); }
+
+.ts-pill--clickable { cursor: pointer; }
+.ts-pill--clickable:hover { border-color: var(--color-border-strong); }
+
+.ts-pill__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ts-pill__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-pill--success .ts-pill__title { color: var(--color-success); }
+.ts-pill--warning .ts-pill__title { color: var(--color-warning); }
+.ts-pill--info .ts-pill__title    { color: var(--color-info); }
+
+.ts-pill__message {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-text-dim);
+  /* One short line only — keeps every pill the same slim height. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-pill__grid {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-accent);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-xs);
+  flex-shrink: 0;
+}
+
+.ts-pill__jump {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-text-dim);
+  flex-shrink: 0;
+}
+.ts-pill--clickable:hover .ts-pill__jump { color: var(--color-accent); }
+
+.ts-pill__close {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-text-dim);
+  background: transparent;
+  border: none;
+  padding: 0 var(--space-xxs);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+.ts-pill__close:hover { color: var(--color-text); }
+
+/* ── Animation (respects reduced-motion) ───────────────────────────────── */
+@keyframes ts-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-pill { animation: none; }
+}

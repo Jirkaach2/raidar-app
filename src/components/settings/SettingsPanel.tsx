@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useConnectionStore } from '../../stores/connection-store';
@@ -12,7 +13,10 @@ import Toggle from '../ui/Toggle';
 import {
   Link2, Bell, MessageSquare, Shield, HelpCircle,
   Database, RefreshCw, Check, Power, Trash2,
-  Volume2, VolumeX, Play, Upload, TrendingUp
+  Volume2, VolumeX, Play, Upload, TrendingUp,
+  SlidersHorizontal, Plug, Info, Eye, EyeOff,
+  Monitor, Map as MapIcon, Webhook, KeyRound,
+  Skull, Radio,
 } from 'lucide-react';
 import { confirmDialog } from '../../stores/confirm-store';
 import './SettingsPanel.css';
@@ -27,25 +31,189 @@ interface ServerProfile {
   last_connected: string;
 }
 
-/**
- * Lightweight section divider used to group related settings cards within a
- * tab. Purely visual — adds a labelled rule between card clusters so the long
- * settings lists are easier to scan. Uses shared CSS tokens.
- */
-function SectionDivider({ label }: { label: string }) {
+type SettingsCategory =
+  | 'connection'
+  | 'overlay'
+  | 'notifications'
+  | 'sounds'
+  | 'discord'
+  | 'integrations'
+  | 'tuning'
+  | 'about';
+
+interface CategoryDef {
+  id: SettingsCategory;
+  label: string;
+  hint: string;
+  Icon: typeof Link2;
+}
+
+/** Categories grouped into labelled sections for a cleaner left rail. */
+const NAV_GROUPS: { group: string; items: CategoryDef[] }[] = [
+  {
+    group: 'Setup',
+    items: [
+      { id: 'connection', label: 'Connection', hint: 'Pairing & servers', Icon: Link2 },
+      { id: 'overlay', label: 'Overlay', hint: 'In-game window', Icon: Monitor },
+    ],
+  },
+  {
+    group: 'Alerts',
+    items: [
+      { id: 'notifications', label: 'Notifications', hint: 'Alerts & team chat', Icon: Bell },
+      { id: 'sounds', label: 'Sounds', hint: 'Audio alerts', Icon: Volume2 },
+      { id: 'discord', label: 'Discord', hint: 'Bot & webhooks', Icon: MessageSquare },
+    ],
+  },
+  {
+    group: 'Data & Tools',
+    items: [
+      { id: 'integrations', label: 'Integrations', hint: 'API keys', Icon: Plug },
+      { id: 'tuning', label: 'Server Tuning', hint: 'Rates & timers', Icon: SlidersHorizontal },
+    ],
+  },
+  {
+    group: 'App',
+    items: [
+      { id: 'about', label: 'About', hint: 'Version & updates', Icon: Info },
+    ],
+  },
+];
+
+const ALL_CATEGORIES: CategoryDef[] = NAV_GROUPS.flatMap((g) => g.items);
+
+/* ── Presentational building blocks ─────────────────────────────────────── */
+
+/** A titled, glassy settings card with an icon, optional description + status. */
+function SettingsSection({
+  icon, title, description, status, children,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: ReactNode;
+  status?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 2px 0' }}>
-      <span style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-        color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
-      }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--color-border), transparent)' }} />
+    <section className="settings-section glass-panel">
+      <header className="settings-section__head">
+        <div className="settings-section__title">
+          <span className="settings-section__icon">{icon}</span>
+          <h3>{title}</h3>
+        </div>
+        {status}
+      </header>
+      {description && <p className="settings-section__desc">{description}</p>}
+      <div className="settings-section__body">{children}</div>
+    </section>
+  );
+}
+
+/** A small labelled group of related rows inside a section. */
+function FieldGroup({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <div className="field-group">
+      {label && <div className="field-group__label">{label}</div>}
+      <div className="field-group__rows">{children}</div>
     </div>
   );
 }
 
+/** A single label/description row with a control aligned to the right. */
+function SettingRow({
+  title, description, children, indent,
+}: {
+  title: string;
+  description?: ReactNode;
+  children: ReactNode;
+  indent?: boolean;
+}) {
+  return (
+    <div className={`setting-row${indent ? ' setting-row--indent' : ''}`}>
+      <div className="setting-row__text">
+        <span className="setting-row__label">{title}</span>
+        {description && <span className="setting-row__desc">{description}</span>}
+      </div>
+      <div className="setting-row__control">{children}</div>
+    </div>
+  );
+}
+
+/** A multi-target toggle row (e.g. Map / App / Chat) with small captioned switches. */
+function MultiToggleRow({
+  title, description, targets, indent, dimmed,
+}: {
+  title: string;
+  description?: ReactNode;
+  targets: { caption: string; checked: boolean; onChange: (v: boolean) => void }[];
+  indent?: boolean;
+  dimmed?: boolean;
+}) {
+  return (
+    <div className={`setting-row${indent ? ' setting-row--indent' : ''}`} style={dimmed ? { opacity: 0.45 } : undefined}>
+      <div className="setting-row__text">
+        <span className="setting-row__label">{title}</span>
+        {description && <span className="setting-row__desc">{description}</span>}
+      </div>
+      <div className="setting-row__targets">
+        {targets.map((t) => (
+          <div key={t.caption} className="toggle-target">
+            <span className="toggle-target__cap">{t.caption}</span>
+            <Toggle checked={t.checked} onChange={t.onChange} size="sm" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Password-style input with a show/hide eye toggle. */
+function SecretInput({
+  value, onChange, placeholder, disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="secret-input">
+      <input
+        type={show ? 'text' : 'password'}
+        className="secret-input__field"
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      <button
+        type="button"
+        className="secret-input__toggle"
+        onClick={() => setShow((s) => !s)}
+        title={show ? 'Hide' : 'Show'}
+        tabIndex={-1}
+      >
+        {show ? <EyeOff size={14} /> : <Eye size={14} />}
+      </button>
+    </div>
+  );
+}
+
+/** Small status pill with a colored dot. */
+function StatusPill({ tone, label }: { tone: 'on' | 'off' | 'warn' | 'error'; label: string }) {
+  return (
+    <span className={`status-pill status-pill--${tone}`}>
+      <span className="status-pill__dot" />
+      {label}
+    </span>
+  );
+}
+
 export function SettingsPanel() {
-  const [activeTab, setActiveTab] = useState<'connection' | 'notifications' | 'discord' | 'game'>('connection');
+  const [activeTab, setActiveTab] = useState<SettingsCategory>('connection');
   const [autoStatus, setAutoStatus] = useState<string>('Initializing sidecar...');
   const [profiles, setProfiles] = useState<ServerProfile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -102,9 +270,9 @@ export function SettingsPanel() {
 
       // Auto-resolve empty/IP server names in background via BattleMetrics
       p.forEach(async (profile) => {
-        const hasNoName = !profile.server_name || 
-                          profile.server_name.trim() === "" || 
-                          profile.server_name === profile.ip || 
+        const hasNoName = !profile.server_name ||
+                          profile.server_name.trim() === "" ||
+                          profile.server_name === profile.ip ||
                           profile.server_name === `${profile.ip}:${profile.port}`;
         if (hasNoName) {
           try {
@@ -309,7 +477,7 @@ export function SettingsPanel() {
     try {
       const res = await invoke<string>('disconnect');
       setAutoStatus(res);
-      
+
       // Reset connection status and all frontend stores
       setConnectionStatus('disconnected');
       useMapStore.getState().reset();
@@ -350,975 +518,683 @@ export function SettingsPanel() {
     }
   };
 
+  /* ── Reusable bits for the Discord webhooks list ──────────────────────── */
+  const webhookFields: {
+    label: string;
+    feature: string;
+    enabled: boolean;
+    onToggle: (v: boolean) => void;
+  }[] = [
+    { label: 'Smart Alarms', feature: 'alarms', enabled: settings.discordAlarms, onToggle: settings.setDiscordAlarms },
+    { label: 'Price Watch', feature: 'price_watch', enabled: settings.discordPriceWatch, onToggle: settings.setDiscordPriceWatch },
+    { label: 'Base Decay & TC Upkeep', feature: 'decay', enabled: settings.tcDecayNotifyDiscord || settings.discordDecay, onToggle: (v) => { settings.setTcDecayNotifyDiscord(v); settings.setDiscordDecay(v); } },
+    { label: 'Locked Crate Unlocks', feature: 'crates', enabled: settings.crateNotifyDiscord, onToggle: settings.setCrateNotifyDiscord },
+    { label: 'Cargo Ship Events', feature: 'cargo', enabled: settings.discordCargo, onToggle: settings.setDiscordCargo },
+    { label: 'Patrol Heli & Chinook', feature: 'heli_chinook', enabled: settings.discordHeli, onToggle: settings.setDiscordHeli },
+    { label: 'Rust Spy Offline / Online', feature: 'spy', enabled: settings.enemyNotifyDiscord || settings.enemyOnlineNotifyDiscord, onToggle: (v) => { settings.setEnemyNotifyDiscord(v); settings.setEnemyOnlineNotifyDiscord(v); } },
+    { label: 'Watchlist Game / VAC Bans', feature: 'bans', enabled: settings.discordBans, onToggle: settings.setDiscordBans },
+  ];
+
+  const crateMinutes = settings.defaultCrateSeconds / 60;
+  const crateMinutesDisplay = crateMinutes % 1 === 0 ? crateMinutes : crateMinutes.toFixed(1);
+
+  const active = ALL_CATEGORIES.find((c) => c.id === activeTab)!;
+
   return (
     <div className="settings-panel">
-      <h2 className="settings-title">SETTINGS MANAGEMENT</h2>
-
-      {/* Tabs Row */}
-      <div className="settings-tabs">
-        <button
-          className={`settings-tab-btn ${activeTab === 'connection' ? 'active' : ''}`}
-          onClick={() => setActiveTab('connection')}
-        >
-          Connection
-        </button>
-        <button
-          className={`settings-tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
-          onClick={() => setActiveTab('notifications')}
-        >
-          Notifications & Chat
-        </button>
-        <button
-          className={`settings-tab-btn ${activeTab === 'discord' ? 'active' : ''}`}
-          onClick={() => setActiveTab('discord')}
-        >
-          Discord Integration
-        </button>
-        <button
-          className={`settings-tab-btn ${activeTab === 'game' ? 'active' : ''}`}
-          onClick={() => setActiveTab('game')}
-        >
-          Game & Recycler
-        </button>
+      <div className="settings-header">
+        <h2 className="settings-title">Settings</h2>
+        <p className="settings-subtitle">Configure connections, alerts, integrations and the in-game overlay.</p>
       </div>
 
-      {/* Connection Tab */}
-      {activeTab === 'connection' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionDivider label="Pairing & Servers" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--success)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Link2 size={15} />
-              AUTOMATED PAIRING
-            </h3>
-            <p className="text-dim" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.4 }}>
-              1. Open Rust in-game settings &rarr; Rust+<br/>
-              2. Click <b>"Pair with Server"</b><br/>
-              The overlay will automatically intercept the token and connect.
-            </p>
-            <div style={{ padding: 12, background: 'rgba(0,0,0,0.5)', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 16 }}>
-              Status: <span style={{ color: 'var(--text-bright)', fontWeight: 'bold' }}>
-                {connectionStatus === 'connected' ? `Connected to ${serverInfo?.name || 'Rust+ Server'}` : autoStatus}
-              </span>
-            </div>
-            
-            {hasPendingSteam && (
-              <button onClick={handleReopenSteam} className="hud-btn hud-btn--accent" style={{ width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <Link2 size={13} />
-                Reopen Steam pairing window
-              </button>
-            )}
-
-            {connectionStatus === 'connected' && (
-              <button onClick={handleDisconnect} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-                <Power size={13} />
-                DISCONNECT FROM SERVER
-              </button>
-            )}
-          </div>
-
-          {/* Seamless Server Switching List */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ color: 'var(--color-accent)', margin: 0, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Database size={15} />
-                SEAMLESS SERVER SWITCHING
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {profiles.length > 0 && (
+      <div className="settings-layout">
+        {/* Left category navigation */}
+        <nav className="settings-nav" aria-label="Settings categories">
+          {NAV_GROUPS.map((grp) => (
+            <div key={grp.group} className="settings-nav-group">
+              <span className="settings-nav-group__label">{grp.group}</span>
+              {grp.items.map((c) => {
+                const Icon = c.Icon;
+                return (
                   <button
-                    onClick={handleClearProfiles}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                      borderRadius: 4,
-                      fontSize: 9,
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      color: '#ff6b6b',
-                      padding: '4px 8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
+                    key={c.id}
+                    className={`settings-nav-item ${activeTab === c.id ? 'active' : ''}`}
+                    onClick={() => setActiveTab(c.id)}
                   >
-                    <Trash2 size={10} />
-                    CLEAR ALL
+                    <Icon size={16} className="settings-nav-item__icon" />
+                    <span className="settings-nav-item__text">
+                      <span className="settings-nav-item__label">{c.label}</span>
+                      <span className="settings-nav-item__hint">{c.hint}</span>
+                    </span>
                   </button>
-                )}
-                <button
-                  onClick={fetchProfiles}
-                  disabled={loadingProfiles}
-                  style={{ background: 'none', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                >
-                  <RefreshCw size={12} className={loadingProfiles ? 'spin' : ''} />
-                </button>
-              </div>
+                );
+              })}
             </div>
-            <p className="text-dim" style={{ margin: '0 0 12px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Click any previously paired server below to switch connections instantly without needing to pair again.
-            </p>
+          ))}
+        </nav>
 
-            {profiles.length === 0 ? (
-              <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--color-text-dim)', fontSize: 11, fontStyle: 'italic' }}>
-                No saved server profiles found. Pair a server first to populate this list.
-              </div>
-            ) : (
-              <div className="server-switch-list">
-                {profiles.map((p) => {
-                  const isActive = connectionStatus === 'connected' && p.ip === currentIp && p.port === currentPort;
-                  const isSwitching = switchingServerId === p.id;
-                  return (
-                    <div key={p.id} className={`server-switch-item ${isActive ? 'active' : ''}`}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 'bold', color: isActive ? 'var(--color-success)' : '#fff' }}>
-                          {p.server_name || `${p.ip}:${p.port}`}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                          {p.ip}:{p.port} • ID: {p.player_id.slice(0, 8)}...
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {isActive ? (
-                          <span style={{ fontSize: 10, fontWeight: 'bold', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Check size={13} />
-                            CONNECTED
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSwitchServer(p)}
-                            disabled={switchingServerId !== null}
-                            className="btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: 10, borderRadius: 4, margin: 0 }}
-                          >
-                            {isSwitching ? 'Switching...' : 'Switch'}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteProfile(p.id, p.ip, p.port)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.12)',
-                            border: '1px solid rgba(239, 68, 68, 0.35)',
-                            color: '#ff6b6b',
-                            borderRadius: 4,
-                            padding: '4px 6px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.12s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)';
-                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
-                          }}
-                          title="Delete server profile"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Notifications & Chat Tab */}
-      {activeTab === 'notifications' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionDivider label="Notifications" />
-          {/* Map Notifications */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Bell size={15} />
-              MAP & APP ALERTS
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ paddingRight: 12 }}>
-                  <h4 style={{ color: 'var(--color-text-bright)', margin: '0 0 4px 0', fontSize: 12 }}>NEW VENDING SHOPS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10, lineHeight: 1.3 }}>Notify when a new player vending machine is created on the map.</p>
-                </div>
-                <Toggle checked={notifyNewShops} onChange={setNotifyNewShops} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
-                <div style={{ paddingRight: 12 }}>
-                  <h4 style={{ color: 'var(--color-text-bright)', margin: '0 0 4px 0', fontSize: 12 }}>SHOP STOCK UPDATES</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10, lineHeight: 1.3 }}>Notify when a shop stock changes or prices update.</p>
-                </div>
-                <Toggle checked={notifyNewItems} onChange={setNotifyNewItems} />
-              </div>
-            </div>
+        {/* Right content area */}
+        <div className="settings-content">
+          <div className="settings-content__head">
+            <active.Icon size={18} />
+            <h3>{active.label}</h3>
           </div>
 
-          {/* Team Chat Broadcasts */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <MessageSquare size={15} />
-              IN-GAME TEAM CHAT BROADCASTS
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 16px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Automatically post these status alerts directly into your in-game <b>team chat</b> so your teammates stay synced.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SERVER EVENTS → CHAT</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Cargo, Patrol Heli, Chinook & crate spawns.</p>
-                </div>
-                <Toggle checked={settings.broadcastEvents} onChange={settings.setBroadcastEvents} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>NEW SHOPS → CHAT</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Announce newly-opened shops and their grid coordinates.</p>
-                </div>
-                <Toggle checked={settings.broadcastNewShops} onChange={settings.setBroadcastNewShops} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>PRICE WATCH → CHAT</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>When a watched item drops under your target scrap price.</p>
-                </div>
-                <Toggle checked={settings.broadcastPriceWatch} onChange={settings.setBroadcastPriceWatch} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>BASE DECAY DONE → CHAT</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>When a tracked enemy base finishes decaying.</p>
-                </div>
-                <Toggle checked={settings.broadcastDecay} onChange={settings.setBroadcastDecay} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>TC DECAY ALERTS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Alert when a paired Tool Cupboard runs out of upkeep resources.</p>
-                </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>App</span>
-                    <Toggle checked={settings.tcDecayNotifyApp} onChange={settings.setTcDecayNotifyApp} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>Chat</span>
-                    <Toggle checked={settings.tcDecayNotifyChat} onChange={settings.setTcDecayNotifyChat} />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SMART ALARMS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Alert when smart alarms are triggered (raid notifications).</p>
-                </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>App</span>
-                    <Toggle checked={settings.notifyAlarms} onChange={settings.setNotifyAlarms} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>Chat</span>
-                    <Toggle checked={settings.broadcastAlarms} onChange={settings.setBroadcastAlarms} />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: settings.notifyAlarms || settings.broadcastAlarms || settings.discordAlarms ? 1 : 0.4, paddingTop: 8, paddingLeft: 16 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 11 }}>CROSS-SERVER ALARMS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Show smart alarms from other paired Rust servers (e.g. when on a different server).</p>
-                </div>
-                <Toggle checked={settings.crossServerAlarms} onChange={settings.setCrossServerAlarms} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>TEAMMATE DEATHS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>When teammates die, show indicators on the map and/or broadcast to chat.</p>
-                </div>
-                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>Map</span>
-                    <Toggle checked={settings.markTeammateDeaths} onChange={settings.setMarkTeammateDeaths} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>App</span>
-                    <Toggle checked={settings.notifyDeaths} onChange={settings.setNotifyDeaths} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>Chat</span>
-                    <Toggle checked={settings.broadcastDeaths} onChange={settings.setBroadcastDeaths} />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SHOW TEAMMATE DEATHS ON MAP</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>If disabled, only YOUR own deaths appear on the live map.</p>
-                </div>
-                <Toggle checked={settings.showTeammateDeathsOnMap} onChange={settings.setShowTeammateDeathsOnMap} />
-              </div>
-            </div>
-          </div>
-
-          {/* Sound Settings Card */}
-          <SectionDivider label="Sounds" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Volume2 size={15} />
-              SOUND ALERTS & NOTIFICATIONS
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>ENABLE SOUNDS</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Toggle audio feedback for events, alarms, and deaths.</p>
-                </div>
-                <Toggle checked={settings.soundEnabled} onChange={settings.setSoundEnabled} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>ALERT VOLUME</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Adjust sound effect loudness level.</p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <VolumeX size={12} className="text-dim" />
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={settings.soundVolume}
-                    onChange={(e) => settings.setSoundVolume(parseFloat(e.target.value))}
-                    style={{ width: 100, accentColor: 'var(--color-accent)', cursor: 'pointer' }}
+          {/* ── CONNECTION ──────────────────────────────────────────── */}
+          {activeTab === 'connection' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<Link2 size={15} />}
+                title="Automated Pairing"
+                status={
+                  <StatusPill
+                    tone={connectionStatus === 'connected' ? 'on' : 'off'}
+                    label={connectionStatus === 'connected' ? 'Connected' : 'Offline'}
                   />
-                  <Volume2 size={12} className="text-dim" />
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', minWidth: 32, textAlign: 'right' }}>
-                    {Math.round(settings.soundVolume * 100)}%
+                }
+                description={<>In Rust, open <b>Settings → Rust+</b> and click <b>"Pair with Server"</b>. Raidar intercepts the token and connects automatically.</>}
+              >
+                <div className="settings-statusline">
+                  Status:{' '}
+                  <span className="settings-statusline__val">
+                    {connectionStatus === 'connected' ? `Connected to ${serverInfo?.name || 'Rust+ Server'}` : autoStatus}
                   </span>
                 </div>
-              </div>
 
-              {/* Sound Actions List */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 14 }}>
-                <h4 style={{ color: 'var(--color-text-muted)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.5px' }}>Configure Sound Events</h4>
-                <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 10 }}>Toggle each alert on or off, preview it, or upload your own WAV/MP3.</p>
-                {[
-                  {
-                    section: 'Combat',
-                    events: [
-                      { id: 'teammate_offline_death', label: 'Teammate Died (Offline)', desc: 'A teammate was killed while logged off — likely being raided.' },
-                    ],
-                  },
-                  {
-                    section: 'Base & Raid',
-                    events: [
-                      { id: 'smart_alarm', label: 'Smart Alarm Triggered', desc: 'A paired smart alarm fired — possible base intrusion.' },
-                    ],
-                  },
-                  {
-                    section: 'World Events',
-                    events: [
-                      { id: 'event_spawn', label: 'Event Spawned', desc: 'Patrol Heli, Cargo Ship, or a locked crate appeared.' },
-                    ],
-                  },
-                ].map((grp) => (
-                  <div key={grp.section} style={{ marginBottom: 14 }}>
-                    <span style={{ display: 'block', color: 'var(--color-text-dim)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>{grp.section}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {grp.events.map((act) => {
-                        const hasCustom = !!settings.customSounds?.[act.id];
-                        const enabled = settings.soundEvents?.[act.id] !== false;
-                        return (
-                          <div key={act.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.02)', borderRadius: 4, opacity: enabled ? 1 : 0.55 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                              <Toggle checked={enabled} onChange={(v) => settings.setSoundEvent(act.id, v)} />
-                              <div style={{ minWidth: 0 }}>
-                                <span style={{ display: 'block', fontSize: 11.5, color: '#e8e2d9' }}>{act.label}</span>
-                                <span className="text-dim" style={{ fontSize: 9.5, lineHeight: 1.3 }}>{act.desc}</span>
-                              </div>
+                {hasPendingSteam && (
+                  <button onClick={handleReopenSteam} className="btn-accent btn-block" style={{ marginTop: 12 }}>
+                    <Link2 size={13} /> Reopen Steam pairing window
+                  </button>
+                )}
+
+                {connectionStatus === 'connected' && (
+                  <button onClick={handleDisconnect} className="btn-danger btn-block" style={{ marginTop: 12 }}>
+                    <Power size={13} /> Disconnect from server
+                  </button>
+                )}
+              </SettingsSection>
+
+              <SettingsSection
+                icon={<Database size={15} />}
+                title="Seamless Server Switching"
+                status={
+                  <div className="settings-section__actions">
+                    {profiles.length > 0 && (
+                      <button onClick={handleClearProfiles} className="btn-ghost-danger">
+                        <Trash2 size={11} /> Clear all
+                      </button>
+                    )}
+                    <button onClick={fetchProfiles} disabled={loadingProfiles} className="btn-icon" title="Refresh">
+                      <RefreshCw size={13} className={loadingProfiles ? 'spin' : ''} />
+                    </button>
+                  </div>
+                }
+                description="Click any previously paired server to switch instantly — no need to re-pair."
+              >
+                {profiles.length === 0 ? (
+                  <div className="settings-empty">No saved server profiles yet. Pair a server first to populate this list.</div>
+                ) : (
+                  <div className="server-switch-list">
+                    {profiles.map((p) => {
+                      const isActive = connectionStatus === 'connected' && p.ip === currentIp && p.port === currentPort;
+                      const isSwitching = switchingServerId === p.id;
+                      return (
+                        <div key={p.id} className={`server-switch-item ${isActive ? 'active' : ''}`}>
+                          <div className="server-switch-item__info">
+                            <div className={`server-switch-item__name ${isActive ? 'is-active' : ''}`}>
+                              {p.server_name || `${p.ip}:${p.port}`}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                              {/* Test Play (always previews, even when disabled) */}
-                              <button
-                                onClick={() => {
-                                  import('../../utils/sounds').then(({ triggerSound }) => triggerSound(act.id, { force: true }));
-                                }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
-                                title="Preview sound"
-                              >
-                                <Play size={10} /> Test
-                              </button>
-
-                              {/* Custom Upload */}
-                              <label
-                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: hasCustom ? 'rgba(110,207,115,0.1)' : 'rgba(255,255,255,0.05)', border: hasCustom ? '1px solid rgba(110,207,115,0.3)' : '1px solid rgba(255,255,255,0.08)', borderRadius: 3, color: hasCustom ? 'var(--color-success)' : 'var(--color-text)', cursor: 'pointer', fontSize: 10 }}
-                                title="Upload custom WAV/MP3 sound"
-                              >
-                                <Upload size={10} /> {hasCustom ? 'Custom' : 'Upload'}
-                                <input
-                                  type="file"
-                                  accept="audio/*"
-                                  style={{ display: 'none' }}
-                                  onChange={(ev) => {
-                                    const file = ev.target.files?.[0];
-                                    if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = () => {
-                                      if (typeof reader.result === 'string') {
-                                        settings.setCustomSound(act.id, reader.result);
-                                      }
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }}
-                                />
-                              </label>
-
-                              {/* Delete Custom */}
-                              {hasCustom && (
-                                <button
-                                  onClick={() => settings.setCustomSound(act.id, null)}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, background: 'rgba(232,69,69,0.1)', border: '1px solid rgba(232,69,69,0.2)', borderRadius: 3, color: 'var(--color-danger)', cursor: 'pointer' }}
-                                  title="Reset to default sound"
-                                >
-                                  <Trash2 size={10} />
-                                </button>
-                              )}
+                            <div className="server-switch-item__meta">
+                              {p.ip}:{p.port} • ID: {p.player_id.slice(0, 8)}...
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="server-switch-item__actions">
+                            {isActive ? (
+                              <span className="server-switch-item__connected">
+                                <Check size={13} /> Connected
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleSwitchServer(p)}
+                                disabled={switchingServerId !== null}
+                                className="btn-secondary btn-secondary--xs"
+                              >
+                                {isSwitching ? 'Switching…' : 'Switch'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteProfile(p.id, p.ip, p.port)}
+                              className="btn-icon-danger"
+                              title="Delete server profile"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Discord Webhooks Tab */}
-      {activeTab === 'discord' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {botAvailable === false && (
-            <div style={{
-              background: 'rgba(232, 69, 69, 0.1)',
-              border: '1px solid rgba(232, 69, 69, 0.35)',
-              padding: '12px 16px',
-              borderRadius: 8,
-              color: '#f87171',
-              fontSize: '11.5px',
-              lineHeight: '1.5'
-            }}>
-              <strong style={{ display: 'block', marginBottom: 4, color: '#ef4444', fontSize: '12px' }}>
-                ⚠️ DISCORD BOT OFFLINE
-              </strong>
-              The Raidar companion bot is currently offline or unreachable. Discord integration features (linking new servers, configuring whitelist permissions, and pushing notifications) are temporarily unavailable.
+                )}
+              </SettingsSection>
             </div>
           )}
 
-          {/* ── Raidar Bot link ── */}
-          <SectionDivider label="Discord Bot" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <h3 style={{ color: 'var(--color-accent)', margin: 0, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <MessageSquare size={15} />
-                RAIDAR BOT
-              </h3>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px',
-                padding: '3px 9px', borderRadius: 20,
-                background: botLinks.length ? 'rgba(111,207,115,0.14)' : 'rgba(255,255,255,0.06)',
-                color: botLinks.length ? 'var(--color-success)' : 'var(--color-text-dim)',
-                border: `1px solid ${botLinks.length ? 'rgba(111,207,115,0.4)' : 'var(--color-border)'}`,
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: botLinks.length ? 'var(--color-success)' : 'var(--color-text-muted)' }} />
-                {loadingLinks ? 'CHECKING…' : botLinks.length ? `LINKED · ${botLinks.length}` : 'NOT LINKED'}
-              </span>
+          {/* ── OVERLAY ─────────────────────────────────────────────── */}
+          {activeTab === 'overlay' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<Monitor size={15} />}
+                title="Game Overlay"
+                status={<StatusPill tone={settings.overlayMode ? 'on' : 'off'} label={settings.overlayMode ? 'On' : 'Off'} />}
+                description="Float Raidar on top of Rust. Run the game in Borderless window mode for best results."
+              >
+                <SettingRow
+                  title="Overlay interaction"
+                  description="Keeps the window always-on-top over RustClient."
+                >
+                  <Toggle checked={settings.overlayMode} onChange={settings.setOverlayMode} />
+                </SettingRow>
+                <SettingRow
+                  title="Show / hide hotkey"
+                  description="Global shortcut to toggle the overlay (e.g. F8)."
+                >
+                  <input
+                    type="text"
+                    className="settings-input settings-input--sm"
+                    value={settings.overlayHotkey}
+                    onChange={(e) => settings.setOverlayHotkey(e.target.value.trim())}
+                    placeholder="F8"
+                  />
+                </SettingRow>
+              </SettingsSection>
             </div>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.45 }}>
-              Connect this app to the Raidar Discord bot so your team can check status, control devices and get alarm notifications from Discord — even when this app is closed. Your current server and devices transfer automatically.
-            </p>
+          )}
 
-            {botLinks.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                {botLinks.map((l) => (
-                  <div key={l.guildId} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--color-border)', borderRadius: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 7, background: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <MessageSquare size={15} color="#5865F2" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.guildName}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--color-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.serverName || 'Rust server'}</div>
-                      </div>
-                      <button
-                        onClick={() => handleUnlink(l.guildId)}
-                        title="Unlink this server"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', background: 'transparent', border: '1px solid var(--color-danger)', borderRadius: 6, color: 'var(--color-danger)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        <Trash2 size={12} /> Unlink
-                      </button>
-                    </div>
+          {/* ── NOTIFICATIONS ───────────────────────────────────────── */}
+          {activeTab === 'notifications' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<Bell size={15} />}
+                title="Map & App Alerts"
+                description="In-app notifications for activity on the live map."
+              >
+                <SettingRow title="New vending shops" description="Notify when a new player vending machine appears on the map.">
+                  <Toggle checked={notifyNewShops} onChange={setNotifyNewShops} />
+                </SettingRow>
+                <SettingRow title="Shop stock updates" description="Notify when a shop's stock changes or prices update.">
+                  <Toggle checked={notifyNewItems} onChange={setNotifyNewItems} />
+                </SettingRow>
+              </SettingsSection>
 
-                    {/* Device-control whitelist */}
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', color: '#8b857c', marginBottom: 6 }}>WHO CAN CONTROL DEVICES</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                        {(l.allowedUserIds.length ? l.allowedUserIds : []).map((id) => (
-                          <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 6px 3px 9px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border)', borderRadius: 14, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>
-                            {id}
-                            <button onClick={() => handleRemoveAllowed(l.guildId, id)} disabled={botAvailable === false} title="Remove" style={{ display: 'flex', background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: botAvailable === false ? 'default' : 'pointer', padding: 0, opacity: botAvailable === false ? 0.3 : 1 }}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 11, height: 11 }}><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
+              <SettingsSection
+                icon={<MessageSquare size={15} />}
+                title="Team Chat Broadcasts"
+                description={<>Post these status alerts directly into your in-game <b>team chat</b> so teammates stay synced.</>}
+              >
+                <FieldGroup label="World & Market">
+                  <SettingRow title="Server events → chat" description="Cargo, Patrol Heli, Chinook & crate spawns.">
+                    <Toggle checked={settings.broadcastEvents} onChange={settings.setBroadcastEvents} />
+                  </SettingRow>
+                  <SettingRow title="New shops → chat" description="Announce newly-opened shops and their grid coordinates.">
+                    <Toggle checked={settings.broadcastNewShops} onChange={settings.setBroadcastNewShops} />
+                  </SettingRow>
+                  <SettingRow title="Price watch → chat" description="When a watched item drops under your target scrap price.">
+                    <Toggle checked={settings.broadcastPriceWatch} onChange={settings.setBroadcastPriceWatch} />
+                  </SettingRow>
+                  <SettingRow title="Base decay done → chat" description="When a tracked enemy base finishes decaying.">
+                    <Toggle checked={settings.broadcastDecay} onChange={settings.setBroadcastDecay} />
+                  </SettingRow>
+                </FieldGroup>
+              </SettingsSection>
+
+              <SettingsSection
+                icon={<Radio size={15} />}
+                title="Base & Raid Alarms"
+                description="Choose where each alert is delivered: the map, an in-app toast, or your in-game team chat."
+              >
+                <MultiToggleRow
+                  title="TC decay alerts"
+                  description="Alert when a paired Tool Cupboard runs out of upkeep resources."
+                  targets={[
+                    { caption: 'App', checked: settings.tcDecayNotifyApp, onChange: settings.setTcDecayNotifyApp },
+                    { caption: 'Chat', checked: settings.tcDecayNotifyChat, onChange: settings.setTcDecayNotifyChat },
+                  ]}
+                />
+                <MultiToggleRow
+                  title="Smart alarms"
+                  description="Alert when smart alarms are triggered (raid notifications)."
+                  targets={[
+                    { caption: 'App', checked: settings.notifyAlarms, onChange: settings.setNotifyAlarms },
+                    { caption: 'Chat', checked: settings.broadcastAlarms, onChange: settings.setBroadcastAlarms },
+                  ]}
+                />
+                <SettingRow
+                  title="Cross-server alarms"
+                  description="Show smart alarms from other paired Rust servers (e.g. while on a different server)."
+                  indent
+                >
+                  <Toggle checked={settings.crossServerAlarms} onChange={settings.setCrossServerAlarms} />
+                </SettingRow>
+              </SettingsSection>
+
+              <SettingsSection
+                icon={<Skull size={15} />}
+                title="Teammate Deaths"
+                description="Track when teammates die — show indicators on the map, an in-app toast, or broadcast to chat."
+              >
+                <MultiToggleRow
+                  title="Death alerts"
+                  description="When teammates die, show indicators on the map and/or broadcast to chat."
+                  targets={[
+                    { caption: 'Map', checked: settings.markTeammateDeaths, onChange: settings.setMarkTeammateDeaths },
+                    { caption: 'App', checked: settings.notifyDeaths, onChange: settings.setNotifyDeaths },
+                    { caption: 'Chat', checked: settings.broadcastDeaths, onChange: settings.setBroadcastDeaths },
+                  ]}
+                />
+                <SettingRow
+                  title="Show teammate deaths on map"
+                  description="If disabled, only YOUR own deaths appear on the live map."
+                >
+                  <Toggle checked={settings.showTeammateDeathsOnMap} onChange={settings.setShowTeammateDeathsOnMap} />
+                </SettingRow>
+              </SettingsSection>
+            </div>
+          )}
+
+          {/* ── SOUNDS ──────────────────────────────────────────────── */}
+          {activeTab === 'sounds' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<Volume2 size={15} />}
+                title="Sound Alerts & Notifications"
+                status={<StatusPill tone={settings.soundEnabled ? 'on' : 'off'} label={settings.soundEnabled ? 'Enabled' : 'Muted'} />}
+                description="Audio feedback for events, alarms and deaths."
+              >
+                <SettingRow title="Enable sounds" description="Master switch for all audio feedback.">
+                  <Toggle checked={settings.soundEnabled} onChange={settings.setSoundEnabled} />
+                </SettingRow>
+                <SettingRow title="Alert volume" description="Adjust sound effect loudness level.">
+                  <div className="volume-control">
+                    <VolumeX size={13} className="text-dim" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={settings.soundVolume}
+                      onChange={(e) => settings.setSoundVolume(parseFloat(e.target.value))}
+                      className="volume-slider"
+                    />
+                    <Volume2 size={13} className="text-dim" />
+                    <span className="volume-value">{Math.round(settings.soundVolume * 100)}%</span>
+                  </div>
+                </SettingRow>
+
+                <div className="settings-subhead">
+                  <span className="settings-subhead__title">Configure sound events</span>
+                  <span className="settings-subhead__desc">Toggle each alert, preview it, or upload your own WAV/MP3.</span>
+                </div>
+
+                {[
+                  { section: 'Combat', events: [{ id: 'teammate_offline_death', label: 'Teammate died (offline)', desc: 'A teammate was killed while logged off — likely being raided.' }] },
+                  { section: 'Base & Raid', events: [{ id: 'smart_alarm', label: 'Smart alarm triggered', desc: 'A paired smart alarm fired — possible base intrusion.' }] },
+                  { section: 'World Events', events: [{ id: 'event_spawn', label: 'Event spawned', desc: 'Patrol Heli, Cargo Ship, or a locked crate appeared.' }] },
+                ].map((grp) => (
+                  <div key={grp.section} className="sound-group">
+                    <span className="sound-group__title">{grp.section}</span>
+                    {grp.events.map((act) => {
+                      const hasCustom = !!settings.customSounds?.[act.id];
+                      const enabled = settings.soundEvents?.[act.id] !== false;
+                      return (
+                        <div key={act.id} className="sound-item" style={{ opacity: enabled ? 1 : 0.55 }}>
+                          <div className="sound-item__left">
+                            <Toggle checked={enabled} onChange={(v) => settings.setSoundEvent(act.id, v)} size="sm" />
+                            <div className="sound-item__text">
+                              <span className="sound-item__label">{act.label}</span>
+                              <span className="sound-item__desc">{act.desc}</span>
+                            </div>
+                          </div>
+                          <div className="sound-item__actions">
+                            <button
+                              className="sound-btn"
+                              title="Preview sound"
+                              onClick={() => { import('../../utils/sounds').then(({ triggerSound }) => triggerSound(act.id, { force: true })); }}
+                            >
+                              <Play size={11} /> Test
                             </button>
-                          </span>
-                        ))}
-                        {l.allowedUserIds.length === 0 && (
-                          <span style={{ fontSize: 10.5, color: 'var(--color-text-dim)', fontStyle: 'italic' }}>Server admins only (no one whitelisted yet)</span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <input
-                          type="text"
-                          placeholder="Discord user ID"
-                          value={allowDraft[l.guildId] || ''}
-                          onChange={(e) => setAllowDraft((d) => ({ ...d, [l.guildId]: e.target.value.replace(/\D/g, '') }))}
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddAllowed(l.guildId); }}
-                          disabled={botAvailable === false}
-                          style={{ flex: 1, padding: '6px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 5, color: 'var(--color-text)', fontSize: 11.5, fontFamily: 'var(--font-mono)', outline: 'none', opacity: botAvailable === false ? 0.5 : 1 }}
-                        />
-                        <button
-                          onClick={() => handleAddAllowed(l.guildId)}
-                          disabled={botAvailable === false || !(allowDraft[l.guildId] || '').trim()}
-                          style={{ padding: '6px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: (botAvailable === false || !(allowDraft[l.guildId] || '').trim()) ? 'default' : 'pointer', opacity: (botAvailable === false || !(allowDraft[l.guildId] || '').trim()) ? 0.5 : 1 }}
-                        >
-                          Add
-                        </button>
-                      </div>
-                      <p style={{ margin: '6px 0 0', fontSize: 9.5, color: 'var(--color-text-dim)', lineHeight: 1.4 }}>
-                        -# Enable Developer Mode in Discord, right-click a user → Copy User ID. Listed users (and server admins) can use <strong>/control</strong>, <strong>/toggle</strong> and <strong>/say</strong>.
-                      </p>
-                    </div>
+                            <label className={`sound-btn ${hasCustom ? 'sound-btn--custom' : ''}`} title="Upload custom WAV/MP3 sound">
+                              <Upload size={11} /> {hasCustom ? 'Custom' : 'Upload'}
+                              <input
+                                type="file"
+                                accept="audio/*"
+                                style={{ display: 'none' }}
+                                onChange={(ev) => {
+                                  const file = ev.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = () => {
+                                    if (typeof reader.result === 'string') {
+                                      settings.setCustomSound(act.id, reader.result);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }}
+                              />
+                            </label>
+                            {hasCustom && (
+                              <button className="sound-btn sound-btn--danger" title="Reset to default sound" onClick={() => settings.setCustomSound(act.id, null)}>
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
-              </div>
-            )}
-
-            <div style={{ padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px dashed var(--color-border)', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
-                {botLinks.length ? 'Link another server' : 'Link a Discord server'}
-              </div>
-              <p className="text-dim" style={{ margin: '0 0 10px 0', fontSize: 10.5, lineHeight: 1.4 }}>
-                In your Discord server, run <strong style={{ color: 'var(--color-accent)' }}>/link</strong> and paste the 6-character code below.
-              </p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  placeholder="ABC123"
-                  value={linkCode}
-                  onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  disabled={botAvailable === false}
-                  style={{ flex: 1, padding: '9px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 15, letterSpacing: '4px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', outline: 'none', opacity: botAvailable === false ? 0.5 : 1 }}
-                />
-                <button
-                  onClick={handleLinkBot}
-                  disabled={linking || linkCode.trim().length < 6 || botAvailable === false}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 700, cursor: (linking || linkCode.trim().length < 6 || botAvailable === false) ? 'default' : 'pointer', opacity: (linking || linkCode.trim().length < 6 || botAvailable === false) ? 0.5 : 1 }}
-                >
-                  <Link2 size={13} /> {linking ? 'Linking…' : 'Link'}
-                </button>
-              </div>
+              </SettingsSection>
             </div>
+          )}
 
-            {botLinks.length > 0 && (
-              <button
-                onClick={handleTestNotify}
-                disabled={botAvailable === false}
-                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: 6, color: 'var(--color-text)', fontSize: 11.5, fontWeight: 600, cursor: botAvailable === false ? 'default' : 'pointer', opacity: botAvailable === false ? 0.4 : 1 }}
+          {/* ── DISCORD ─────────────────────────────────────────────── */}
+          {activeTab === 'discord' && (
+            <div className="settings-stack">
+              {botAvailable === false && (
+                <div className="settings-banner settings-banner--danger">
+                  <strong>Discord bot offline</strong>
+                  The Raidar companion bot is currently offline or unreachable. Linking servers, configuring whitelist permissions, and pushing notifications are temporarily unavailable.
+                </div>
+              )}
+
+              <SettingsSection
+                icon={<MessageSquare size={15} />}
+                title="Raidar Bot"
+                status={
+                  <StatusPill
+                    tone={loadingLinks ? 'warn' : botLinks.length ? 'on' : 'off'}
+                    label={loadingLinks ? 'Checking…' : botLinks.length ? `Linked · ${botLinks.length}` : 'Not linked'}
+                  />
+                }
+                description="Connect this app to the Raidar Discord bot so your team can check status, control devices and get alarm notifications from Discord — even when this app is closed. Your current server and devices transfer automatically."
               >
-                🔔 Send test notification
-              </button>
-            )}
-          </div>
+                {botLinks.length > 0 && (
+                  <div className="bot-links">
+                    {botLinks.map((l) => (
+                      <div key={l.guildId} className="bot-link">
+                        <div className="bot-link__head">
+                          <div className="bot-link__avatar"><MessageSquare size={15} color="#5865F2" /></div>
+                          <div className="bot-link__info">
+                            <div className="bot-link__guild">{l.guildName}</div>
+                            <div className="bot-link__server">{l.serverName || 'Rust server'}</div>
+                          </div>
+                          <button onClick={() => handleUnlink(l.guildId)} className="btn-outline-danger" title="Unlink this server">
+                            <Trash2 size={12} /> Unlink
+                          </button>
+                        </div>
+                        <div className="bot-link__whitelist">
+                          <div className="bot-link__whitelist-title">Who can control devices</div>
+                          <div className="bot-link__chips">
+                            {l.allowedUserIds.map((id) => (
+                              <span key={id} className="user-chip">
+                                {id}
+                                <button onClick={() => handleRemoveAllowed(l.guildId, id)} disabled={botAvailable === false} title="Remove" className="user-chip__x">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
+                                </button>
+                              </span>
+                            ))}
+                            {l.allowedUserIds.length === 0 && (
+                              <span className="bot-link__empty">Server admins only (no one whitelisted yet)</span>
+                            )}
+                          </div>
+                          <div className="settings-inline-input">
+                            <input
+                              type="text"
+                              placeholder="Discord user ID"
+                              value={allowDraft[l.guildId] || ''}
+                              onChange={(e) => setAllowDraft((d) => ({ ...d, [l.guildId]: e.target.value.replace(/\D/g, '') }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleAddAllowed(l.guildId); }}
+                              disabled={botAvailable === false}
+                              className="settings-input settings-input--mono"
+                            />
+                            <button
+                              onClick={() => handleAddAllowed(l.guildId)}
+                              disabled={botAvailable === false || !(allowDraft[l.guildId] || '').trim()}
+                              className="btn-accent btn-accent--sm"
+                            >
+                              Add
+                            </button>
+                          </div>
+                          <p className="settings-fineprint">
+                            Enable Developer Mode in Discord, right-click a user → Copy User ID. Listed users (and server admins) can use <strong>/control</strong>, <strong>/toggle</strong> and <strong>/say</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-          <SectionDivider label="Webhooks" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Shield size={15} />
-              DISCORD WEBHOOK INTEGRATION
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 16px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Redirect notifications to specific Discord channels. Create a webhook URL in your Discord server's channel settings and paste them below. Feature-specific URLs override the default fallback.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Default Webhook URL */}
-              <div className="webhook-row">
-                <label className="webhook-label">DEFAULT FALLBACK WEBHOOK URL</label>
-                <input
-                  type="password"
-                  placeholder="https://discord.com/api/webhooks/..."
-                  value={settings.discordWebhookUrl}
-                  onChange={(e) => settings.setDiscordWebhookUrl(e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Ping Role */}
-              <div className="webhook-row">
-                <label className="webhook-label">PING ROLE ON ALERT</label>
-                <input
-                  type="text"
-                  placeholder="everyone, a role ID, or blank"
-                  value={settings.discordPingRole}
-                  onChange={(e) => settings.setDiscordPingRole(e.target.value)}
-                  className="webhook-input"
-                />
-                <span className="text-dim" style={{ fontSize: 9 }}>Type "everyone" to tag @everyone, or paste a numerical role ID.</span>
-              </div>
-
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, margin: '6px 0' }}>
-                <h4 style={{ fontSize: 11, fontWeight: 'bold', color: '#fff', marginBottom: 12, fontFamily: 'var(--font-mono)' }}>FEATURE-SPECIFIC WEBHOOK CHANNELS</h4>
-              </div>
-
-              {/* Smart Alarms Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Smart Alarms (`alarms`)</span>
-                  <Toggle checked={settings.discordAlarms} onChange={settings.setDiscordAlarms} />
+                <div className="link-box">
+                  <div className="link-box__title">{botLinks.length ? 'Link another server' : 'Link a Discord server'}</div>
+                  <p className="link-box__desc">
+                    In your Discord server, run <strong>/link</strong> and paste the 6-character code below.
+                  </p>
+                  <div className="settings-inline-input">
+                    <input
+                      type="text"
+                      placeholder="ABC123"
+                      value={linkCode}
+                      onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
+                      maxLength={6}
+                      disabled={botAvailable === false}
+                      className="link-code-input"
+                    />
+                    <button
+                      onClick={handleLinkBot}
+                      disabled={linking || linkCode.trim().length < 6 || botAvailable === false}
+                      className="btn-accent"
+                    >
+                      <Link2 size={13} /> {linking ? 'Linking…' : 'Link'}
+                    </button>
+                  </div>
                 </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.alarms || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('alarms', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
 
-              {/* Price Watch Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Price Watch (`price_watch`)</span>
-                  <Toggle checked={settings.discordPriceWatch} onChange={settings.setDiscordPriceWatch} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.price_watch || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('price_watch', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
+                {botLinks.length > 0 && (
+                  <button onClick={handleTestNotify} disabled={botAvailable === false} className="btn-secondary" style={{ marginTop: 12 }}>
+                    🔔 Send test notification
+                  </button>
+                )}
+              </SettingsSection>
 
-              {/* Base Decay Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Base Decay & TC Upkeep (`decay`)</span>
-                  <Toggle checked={settings.tcDecayNotifyDiscord || settings.discordDecay} onChange={(v) => { settings.setTcDecayNotifyDiscord(v); settings.setDiscordDecay(v); }} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.decay || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('decay', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Crate Unlocks Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Locked Crate Unlocks (`crates`)</span>
-                  <Toggle checked={settings.crateNotifyDiscord} onChange={settings.setCrateNotifyDiscord} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.crates || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('crates', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Cargo Ship Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Cargo Ship Events (`cargo`)</span>
-                  <Toggle checked={settings.discordCargo} onChange={settings.setDiscordCargo} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.cargo || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('cargo', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Heli / Chinook Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Patrol Heli & Chinook Events (`heli_chinook`)</span>
-                  <Toggle checked={settings.discordHeli} onChange={settings.setDiscordHeli} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.heli_chinook || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('heli_chinook', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Watchlist Spy Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Rust Spy Offline/Online (`spy`)</span>
-                  <Toggle checked={settings.enemyNotifyDiscord || settings.enemyOnlineNotifyDiscord} onChange={(v) => { settings.setEnemyNotifyDiscord(v); settings.setEnemyOnlineNotifyDiscord(v); }} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.spy || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('spy', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-
-              {/* Watchlist Bans Webhook */}
-              <div className="webhook-row">
-                <div className="webhook-label-wrapper">
-                  <span className="webhook-label">Watchlist Game/VAC Bans (`bans`)</span>
-                  <Toggle checked={settings.discordBans} onChange={settings.setDiscordBans} />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Feature-specific Webhook URL (Overrides Default)"
-                  value={settings.discordWebhooks.bans || ''}
-                  onChange={(e) => settings.setDiscordWebhookFor('bans', e.target.value)}
-                  className="webhook-input"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Game & Recycler Tab */}
-      {activeTab === 'game' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionDivider label="Application & Display" />
-          {/* App updates */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <RefreshCw size={15} />
-              APP UPDATES
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Raidar checks for updates automatically on launch and installs them in the background. You can also check manually.
-              {appVersion && <> Current version: <strong style={{ color: 'var(--color-text)' }}>v{appVersion}</strong>.</>}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checkingUpdate}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 700, cursor: checkingUpdate ? 'default' : 'pointer', opacity: checkingUpdate ? 0.6 : 1 }}
+              <SettingsSection
+                icon={<Webhook size={15} />}
+                title="Discord Webhook Integration"
+                description="Redirect notifications to specific Discord channels. Create a webhook URL in your channel settings and paste it below. Feature-specific URLs override the default fallback."
               >
-                <RefreshCw size={13} />
-                {checkingUpdate ? 'Checking…' : 'Check for Updates'}
-              </button>
-              {updateStatus && <span style={{ fontSize: 10.5, color: 'var(--color-text-dim)', lineHeight: 1.4 }}>{updateStatus}</span>}
-            </div>
-          </div>
-
-          {/* Overlay card */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Shield size={15} />
-              GAME OVERLAY MODE
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>OVERLAY INTERACTION</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Keeps the window on top of Rust. Run Rust in Borderless window mode.</p>
+                <div className="webhook-row">
+                  <label className="webhook-label">Default fallback webhook URL</label>
+                  <SecretInput
+                    value={settings.discordWebhookUrl}
+                    onChange={settings.setDiscordWebhookUrl}
+                    placeholder="https://discord.com/api/webhooks/..."
+                  />
                 </div>
-                <Toggle checked={settings.overlayMode} onChange={settings.setOverlayMode} />
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SHOW / HIDE HOTKEY</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Global overlay toggling shortcut (e.g. F8).</p>
+                <div className="webhook-row">
+                  <label className="webhook-label">Ping role on alert</label>
+                  <input
+                    type="text"
+                    placeholder="everyone, a role ID, or blank"
+                    value={settings.discordPingRole}
+                    onChange={(e) => settings.setDiscordPingRole(e.target.value)}
+                    className="webhook-input"
+                  />
+                  <span className="settings-fineprint">Type "everyone" to tag @everyone, or paste a numerical role ID.</span>
                 </div>
-                <input
-                  type="text"
-                  value={settings.overlayHotkey}
-                  onChange={(e) => settings.setOverlayHotkey(e.target.value.trim())}
-                  placeholder="F8"
-                  style={{ width: 120, padding: '6px 8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, fontFamily: 'var(--font-mono)', outline: 'none' }}
-                />
-              </div>
 
-            </div>
-          </div>
-
-          {/* Recycler card */}
-          <SectionDivider label="Server Tuning" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <RefreshCw size={15} />
-              RECYCLER MULTIPLIER
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>AUTO-DETECT MULTIPLIER</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Try to read the gather multiplier from the server name.</p>
+                <div className="settings-subhead">
+                  <span className="settings-subhead__title">Feature-specific webhook channels</span>
+                  <span className="settings-subhead__desc">Toggle each feature and optionally route it to its own channel.</span>
                 </div>
-                <Toggle checked={settings.recyclerAutoDetect} onChange={settings.setRecyclerAutoDetect} />
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12 }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>MANUAL MULTIPLIER</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Recycler resource scale override for modded servers.</p>
+                {webhookFields.map((f) => (
+                  <div className="webhook-row" key={f.feature}>
+                    <div className="webhook-label-wrapper">
+                      <span className="webhook-label">{f.label} <code>{f.feature}</code></span>
+                      <Toggle checked={f.enabled} onChange={f.onToggle} size="sm" />
+                    </div>
+                    <SecretInput
+                      value={settings.discordWebhooks[f.feature] || ''}
+                      onChange={(v) => settings.setDiscordWebhookFor(f.feature, v)}
+                      placeholder="Feature-specific webhook URL (overrides default)"
+                    />
+                  </div>
+                ))}
+              </SettingsSection>
+            </div>
+          )}
+
+          {/* ── INTEGRATIONS ────────────────────────────────────────── */}
+          {activeTab === 'integrations' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<MapIcon size={15} />}
+                title="RustMaps"
+                status={
+                  rustmapsStatus === 'ready' ? <StatusPill tone="on" label="Active" />
+                    : rustmapsStatus === 'loading' || rustmapsStatus === 'generating' ? <StatusPill tone="warn" label="Loading" />
+                    : rustmapsStatus === 'error' ? <StatusPill tone="error" label="Error" />
+                    : <StatusPill tone="off" label="Inactive" />
+                }
+                description="Shows caves and the jungle Water Well Shopkeeper on the map — these aren't sent over Rust+, so they're pulled from the generated map by seed + size. Get a free API key at rustmaps.com → account → API. Cached per wipe, so it only calls once."
+              >
+                <div className="webhook-row">
+                  <label className="webhook-label">RustMaps API key</label>
+                  <SecretInput value={settings.rustmapsKey} onChange={settings.setRustmapsKey} placeholder="Paste RustMaps API key..." />
                 </div>
-                <input
-                  type="number"
-                  min={1}
-                  value={settings.recyclerMultiplier}
-                  onChange={(e) => { settings.setRecyclerAutoDetect(false); settings.setRecyclerMultiplier(parseInt(e.target.value) || 1); }}
-                  style={{ width: 60, padding: '6px 8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
-                />
-              </div>
-            </div>
-          </div>
+                {rustmapsStatus === 'ready' ? (
+                  <div className="integration-status integration-status--ok">● Active — map extras loaded</div>
+                ) : rustmapsStatus === 'loading' || rustmapsStatus === 'generating' ? (
+                  <div className="integration-status integration-status--warn">● {rustmapsMessage || 'Loading map extras…'}</div>
+                ) : rustmapsStatus === 'error' ? (
+                  <div className="integration-status integration-status--error">● {rustmapsMessage || 'RustMaps error.'}</div>
+                ) : (
+                  <div className="integration-status">Add a key to enable caves, water wells, tunnels &amp; labs.</div>
+                )}
+              </SettingsSection>
 
-          {/* Vending Sales Multiplier card */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <TrendingUp size={15} />
-              VENDING SALES MULTIPLIER
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: '#fff', margin: '0 0 2px 0', fontSize: 12 }}>SALES MULTIPLIER</h4>
-                  <p className="text-dim" style={{ margin: 0, fontSize: 10 }}>Scale tracked sales quantities by this rate for modded servers.</p>
+              <SettingsSection
+                icon={<KeyRound size={15} />}
+                title="BattleMetrics"
+                status={<StatusPill tone={settings.battlemetricsToken.trim() ? 'on' : 'off'} label={settings.battlemetricsToken.trim() ? 'Active' : 'Inactive'} />}
+                description="Enables offline/online enemy tracking in Rust Spy. Obtain your token from your BattleMetrics account settings page."
+              >
+                <div className="webhook-row">
+                  <label className="webhook-label">BattleMetrics token</label>
+                  <SecretInput value={settings.battlemetricsToken} onChange={settings.setBattlemetricsToken} placeholder="Paste BattleMetrics token..." />
                 </div>
-                <input
-                  type="number"
-                  min={1}
-                  value={settings.vendingMultiplier}
-                  onChange={(e) => settings.setVendingMultiplier(parseInt(e.target.value) || 1)}
-                  style={{ width: 60, padding: '6px 8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
-                />
-              </div>
+              </SettingsSection>
             </div>
-          </div>
+          )}
 
-          {/* BattleMetrics & Token */}
-          <SectionDivider label="Integrations" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Shield size={15} />
-              BATTLEMETRICS INTEGRATION
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Enables offline/online enemy tracking in Rust Spy. Obtain your token from your BattleMetrics account settings page.
-            </p>
-            <input
-              type="password"
-              placeholder="Paste BattleMetrics token..."
-              value={settings.battlemetricsToken}
-              onChange={(e) => settings.setBattlemetricsToken(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
-            />
-          </div>
+          {/* ── SERVER TUNING ───────────────────────────────────────── */}
+          {activeTab === 'tuning' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<RefreshCw size={15} />}
+                title="Recycler Multiplier"
+                description="Resource scaling for modded (gather-rate) servers."
+              >
+                <SettingRow title="Auto-detect multiplier" description="Try to read the gather multiplier from the server name.">
+                  <Toggle checked={settings.recyclerAutoDetect} onChange={settings.setRecyclerAutoDetect} />
+                </SettingRow>
+                <SettingRow title="Manual multiplier" description="Recycler resource scale override for modded servers.">
+                  <input
+                    type="number"
+                    min={1}
+                    className="settings-input settings-input--num"
+                    value={settings.recyclerMultiplier}
+                    onChange={(e) => { settings.setRecyclerAutoDetect(false); settings.setRecyclerMultiplier(parseInt(e.target.value) || 1); }}
+                  />
+                </SettingRow>
+              </SettingsSection>
 
-          {/* RustMaps API key — caves + water well shopkeeper */}
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Shield size={15} />
-              RUSTMAPS INTEGRATION
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Shows caves and the jungle Water Well Shopkeeper on the map — these aren't sent over Rust+, so they're pulled from the generated map by seed + size. Get a free API key at rustmaps.com → account → API. Cached per wipe, so it only calls once.
-            </p>
-            <input
-              type="password"
-              placeholder="Paste RustMaps API key..."
-              value={settings.rustmapsKey}
-              onChange={(e) => settings.setRustmapsKey(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
-            />
-            {(() => {
-              const base: React.CSSProperties = {
-                display: 'flex', alignItems: 'center', gap: 6, marginTop: 12,
-                fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: 1.4,
-              };
-              if (rustmapsStatus === 'ready') {
-                return <div style={{ ...base, color: '#4ade80' }}>● Active — map extras loaded</div>;
-              }
-              if (rustmapsStatus === 'loading' || rustmapsStatus === 'generating') {
-                return <div style={{ ...base, color: '#fbbf24' }}>● {rustmapsMessage || 'Loading map extras…'}</div>;
-              }
-              if (rustmapsStatus === 'error') {
-                return <div style={{ ...base, color: '#f87171' }}>● {rustmapsMessage || 'RustMaps error.'}</div>;
-              }
-              return <div style={{ ...base, color: 'var(--color-text-dim)' }}>Add a key to enable caves, water wells, tunnels &amp; labs.</div>;
-            })()}
-          </div>
+              <SettingsSection
+                icon={<TrendingUp size={15} />}
+                title="Vending Sales Multiplier"
+                description="Scale tracked sales quantities for modded servers."
+              >
+                <SettingRow title="Sales multiplier" description="Multiply tracked sales quantities by this rate.">
+                  <input
+                    type="number"
+                    min={1}
+                    className="settings-input settings-input--num"
+                    value={settings.vendingMultiplier}
+                    onChange={(e) => settings.setVendingMultiplier(parseInt(e.target.value) || 1)}
+                  />
+                </SettingRow>
+              </SettingsSection>
 
-          {/* Locked Crate Default Seconds */}
-          <SectionDivider label="Game" />
-          <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <HelpCircle size={15} />
-              LOCKED CRATE HACK TIMER
-            </h3>
-            <p className="text-dim" style={{ margin: '0 0 14px 0', fontSize: 11, lineHeight: 1.4 }}>
-              Configure the default countdown duration for hacked chinook crates (vanilla is 15 minutes).
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number"
-                min={1}
-                max={60}
-                value={Math.round(settings.defaultCrateSeconds / 60 * 100) / 100 % 1 === 0 ? settings.defaultCrateSeconds / 60 : (settings.defaultCrateSeconds / 60).toFixed(1)}
-                onChange={(e) => {
-                  const mins = parseFloat(e.target.value);
-                  if (!isNaN(mins)) settings.setDefaultCrateSeconds(Math.round(mins * 60));
-                }}
-                style={{ width: 70, padding: '6px 8px', borderRadius: 6, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
-              />
-              <span className="text-dim" style={{ fontSize: 12 }}>minutes</span>
+              <SettingsSection
+                icon={<HelpCircle size={15} />}
+                title="Locked Crate Hack Timer"
+                description="Default countdown duration for hacked Chinook crates (vanilla is 15 minutes)."
+              >
+                <SettingRow title="Default hack time" description="Used when a crate's timer isn't reported by the server.">
+                  <div className="settings-inline">
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      className="settings-input settings-input--num"
+                      value={crateMinutesDisplay}
+                      onChange={(e) => {
+                        const mins = parseFloat(e.target.value);
+                        if (!isNaN(mins)) settings.setDefaultCrateSeconds(Math.round(mins * 60));
+                      }}
+                    />
+                    <span className="settings-hint">minutes</span>
+                  </div>
+                </SettingRow>
+              </SettingsSection>
             </div>
-          </div>
+          )}
+
+          {/* ── ABOUT ───────────────────────────────────────────────── */}
+          {activeTab === 'about' && (
+            <div className="settings-stack">
+              <SettingsSection
+                icon={<Shield size={15} />}
+                title="Raidar"
+                description="Tactical companion overlay for Rust — live map, vending intel, raid alerts and team coordination."
+              >
+                <SettingRow title="Version" description="The currently running build of Raidar.">
+                  <span className="settings-badge">{appVersion ? `v${appVersion}` : '—'}</span>
+                </SettingRow>
+                <SettingRow title="Connection" description="Current Rust+ connection state.">
+                  <StatusPill
+                    tone={connectionStatus === 'connected' ? 'on' : 'off'}
+                    label={connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
+                  />
+                </SettingRow>
+              </SettingsSection>
+
+              <SettingsSection
+                icon={<RefreshCw size={15} />}
+                title="App Updates"
+                description={<>Raidar checks for updates on launch and installs them in the background. You can also check manually.{appVersion && <> Current version: <strong>v{appVersion}</strong>.</>}</>}
+              >
+                <div className="settings-inline">
+                  <button onClick={handleCheckUpdate} disabled={checkingUpdate} className="btn-accent">
+                    <RefreshCw size={13} className={checkingUpdate ? 'spin' : ''} />
+                    {checkingUpdate ? 'Checking…' : 'Check for updates'}
+                  </button>
+                  {updateStatus && <span className="settings-hint">{updateStatus}</span>}
+                </div>
+              </SettingsSection>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

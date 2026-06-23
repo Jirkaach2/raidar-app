@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { useTeamStore } from '../../stores/team-store';
 import { Avatar } from '../common/Avatar';
 import { TeamChat } from './TeamChat';
-import { Crown, ChevronDown, ChevronUp, Clock, ExternalLink } from 'lucide-react';
+import { TeamSummaryCards } from './TeamSummaryCards';
+import { TeamLeaderboard } from './TeamLeaderboard';
+import { Crown, ChevronDown, ChevronUp, Clock, ExternalLink, Users, Trophy } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import './TeamPanel.css';
+
+type LeftView = 'roster' | 'leaderboard';
 
 interface SteamProfile {
   name: string;
@@ -315,6 +319,7 @@ function TeammateCard({
 export function TeamPanel() {
   const members = useTeamStore((state) => state.members);
   const selfSteamId = useTeamStore((state) => state.selfSteamId);
+  const [leftView, setLeftView] = useState<LeftView>('roster');
 
   const selfMember = members.find(m => m.id === selfSteamId || m.isSelf || m.name === 'You');
   const isSelfLeader = selfMember?.isLeader || false;
@@ -336,26 +341,59 @@ export function TeamPanel() {
           {members.filter(m => m.status === 'online').length} / {members.length} ACTIVE
         </span>
       </div>
-      
+
+      <TeamSummaryCards />
+
       <div className="panel-content">
-        {/* Left Side: Teammates List */}
+        {/* Left Side: Roster / Leaderboard toggle */}
         <div className="member-list-section">
-          <div className="section-title hud-label">ROSTER STATUS</div>
-          <div className="member-list-scroll scrollable">
-            {members.length === 0 ? (
-              <div className="member-list-empty text-dim">No team members detected.</div>
-            ) : (
-              members.map((member) => (
-                <TeammateCard 
-                  key={member.id}
-                  member={member}
-                  selfSteamId={selfSteamId}
-                  isSelfLeader={isSelfLeader}
-                  handlePromote={handlePromote}
-                />
-              ))
-            )}
+          <div className="team-view-switch" role="tablist" aria-label="Team view">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftView === 'roster'}
+              className={`team-view-switch__btn ${leftView === 'roster' ? 'is-active' : ''}`}
+              onClick={() => setLeftView('roster')}
+            >
+              <Users size={12} />
+              Roster
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftView === 'leaderboard'}
+              className={`team-view-switch__btn ${leftView === 'leaderboard' ? 'is-active' : ''}`}
+              onClick={() => setLeftView('leaderboard')}
+            >
+              <Trophy size={12} />
+              Leaderboard
+            </button>
           </div>
+
+          {leftView === 'roster' ? (
+            <>
+              <div className="section-title hud-label">ROSTER STATUS</div>
+              <div className="member-list-scroll scrollable">
+                {members.length === 0 ? (
+                  <div className="member-list-empty text-dim">No team members detected.</div>
+                ) : (
+                  members.map((member) => (
+                    <TeammateCard 
+                      key={member.id}
+                      member={member}
+                      selfSteamId={selfSteamId}
+                      isSelfLeader={isSelfLeader}
+                      handlePromote={handlePromote}
+                    />
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="team-leaderboard-scroll scrollable">
+              <TeamLeaderboard />
+            </div>
+          )}
         </div>
 
         {/* Right Side: Team Radio Chat */}

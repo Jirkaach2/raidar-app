@@ -130,16 +130,19 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
     let html_url = format!("https://steamcommunity.com/profiles/{}/?l=english", steam_id);
     if let Ok(resp) = client.get(&html_url).send().await {
         if let Ok(html_body) = resp.text().await {
-            // Parse Level
-            if let Some(idx) = html_body.find("friendPlayerLevelNum\">") {
-                let start = idx + "friendPlayerLevelNum\">".len();
-                if let Some(end_idx) = html_body[start..].find("</span>") {
-                    let level_str = html_body[start..start + end_idx].trim();
-                    if let Ok(lvl) = level_str.parse::<u32>() {
-                        steam_level = lvl;
-                    }
-                }
-            }
+            // Parse the PROFILE OWNER's Steam level.
+            //
+            // The owner's level lives in the profile header persona block, whose
+            // markup is `...persona_level...<span class="friendPlayerLevelNum">N</span>`.
+            // Friends in the friends/showcase block reuse the SAME
+            // `friendPlayerLevelNum` span but inside a `friendBlock` (no
+            // `persona_level` class), so anchoring on the FIRST
+            // `friendPlayerLevelNum` blindly can return a FRIEND's level (the
+            // root cause of the bogus "439"). We therefore anchor strictly to the
+            // owner's `persona_level` container and read the first level span that
+            // follows it. If the owner's level can't be isolated we leave it at 0
+            // rather than emit a wrong number.
+            steam_level = parse_owner_steam_level(&html_body);
 
             // Fallback: Parse Rust hours (AppID 252490) total playtime from the
             // HTML profile page. We anchor strictly to the Rust game block and the
@@ -153,32 +156,26 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
         }
     }
 
-    // 4. Second Fallback: Query RustStats RPC API for playtime if Steam hours are private/None
+    // 4. Second Fallback: Query RustStats RPC API for playtime if Steam hours are
+    //    private/None. The RustStats `get_profile` RPC mirrors Steam's TOTAL "hrs
+    //    on record" via `overview.time_played` (e.g. "3,795 hours", "1,200 hours
+    //    30 minutes", or "0 minute" when the player's game details are private).
+    //    We parse hours + minutes explicitly and only accept a STRICTLY POSITIVE
+    //    total — a "0 minute" reading means RustStats can't see the playtime
+    //    either, in which case we leave `rust_hours` as None so the UI degrades
+    //    gracefully ("Hours Private") instead of showing a misleading "0 hrs".
     if rust_hours.is_none() {
         let rpc_url = "https://ruststats.io/api/rpc/get_profile";
         let body_json = serde_json::json!({ "id": steam_id });
         if let Ok(resp) = client.post(rpc_url).json(&body_json).send().await {
             if resp.status().is_success() {
                 if let Ok(val) = resp.json::<serde_json::Value>().await {
-                    if let Some(overview) = val.get("overview") {
-                        if let Some(time_played_str) = overview.get("time_played").and_then(|v| v.as_str()) {
-                            let is_minutes = time_played_str.contains("minute");
-                            let clean = time_played_str
-                                .replace("hours", "")
-                                .replace("hour", "")
-                                .replace("minutes", "")
-                                .replace("minute", "")
-                                .replace(",", "")
-                                .trim()
-                                .to_string();
-                            if let Ok(val) = clean.parse::<f64>() {
-                                if is_minutes {
-                                    rust_hours = Some(val / 60.0);
-                                } else {
-                                    rust_hours = Some(val);
-                                }
-                            }
-                        }
+                    if let Some(time_played_str) = val
+                        .get("overview")
+                        .and_then(|o| o.get("time_played"))
+                        .and_then(|v| v.as_str())
+                    {
+                        rust_hours = parse_ruststats_time(time_played_str);
                     }
                 }
             }
@@ -234,6 +231,11 @@ pub struct RustMemberStats {
     pub bullet_fired: u32,
     pub bullet_hit: u32,
     pub privacy: String,
+    /// Every `<stat><name>X</name><value>Y</value></stat>` pair found in the
+    /// Steam XML, keyed by the real Steam stat api name. The frontend only ever
+    /// renders keys that are actually present here, so no value is ever invented.
+    #[serde(rename = "all_stats")]
+    pub all_stats: std::collections::HashMap<String, u32>,
 }
 
 /// Fetch public/cached Rust statistics for a Steam user.
@@ -249,64 +251,131 @@ pub async fn get_rust_member_stats(steam_id: String) -> Result<RustMemberStats, 
         .build()
         .map_err(|e| format!("client build failed: {}", e))?;
 
-    // 1. Try RustStats RPC API (allows retrieving cached stats even if profile is private)
+    // 1. PRIMARY SOURCE: the Steam community stats XML endpoint. When the
+    //    player's game details are public this returns the COMPLETE set of
+    //    `<stat><name>X</name><value>Y</value></stat>` pairs, which we collect
+    //    generically into `all_stats`. The frontend renders its rich stat tiles
+    //    purely from this map, so it is essential that this path always fully
+    //    populates it when stats are readable. No value is ever invented — only
+    //    keys that actually exist in the XML are emitted.
+    let xml_url = format!("https://steamcommunity.com/profiles/{}/stats/252490/?xml=1", steam_id);
+    let xml_body = match client.get(&xml_url).send().await {
+        Ok(resp) => resp.text().await.unwrap_or_default(),
+        Err(_) => String::new(),
+    };
+
+    let xml_permission_denied =
+        xml_body.contains("You do not have permission") || xml_body.contains("fatalerror");
+    let xml_has_stats = xml_body.contains("<stats>");
+
+    if !xml_body.is_empty() && !xml_permission_denied && xml_has_stats {
+        // Stats are public and readable — this is the authoritative, complete
+        // source. Populate the full map and derive the typed fields from it.
+        let all_stats = parse_all_stats(&xml_body);
+
+        let kills = all_stats.get("kill_player").copied().unwrap_or(0);
+        let deaths = all_stats.get("deaths").copied().unwrap_or(0);
+        let headshots = all_stats.get("headshot").copied().unwrap_or(0);
+        let bullet_fired = all_stats.get("bullet_fired").copied().unwrap_or(0);
+        let bullet_hit = all_stats.get("bullet_hit").copied().unwrap_or(0);
+
+        return Ok(RustMemberStats {
+            kills,
+            deaths,
+            headshots,
+            bullet_fired,
+            bullet_hit,
+            privacy: "public".to_string(),
+            all_stats,
+        });
+    }
+
+    // 2a. ROBUSTNESS: even though the `<stats>` container check above didn't
+    //     pass, attempt to recover any individual `<stat>` blocks that may still
+    //     be present in whatever XML we received. If we do find a populated map
+    //     the profile's stats are effectively public, so emit the FULL map and
+    //     derive the typed summary fields from it (never inventing a value).
+    let recovered_stats = parse_all_stats(&xml_body);
+    if !recovered_stats.is_empty() {
+        let kills = recovered_stats.get("kill_player").copied().unwrap_or(0);
+        let deaths = recovered_stats.get("deaths").copied().unwrap_or(0);
+        let headshots = recovered_stats.get("headshot").copied().unwrap_or(0);
+        let bullet_fired = recovered_stats.get("bullet_fired").copied().unwrap_or(0);
+        let bullet_hit = recovered_stats.get("bullet_hit").copied().unwrap_or(0);
+
+        return Ok(RustMemberStats {
+            kills,
+            deaths,
+            headshots,
+            bullet_fired,
+            bullet_hit,
+            privacy: "public".to_string(),
+            all_stats: recovered_stats,
+        });
+    }
+
+    // 2b. FALLBACK: the Steam XML was private / permission-denied / had no
+    //     readable `<stat>` blocks. Query the RustStats `get_profile` RPC. This
+    //     is the exact endpoint the ruststats.io site itself uses (POST
+    //     {"id": <steamid64>}) and it returns a rich, cached snapshot of a
+    //     player's Rust stats even when their Steam game details are private —
+    //     which is precisely the case the bug report hit (Steam stats XML denied,
+    //     yet ruststats.io HAS the player).
+    //
+    //     We translate the RustStats JSON into the SAME Steam stat api-name keys
+    //     the frontend tiles expect (kill_player, deaths, headshot, bullet_hit,
+    //     bullet_hit_building, …) so the full rich breakdown renders. Privacy is
+    //     taken from the response's real `is_private` flag, so a public ruststats
+    //     profile is correctly reported as "public" (the combat scorecard and
+    //     tile grid only render for public profiles). No value is invented — keys
+    //     are only inserted when the corresponding field is actually present.
     let rpc_url = "https://ruststats.io/api/rpc/get_profile";
     let body_json = serde_json::json!({ "id": steam_id });
 
     if let Ok(resp) = client.post(rpc_url).json(&body_json).send().await {
         if resp.status().is_success() {
             if let Ok(val) = resp.json::<serde_json::Value>().await {
-                if let Some(pvp) = val.get("pvp_stats") {
-                    let kills = pvp.get("kills").and_then(|v| v.as_str()).map(parse_number_str).unwrap_or(0);
-                    let deaths = pvp.get("deaths").and_then(|v| v.as_str()).map(parse_number_str).unwrap_or(0);
-                    let headshots = pvp.get("headshots").and_then(|v| v.as_str()).map(parse_number_str).unwrap_or(0);
-                    let bullet_fired = pvp.get("bullets_fired").and_then(|v| v.as_str()).map(parse_number_str).unwrap_or(0);
-                    let bullet_hit = pvp.get("bullets_hit").and_then(|v| v.as_str()).map(parse_number_str).unwrap_or(0);
-                    
+                let all_stats = build_all_stats_from_ruststats(&val);
+                if !all_stats.is_empty() {
+                    // A populated map means ruststats has this player's data.
+                    let is_private = val
+                        .get("is_private")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+
+                    let kills = all_stats.get("kill_player").copied().unwrap_or(0);
+                    let deaths = all_stats.get("deaths").copied().unwrap_or(0);
+                    let headshots = all_stats.get("headshot").copied().unwrap_or(0);
+                    let bullet_fired = all_stats.get("bullet_fired").copied().unwrap_or(0);
+                    let bullet_hit = all_stats.get("bullet_hit").copied().unwrap_or(0);
+
                     return Ok(RustMemberStats {
                         kills,
                         deaths,
                         headshots,
                         bullet_fired,
                         bullet_hit,
-                        privacy: "public".to_string(),
+                        privacy: if is_private {
+                            "private".to_string()
+                        } else {
+                            "public".to_string()
+                        },
+                        all_stats,
                     });
                 }
             }
         }
     }
 
-    // 2. Fallback to Steam XML
-    let url = format!("https://steamcommunity.com/profiles/{}/stats/252490/?xml=1", steam_id);
-    let body = match client.get(&url).send().await {
-        Ok(resp) => resp.text().await.unwrap_or_default(),
-        Err(e) => return Err(format!("Failed to fetch stats: {}", e)),
-    };
-
-    if body.contains("You do not have permission") || body.contains("fatalerror") || !body.contains("<stats>") {
-        return Ok(RustMemberStats {
-            kills: 0,
-            deaths: 0,
-            headshots: 0,
-            bullet_fired: 0,
-            bullet_hit: 0,
-            privacy: "private".to_string(),
-        });
-    }
-
-    let kills = extract_stat_value(&body, "kill_player");
-    let deaths = extract_stat_value(&body, "deaths");
-    let headshots = extract_stat_value(&body, "headshot");
-    let bullet_fired = extract_stat_value(&body, "bullet_fired");
-    let bullet_hit = extract_stat_value(&body, "bullet_hit");
-
+    // 3. Nothing readable from either source — report a private/empty profile.
     Ok(RustMemberStats {
-        kills,
-        deaths,
-        headshots,
-        bullet_fired,
-        bullet_hit,
-        privacy: "public".to_string(),
+        kills: 0,
+        deaths: 0,
+        headshots: 0,
+        bullet_fired: 0,
+        bullet_hit: 0,
+        privacy: "private".to_string(),
+        all_stats: std::collections::HashMap::new(),
     })
 }
 
@@ -326,20 +395,275 @@ fn parse_number_str(s: &str) -> u32 {
     clean.parse::<u32>().unwrap_or(0)
 }
 
-fn extract_stat_value(xml: &str, stat_name: &str) -> u32 {
-    let pattern = format!("<name>{}</name>", stat_name);
-    if let Some(pos) = xml.find(&pattern) {
-        let after = &xml[pos + pattern.len()..];
-        if let Some(val_start) = after.find("<value>") {
-            let start = val_start + "<value>".len();
-            if let Some(val_end) = after[start..].find("</value>") {
-                if let Ok(val) = after[start..start + val_end].trim().parse::<u32>() {
-                    return val;
-                }
-            }
+/// Extract the PROFILE OWNER's Steam level from a Steam community HTML profile
+/// page.
+///
+/// The owner's level is rendered inside the profile header persona block, which
+/// carries the `persona_level` CSS class, e.g.:
+///   `<div class="persona_name persona_level">Level
+///      <div class="friendPlayerLevel lvl_100 lvl_plus_0">
+///        <span class="friendPlayerLevelNum">100</span></div></div>`
+///
+/// Friends shown in the friends/showcase block reuse the SAME
+/// `friendPlayerLevelNum` span, but they live inside `friendBlock` containers
+/// that do NOT carry the `persona_level` class. Anchoring on the first
+/// `friendPlayerLevelNum` blindly can therefore latch onto a friend's level
+/// (the cause of the bogus "439"). We instead locate the owner's `persona_level`
+/// container first and read the next level span after it. Returns 0 when the
+/// owner's level can't be reliably isolated (preferred over a wrong value).
+fn parse_owner_steam_level(html: &str) -> u32 {
+    let anchor = match html.find("persona_level") {
+        Some(a) => a,
+        None => return 0,
+    };
+    let after = &html[anchor..];
+    let needle = "friendPlayerLevelNum\">";
+    let rel = match after.find(needle) {
+        Some(r) => r,
+        None => return 0,
+    };
+    let start = anchor + rel + needle.len();
+    // The level value is followed by `</span>`; stop at the first '<'.
+    if let Some(end_rel) = html[start..].find('<') {
+        let level_str = html[start..start + end_rel].trim();
+        if let Ok(lvl) = level_str.parse::<u32>() {
+            return lvl;
         }
     }
     0
+}
+
+/// Parse a RustStats `overview.time_played` string into total hours.
+///
+/// RustStats mirrors Steam's TOTAL "hrs on record" and renders it localized as
+/// human text, e.g. "3,795 hours", "1,200 hours 30 minutes", "45 minutes", or
+/// "0 minute" when the player's game details are private. We scan for each
+/// `<number> <unit>` pair, summing hours directly and converting minutes, so any
+/// combination resolves correctly. Numbers may be grouped ("3,795" / "3 795").
+/// Returns `Some(total)` only when the total is STRICTLY POSITIVE — a "0 minute"
+/// reading yields `None` so the caller degrades gracefully rather than reporting
+/// a misleading "0 hrs".
+fn parse_ruststats_time(raw: &str) -> Option<f64> {
+    let lower = raw.to_lowercase();
+    let chars: Vec<char> = lower.chars().collect();
+    let mut hours = 0.0f64;
+    let mut minutes = 0.0f64;
+    let mut found_unit = false;
+    let mut i = 0usize;
+
+    while i < chars.len() {
+        if chars[i].is_ascii_digit() {
+            // Collect a (possibly grouped) number.
+            let num_start = i;
+            while i < chars.len()
+                && (chars[i].is_ascii_digit() || is_number_separator(chars[i]))
+            {
+                // A separator only continues the number when sandwiched between
+                // two digits; otherwise it terminates it.
+                if chars[i].is_ascii_digit() {
+                    i += 1;
+                } else if i + 1 < chars.len() && chars[i + 1].is_ascii_digit() {
+                    i += 1;
+                } else {
+                    break;
+                }
+            }
+            let number_str: String = chars[num_start..i].iter().collect();
+            let value = parse_grouped_hours(&number_str).unwrap_or(0.0);
+
+            // Skip whitespace between the number and its unit word.
+            while i < chars.len() && chars[i].is_whitespace() {
+                i += 1;
+            }
+            // Read the unit word.
+            let unit_start = i;
+            while i < chars.len() && chars[i].is_ascii_alphabetic() {
+                i += 1;
+            }
+            let unit: String = chars[unit_start..i].iter().collect();
+            if unit.starts_with("hour") {
+                hours += value;
+                found_unit = true;
+            } else if unit.starts_with("minute") {
+                minutes += value;
+                found_unit = true;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    if !found_unit {
+        return None;
+    }
+    let total = hours + minutes / 60.0;
+    if total > 0.0 {
+        Some(total)
+    } else {
+        None
+    }
+}
+
+/// Translate a RustStats `get_profile` JSON payload into the Steam stat
+/// api-name keyed map the frontend tiles consume (`kill_player`, `deaths`,
+/// `headshot`, `bullet_hit_building`, …). RustStats groups its figures into
+/// nested objects (`pvp_stats`, `bullets_hit`, `kills`, `bow_hits`, …) with
+/// values rendered as grouped/abbreviated strings ("12,496", "554.0k",
+/// "3.31m"); `parse_number_str` normalizes those. A key is inserted ONLY when
+/// the source field is actually present, so no value is ever fabricated.
+/// Duration/aggregate-only fields whose units don't map cleanly to a Steam
+/// counter (e.g. "51 hours" voice time, horse kilometers) are intentionally
+/// omitted rather than misrepresented.
+fn build_all_stats_from_ruststats(
+    val: &serde_json::Value,
+) -> std::collections::HashMap<String, u32> {
+    let mut map = std::collections::HashMap::new();
+
+    // (steam_key, [json path]) — first present path wins is unnecessary here as
+    // each maps to a single ruststats location.
+    let mappings: &[(&str, &[&str])] = &[
+        // Headline PvP figures.
+        ("kill_player", &["pvp_stats", "kills"]),
+        ("deaths", &["pvp_stats", "deaths"]),
+        ("headshot", &["pvp_stats", "headshots"]),
+        ("bullet_fired", &["pvp_stats", "bullets_fired"]),
+        ("bullet_hit", &["pvp_stats", "bullets_hit"]),
+        // Bullet-hit breakdown.
+        ("bullet_hit_building", &["bullets_hit", "buildings"]),
+        ("bullet_hit_sign", &["bullets_hit", "signs"]),
+        ("bullet_hit_deadplayers", &["bullets_hit", "dead_players"]),
+        ("bullet_hit_stag", &["bullets_hit", "deer"]),
+        ("bullet_hit_bear", &["bullets_hit", "bears"]),
+        ("bullet_hit_boar", &["bullets_hit", "boars"]),
+        ("bullet_hit_wolf", &["bullets_hit", "wolves"]),
+        // Kill breakdown.
+        ("kill_scientist", &["kills", "scientists"]),
+        ("kill_dweller", &["kills", "dwellers_while_moving"]),
+        ("kill_mlrs", &["other", "mlrs_kills"]),
+        ("kill_shark", &["other", "shark_speargun_kills"]),
+        // Animal kills.
+        ("kill_bear", &["kills", "bears"]),
+        ("kill_boar", &["kills", "boars"]),
+        ("kill_stag", &["kills", "deer"]),
+        ("kill_horse", &["kills", "horses"]),
+        ("kill_wolf", &["kills", "wolves"]),
+        ("kill_chicken", &["kills", "chickens"]),
+        // Explosives & melee.
+        ("rocket_fired", &["other", "rockets_fired"]),
+        ("melee_strikes", &["melee", "strikes"]),
+        ("melee_thrown", &["melee", "throws"]),
+        // Bow.
+        ("arrow_fired", &["bow_hits", "shots_fired"]),
+        ("arrow_hit_player", &["bow_hits", "players"]),
+        ("arrow_hit_building", &["bow_hits", "buildings"]),
+        // Shotgun.
+        ("shotgun_fired", &["shotgun_hits", "shots_fired"]),
+        ("shotgun_hit_player", &["shotgun_hits", "players"]),
+        ("shotgun_hit_building", &["shotgun_hits", "buildings"]),
+        // Deaths breakdown.
+        ("death_fall", &["deaths", "fall"]),
+        ("death_suicide", &["deaths", "suicide"]),
+        // Wounds.
+        ("wounded", &["wounds", "wounded"]),
+        ("wounded_healed", &["wounds", "healed"]),
+        // Gathering.
+        ("acquired_wood", &["gathered", "wood"]),
+        ("acquired_stones", &["gathered", "stone"]),
+        ("acquired_metal.ore", &["gathered", "metal_ore"]),
+        ("acquired_scrap", &["gathered", "scrap"]),
+        ("harvested_cloth", &["gathered", "cloth"]),
+        ("harvested_leather", &["gathered", "leather"]),
+        ("acquired_lowgradefuel", &["gathered", "low_grade_fuel"]),
+        // Building.
+        ("placed_blocks", &["building_blocks", "placed"]),
+        ("upgraded_blocks", &["building_blocks", "upgraded"]),
+        // Survival.
+        ("calories_consumed", &["consumed", "calories"]),
+        ("water_consumed", &["consumed", "water"]),
+        // Menu usage.
+        ("INVENTORY_OPENED", &["menus_opened", "inventory"]),
+        ("CRAFTING_OPENED", &["menus_opened", "crafting"]),
+        ("MAP_OPENED", &["menus_opened", "map"]),
+        // Other.
+        ("destroyed_barrels", &["other", "barrels_destroyed"]),
+        ("item_drop", &["other", "items_dropped"]),
+        ("blueprint_studied", &["other", "bps_learned"]),
+        ("MISSION_COMPLETE", &["other", "missions_completed"]),
+        ("examine", &["other", "items_inspected"]),
+        ("gesture_wave_count", &["other", "waved_at_players"]),
+        ("BEE_ATTACKS", &["other", "bee_attacks_count"]),
+        ("PIPES_CONNECTED", &["other", "pipes_connected"]),
+        ("WIRES_CONNECTED", &["other", "wires_connected"]),
+        ("HELI_LANDINGS", &["other", "helipad_landings"]),
+        ("TIN_CAN_ALARM", &["other", "tincanalarms_wired"]),
+        ("KAYAK_METERS", &["other", "kayak_distance_travelled"]),
+    ];
+
+    for (key, path) in mappings {
+        let mut cur = val;
+        let mut ok = true;
+        for p in *path {
+            match cur.get(*p) {
+                Some(next) => cur = next,
+                None => {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok {
+            continue;
+        }
+        if let Some(s) = cur.as_str() {
+            map.insert((*key).to_string(), parse_number_str(s));
+        }
+    }
+
+    map
+}
+
+/// Parse EVERY `<stat>` block in a Rust Steam stats XML document into a map of
+/// `name -> value`. Rust's stats XML contains entries shaped like
+/// `<stat><name>kill_player</name><value>1234</value></stat>`. We iterate them
+/// generically so the frontend receives the complete, real set of stats present
+/// for a player and never has to guess. Achievement blocks use `<apiname>` and
+/// live inside `<achievement>`, so scanning strictly for `<stat>` … `</stat>`
+/// never picks those up. Note that `<stats>` (the container) is not matched
+/// because the literal `<stat>` is not a substring of `<stats>`.
+fn parse_all_stats(xml: &str) -> std::collections::HashMap<String, u32> {
+    let mut map = std::collections::HashMap::new();
+    let open = "<stat>";
+    let close = "</stat>";
+    let mut cursor = 0usize;
+    while let Some(rel) = xml[cursor..].find(open) {
+        let block_start = cursor + rel + open.len();
+        let end_rel = match xml[block_start..].find(close) {
+            Some(e) => e,
+            None => break,
+        };
+        let block = &xml[block_start..block_start + end_rel];
+        cursor = block_start + end_rel + close.len();
+
+        let name = extract_xml_tag(block, "name");
+        let value = extract_xml_tag(block, "value");
+        if let (Some(name), Some(value)) = (name, value) {
+            let name = name.trim();
+            if name.is_empty() {
+                continue;
+            }
+            // Steam stat values are integral counters; parse defensively so a
+            // stray float (e.g. "12.0") still resolves rather than being dropped.
+            let parsed = value
+                .trim()
+                .parse::<u32>()
+                .ok()
+                .or_else(|| value.trim().parse::<f64>().ok().map(|f| f.max(0.0) as u32));
+            if let Some(v) = parsed {
+                map.insert(name.to_string(), v);
+            }
+        }
+    }
+    map
 }
 
 

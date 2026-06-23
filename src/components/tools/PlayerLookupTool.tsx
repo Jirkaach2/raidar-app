@@ -89,6 +89,243 @@ interface SteamProfile {
   return colors[tens] || '#9b9b9b';
 };
 
+// ---------------------------------------------------------------------------
+// Rich Rust stats display configuration.
+//
+// Every tile is driven purely by `rustStats.all_stats`, which the backend fills
+// with the REAL `<stat><name>X</name><value>Y</value></stat>` pairs found in
+// the Steam stats XML. A tile resolves the first matching key that is actually
+// present (some Rust stat api-names have historical spelling variants), and a
+// tile is only rendered when its value exists. Derived metrics (K/D, accuracy,
+// hit rates, …) are computed from those same real values. As a result the UI
+// can never display an invented number — absent keys simply don't render.
+// ---------------------------------------------------------------------------
+
+type AllStats = Record<string, number>;
+
+interface StatEntry {
+  label: string;
+  keys?: string[];                 // real Steam stat api-name candidates (first present wins)
+  derived?: (s: AllStats) => number | null; // computed metric (null => hidden)
+  format?: 'count' | 'percent' | 'ratio';
+}
+
+interface StatSection {
+  title: string;
+  entries: StatEntry[];
+}
+
+const firstPresent = (s: AllStats, keys: string[]): number | null => {
+  for (const k of keys) {
+    if (Object.prototype.hasOwnProperty.call(s, k) && typeof s[k] === 'number') {
+      return s[k];
+    }
+  }
+  return null;
+};
+
+const rate = (num: number | null, den: number | null): number | null => {
+  if (num === null || den === null || den <= 0) return null;
+  return num / den;
+};
+
+// Format a raw count: toLocaleString, with k/M abbreviations for large values.
+const formatCount = (n: number): string => {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return `${v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (n >= 100_000) {
+    return `${Math.round(n / 1000)}k`;
+  }
+  if (n >= 10_000) {
+    const v = n / 1000;
+    return `${v.toFixed(1).replace(/\.0$/, '')}k`;
+  }
+  return n.toLocaleString('en-US');
+};
+
+const STAT_SECTIONS: StatSection[] = [
+  {
+    title: 'PVP STATS',
+    entries: [
+      { label: 'K/D', derived: (s) => rate(firstPresent(s, ['kill_player']), firstPresent(s, ['deaths'])), format: 'ratio' },
+      { label: 'Kills', keys: ['kill_player'] },
+      { label: 'Deaths', keys: ['deaths'] },
+      { label: 'Headshots', keys: ['headshot'] },
+      { label: 'HS Hit Rate', derived: (s) => rate(firstPresent(s, ['headshot']), firstPresent(s, ['kill_player'])), format: 'percent' },
+      { label: 'Accuracy', derived: (s) => rate(firstPresent(s, ['bullet_hit', 'bullet_hit_player']), firstPresent(s, ['bullet_fired'])), format: 'percent' },
+      { label: 'Bullets Hit', keys: ['bullet_hit', 'bullet_hit_player'] },
+      { label: 'Bullets Fired', keys: ['bullet_fired'] },
+    ],
+  },
+  {
+    title: 'BULLET HITS BREAKDOWN',
+    entries: [
+      { label: 'Building', keys: ['bullet_hit_building'] },
+      { label: 'Sign', keys: ['bullet_hit_sign'] },
+      { label: 'Dead Players', keys: ['bullet_hit_deadplayers', 'bullet_hit_corpse'] },
+      { label: 'Stag', keys: ['bullet_hit_stag'] },
+      { label: 'Bears', keys: ['bullet_hit_bear'] },
+      { label: 'Boars', keys: ['bullet_hit_boar'] },
+      { label: 'Wolves', keys: ['bullet_hit_wolf'] },
+    ],
+  },
+  {
+    title: 'KILL BREAKDOWN',
+    entries: [
+      { label: 'Scientists', keys: ['kill_scientist', 'killed_scientist'] },
+      { label: 'Sharks', keys: ['kill_shark'] },
+      { label: 'MLRS', keys: ['kill_mlrs', 'killed_by_mlrs'] },
+      { label: 'Dweller', keys: ['kill_dweller', 'kill_simpleshark'] },
+    ],
+  },
+  {
+    title: 'EXPLOSIVES & MELEE',
+    entries: [
+      { label: 'Rockets Fired', keys: ['rocket_fired'] },
+      { label: 'Grenades', keys: ['grenade_thrown', 'thrown_grenade'] },
+      { label: 'Melee Strikes', keys: ['melee_strikes', 'melee_thrown'] },
+    ],
+  },
+  {
+    title: 'ANIMAL KILLS',
+    entries: [
+      { label: 'Bears', keys: ['kill_bear'] },
+      { label: 'Boars', keys: ['kill_boar'] },
+      { label: 'Stag', keys: ['kill_stag'] },
+      { label: 'Horses', keys: ['kill_horse'] },
+      { label: 'Wolves', keys: ['kill_wolf'] },
+      { label: 'Chickens', keys: ['kill_chicken'] },
+    ],
+  },
+  {
+    title: 'BOW STATS',
+    entries: [
+      { label: 'Shots Fired', keys: ['arrow_fired'] },
+      { label: 'Player Hits', keys: ['arrow_hit_player'] },
+      { label: 'Building Hits', keys: ['arrow_hit_building'] },
+      {
+        label: 'Hit Rate',
+        derived: (s) => {
+          const hits = (firstPresent(s, ['arrow_hit_player']) ?? 0) + (firstPresent(s, ['arrow_hit_building']) ?? 0);
+          const fired = firstPresent(s, ['arrow_fired']);
+          if (fired === null || fired <= 0) return null;
+          return hits / fired;
+        },
+        format: 'percent',
+      },
+    ],
+  },
+  {
+    title: 'SHOTGUN STATS',
+    entries: [
+      { label: 'Shots Fired', keys: ['shotgun_fired'] },
+      { label: 'Player Hits', keys: ['shotgun_hit_player'] },
+      { label: 'Building Hits', keys: ['shotgun_hit_building'] },
+      {
+        label: 'Hit Rate',
+        derived: (s) => {
+          const hits = (firstPresent(s, ['shotgun_hit_player']) ?? 0) + (firstPresent(s, ['shotgun_hit_building']) ?? 0);
+          const fired = firstPresent(s, ['shotgun_fired']);
+          if (fired === null || fired <= 0) return null;
+          return hits / fired;
+        },
+        format: 'percent',
+      },
+    ],
+  },
+  {
+    title: 'DEATH STATS',
+    entries: [
+      { label: 'Fall', keys: ['death_fall'] },
+      { label: 'Suicides', keys: ['death_suicide'] },
+      { label: 'Entity', keys: ['death_entity'] },
+    ],
+  },
+  {
+    title: 'WOUNDS',
+    entries: [
+      { label: 'Times Wounded', keys: ['wounded', 'times_wounded'] },
+      { label: 'Times Healed', keys: ['wounded_healed', 'times_healed'] },
+    ],
+  },
+  {
+    title: 'GATHERING',
+    entries: [
+      { label: 'Wood', keys: ['acquired_wood', 'harvested_wood'] },
+      { label: 'Stones', keys: ['acquired_stones', 'harvested_stones'] },
+      { label: 'Metal Ore', keys: ['acquired_metal.ore', 'acquired_metal_ore'] },
+      { label: 'Scrap', keys: ['acquired_scrap'] },
+      { label: 'Cloth', keys: ['harvested_cloth', 'acquired_cloth'] },
+      { label: 'Leather', keys: ['harvested_leather', 'acquired_leather'] },
+      { label: 'Low Grade', keys: ['acquired_lowgradefuel', 'acquired_low_grade_fuel'] },
+    ],
+  },
+  {
+    title: 'BUILDING',
+    entries: [
+      { label: 'Blocks Placed', keys: ['placed_blocks'] },
+      { label: 'Blocks Upgraded', keys: ['upgraded_blocks'] },
+    ],
+  },
+  {
+    title: 'SURVIVAL',
+    entries: [
+      { label: 'Calories', keys: ['calories_consumed'] },
+      { label: 'Water', keys: ['water_consumed'] },
+    ],
+  },
+  {
+    title: 'MENU USAGE',
+    entries: [
+      { label: 'Inventory Opens', keys: ['INVENTORY_OPENED', 'inventory_opened'] },
+      { label: 'Crafting Opens', keys: ['CRAFTING_OPENED', 'crafting_opened'] },
+      { label: 'Map Opens', keys: ['MAP_OPENED', 'map_opened'] },
+    ],
+  },
+  {
+    title: 'OTHER',
+    entries: [
+      { label: 'Barrels Destroyed', keys: ['destroyed_barrels'] },
+      { label: 'Items Dropped', keys: ['item_drop'] },
+      { label: 'Blueprints Learned', keys: ['blueprint_studied', 'BLUEPRINT_STUDIED'] },
+      { label: 'Missions', keys: ['MISSION_COMPLETE', 'missions_complete'] },
+      { label: 'Voice Chat', keys: ['VOICE_SECONDS', 'seconds_speaking'] },
+      { label: 'Items Examined', keys: ['examine'] },
+      { label: 'Friendly Waves', keys: ['gesture_wave_count'] },
+      { label: 'Bee Attacks', keys: ['BEE_ATTACKS', 'bee_attacks'] },
+      { label: 'Pipes Connected', keys: ['PIPES_CONNECTED', 'pipes_connected'] },
+      { label: 'Wires Connected', keys: ['WIRES_CONNECTED', 'wires_connected'] },
+      { label: 'Heli Landings', keys: ['HELI_LANDINGS', 'minicopter_landings'] },
+      { label: 'Tin Can Alarms', keys: ['TIN_CAN_ALARM', 'tin_can_alarm_triggered'] },
+      { label: 'Kayak Distance', keys: ['KAYAK_METERS', 'kayak_distance'] },
+      { label: 'Horse Distance', keys: ['HORSE_METERS', 'horse_distance_ridden'] },
+    ],
+  },
+];
+
+const formatStatValue = (value: number, format: StatEntry['format']): string => {
+  if (format === 'percent') return `${(value * 100).toFixed(1)}%`;
+  if (format === 'ratio') return value.toFixed(2);
+  return formatCount(value);
+};
+
+// Resolve a tile's display value, or null when it should not be rendered.
+const resolveStatEntry = (entry: StatEntry, all: AllStats): { value: number; text: string } | null => {
+  let value: number | null = null;
+  if (entry.derived) {
+    value = entry.derived(all);
+  } else if (entry.keys) {
+    value = firstPresent(all, entry.keys);
+  }
+  if (value === null || Number.isNaN(value)) return null;
+  // Raw counts of exactly 0 are uninteresting; derived ratios/percents at 0 are
+  // still meaningful context, so keep them.
+  if (!entry.derived && value <= 0) return null;
+  return { value, text: formatStatValue(value, entry.format) };
+};
+
 const getCheaterRisk = (
   profile: SteamProfile | null,
   stats: any | null,
@@ -342,29 +579,15 @@ export function PlayerLookupTool() {
           pName = profileInfo.name;
         }
 
-        // Fallback: If Steam hours are private, query BattleMetrics
-        if (profileInfo && (profileInfo.rust_hours === null || profileInfo.rust_hours === undefined)) {
-          const { useSettingsStore } = await import('../../stores/settings-store');
-          const token = useSettingsStore.getState().battlemetricsToken;
-          if (token) {
-            try {
-              const { findPlayerBySteamId, getPlayerProfile } = await import('../../utils/battlemetrics');
-              const bmPlayer = await findPlayerBySteamId(token, steamId64);
-              if (bmPlayer?.id) {
-                const bmProfile = await getPlayerProfile(token, bmPlayer.id);
-                if (bmProfile?.servers) {
-                  const totalSeconds = bmProfile.servers.reduce((sum, s) => sum + (s.timePlayedSeconds || 0), 0);
-                  const hours = totalSeconds / 3600;
-                  if (hours > 0) {
-                    profileInfo.rust_hours = hours;
-                  }
-                }
-              }
-            } catch (bmErr) {
-              console.error("Failed BattleMetrics hours fallback:", bmErr);
-            }
-          }
-        }
+        // NOTE: We intentionally do NOT fall back to BattleMetrics for the Rust
+        // hours figure. BattleMetrics reports session playtime tracked across
+        // specific servers (summed `timePlayedSeconds`), which is a DIFFERENT
+        // metric from Steam's total "hrs on record" and reads lower than the
+        // real total (this was the source of the wrong "3,675 hrs"). The backend
+        // already sources the true Steam total (games XML → HTML profile →
+        // RustStats `time_played`); if none of those are available we leave the
+        // hours unset and the UI degrades to "Hours Private" rather than showing
+        // a misleading number from an unrelated source.
 
         setSteamProfile(profileInfo);
       } catch (err) {
@@ -1008,6 +1231,200 @@ export function PlayerLookupTool() {
               })()}
             </div>
           )}
+
+          {/* RICH RUST STAT BREAKDOWN — only real keys present in the Steam XML */}
+          {rustStats && (() => {
+            const all: AllStats = (rustStats.all_stats && typeof rustStats.all_stats === 'object') ? rustStats.all_stats : {};
+            const hasAllStats = Object.keys(all).length > 0;
+
+            // No per-stat breakdown available. If the profile is private, show a
+            // tasteful note; otherwise stay silent (the combat scorecard above
+            // already summarises what is known). Tiles are never invented.
+            if (!hasAllStats) {
+              if (rustStats.privacy === 'private') {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    fontSize: 10,
+                    color: 'var(--color-text-dim)',
+                    fontFamily: 'var(--font-mono)',
+                  }}>
+                    <Shield size={12} style={{ color: 'var(--color-text-dim)' }} />
+                    <span>This player's detailed Rust statistics are private.</span>
+                  </div>
+                );
+              }
+              return null;
+            }
+
+            // Split the headline PVP metrics into prominent "hero" tiles and
+            // render every other section as a compact tile grid. A tile only
+            // appears when its real value resolves, and a section only appears
+            // when it has at least one tile — so nothing is ever fabricated.
+            const heroDef = STAT_SECTIONS.find((s) => s.title === 'PVP STATS');
+            const heroTiles = (heroDef ? heroDef.entries : [])
+              .map((entry) => ({ entry, resolved: resolveStatEntry(entry, all) }))
+              .filter((t) => t.resolved !== null) as { entry: StatEntry; resolved: { value: number; text: string } }[];
+
+            const compactSections = STAT_SECTIONS
+              .filter((s) => s.title !== 'PVP STATS')
+              .map((section) => {
+                const tiles = section.entries
+                  .map((entry) => ({ entry, resolved: resolveStatEntry(entry, all) }))
+                  .filter((t) => t.resolved !== null) as { entry: StatEntry; resolved: { value: number; text: string } }[];
+                return { section, tiles };
+              })
+              .filter((s) => s.tiles.length > 0);
+
+            if (heroTiles.length === 0 && compactSections.length === 0) {
+              return (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 10,
+                  color: 'var(--color-text-dim)',
+                  fontFamily: 'var(--font-mono)',
+                }}>
+                  <Database size={12} style={{ color: 'var(--color-text-dim)' }} />
+                  <span>Detailed Rust statistics are not available for this profile.</span>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Database size={12} style={{ color: 'var(--color-accent)' }} />
+                  <span style={{ fontSize: 10, fontWeight: 'bold', color: 'var(--color-accent)', letterSpacing: '0.5px' }}>
+                    RUST CAREER STATISTICS
+                  </span>
+                  <span style={{ fontSize: 9, color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)' }}>
+                    (live Steam data)
+                  </span>
+                </div>
+
+                {/* HERO PVP METRICS — the headline numbers, shown large */}
+                {heroTiles.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(128px, 1fr))', gap: 10 }}>
+                    {heroTiles.map(({ entry, resolved }) => (
+                      <div
+                        key={entry.label}
+                        title={`${entry.label}: ${resolved.value.toLocaleString('en-US')}`}
+                        style={{
+                          background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.25))',
+                          border: '1px solid var(--color-border)',
+                          borderTop: '2px solid var(--color-accent)',
+                          borderRadius: 8,
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                          minWidth: 0,
+                        }}
+                      >
+                        <span style={{
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: '#fff',
+                          fontFamily: 'var(--font-mono)',
+                          lineHeight: 1,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {resolved.text}
+                        </span>
+                        <span style={{
+                          fontSize: 9,
+                          color: 'var(--color-text-dim)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          fontFamily: 'var(--font-mono)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {entry.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* COMPACT SECTIONS — everything else, grouped under its title */}
+                {compactSections.map(({ section, tiles }) => (
+                  <div
+                    key={section.title}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 8,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <span style={{ width: 4, height: 12, background: 'var(--color-accent)', borderRadius: 2, display: 'inline-block' }} />
+                      <span style={{ fontSize: 10, fontWeight: 'bold', color: 'var(--color-accent)', letterSpacing: '0.5px', fontFamily: 'var(--font-mono)' }}>
+                        {section.title}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8 }}>
+                      {tiles.map(({ entry, resolved }) => (
+                        <div
+                          key={entry.label}
+                          title={`${entry.label}: ${resolved.value.toLocaleString('en-US')}`}
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.25)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: 6,
+                            padding: '8px 10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 3,
+                            minWidth: 0,
+                          }}
+                        >
+                          <span style={{
+                            fontSize: 9,
+                            color: 'var(--color-text-dim)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            fontFamily: 'var(--font-mono)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}>
+                            {entry.label}
+                          </span>
+                          <span style={{
+                            fontSize: 15,
+                            fontWeight: 'bold',
+                            color: 'var(--color-accent)',
+                            fontFamily: 'var(--font-mono)',
+                            lineHeight: 1.1,
+                          }}>
+                            {resolved.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* DETAIL COORD & XML CODES TABLE */}
           <div style={{

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSpyStore, analyzeSchedule, PlayerActivity, EnemyGroup } from '../../stores/spy-store';
 import { useSettingsStore } from '../../stores/settings-store';
 import { useConnectionStore } from '../../stores/connection-store';
-import { searchPlayersOnServer, getPlayerSessions, sessionsToBuckets, findServerIdByName, playerHasServerHistory, BmPlayer, findPlayerBySteamId, enrichServerPresence } from '../../utils/battlemetrics';
+import { searchPlayersOnServer, getPlayerSessions, sessionsToBuckets, findServerIdByName, playerHasServerHistory, BmPlayer, enrichServerPresence } from '../../utils/battlemetrics';
 import './SpyPanel.css';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -294,12 +294,27 @@ function BmSearch({ onPicked }: { onPicked: (bmId: string) => void }) {
       const steamId = isDigits17 ? targetQuery : (match ? match[1] : null);
 
       if (steamId) {
-        const player = await findPlayerBySteamId(token, steamId);
-        if (player) {
-          setResults([player]);
-        } else {
-          setErr('No BattleMetrics profile found for this SteamID.');
+        // Resolve the SteamID to a player name, then run the SAME name-based
+        // server search so the result is server-filtered + presence-enriched
+        // exactly like a normal name search (BattleMetrics SteamID lookup itself
+        // only works for server-owner tokens, so this is the reliable path).
+        let resolvedName = '';
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          const info = await invoke<{ name: string }>('get_steam_profile_info', { steamId });
+          if (info?.name && info.name !== 'Unknown') resolvedName = info.name;
+        } catch { /* resolution failed — handled below */ }
+
+        if (!resolvedName) {
+          setErr('Could not resolve a player name for this SteamID (private profile?).');
           setResults([]);
+        } else {
+          const results = await searchPlayersOnServer(token, resolvedName, serverId);
+          const enriched = await enrichServerPresence(token, results, serverId);
+          setResults(enriched);
+          if (enriched.length === 0) {
+            setErr(`Resolved "${resolvedName}" from that SteamID, but found no matching BattleMetrics players${serverId ? ' on this server' : ''}.`);
+          }
         }
       } else {
         const results = await searchPlayersOnServer(token, targetQuery, serverId);

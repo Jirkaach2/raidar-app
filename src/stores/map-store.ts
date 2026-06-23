@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useNotificationsStore } from './notifications-store';
 
 /**
  * Cheap content signature for a marker list. Used to change-gate setMarkers so
@@ -267,6 +268,12 @@ export const useMapStore = create<MapState>((set) => ({
   addToast: (title, message, type = 'info', extra = {}) => set((s) => {
     const id = Math.random().toString(36).substring(2, 9);
     const newToast = { id, title, message, type, ...extra };
+    // Mirror every toast into the persistent Notifications log so users have a
+    // scrollable history. Done here (the single central entry point) so no
+    // individual call site needs to change.
+    try {
+      useNotificationsStore.getState().push({ title, message, type, grid: (extra as any)?.grid });
+    } catch { /* notifications store unavailable — non-fatal */ }
     setTimeout(() => {
       useMapStore.getState().removeToast(id);
     }, 7000);
