@@ -15,12 +15,9 @@ async function winCtl(action: 'minimize' | 'close') {
 function RadarMark() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="gate-mark">
-      <circle cx="12" cy="12" r="9.2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12" cy="12" r="4.8" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.55" />
-      <path d="M12 12 L11.2 2.85 A9.2 9.2 0 0 1 19.05 6.05 Z" fill="currentColor" fillOpacity="0.22" />
-      <line x1="12" y1="12" x2="19.05" y2="6.05" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="16.3" cy="7.0" r="1.5" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 12 L12 3 A9 9 0 0 1 20.16 8.2 Z" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.7" fill="currentColor" />
     </svg>
   );
 }

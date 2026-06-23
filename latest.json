@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.7",
-    "notes":  "Raidar 1.1.7: Brand refresh - a clean, modern logo and banner plus a regenerated app icon; Pump Jacks now correctly show on the map (Power Plant, Train Yard, Water Treatment) when the monument-markers filter is on; and the Marker size slider was removed from the Overlays panel (per-marker sizing still lives in each marker\u0027s editor).",
-    "pub_date":  "2026-06-23T14:00:24Z",
+    "version":  "1.1.8",
+    "notes":  "Raidar 1.1.8: Simplified, bolder logo - a clean radar-scope mark - now applied consistently across the app titlebar, login screen, window/taskbar icon, web favicon and banner (previous versions only changed the asset files, not the in-app titlebar icon, which is why it didn\u0027t update).",
+    "pub_date":  "2026-06-23T14:15:53Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdno0VkZVVWVkUzVOMlczWmRpODByc3V6Rk1KNGpFenZVTTVXUjA5NGRBRExnbWdNQStPWHh5RDZiUlRkYnhHSkJwSDlBUy9uMXNEVFFzcjV1WDVCNUFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjIzMTc1CWZpbGU6UmFpZGFyXzEuMS43X3g2NC1zZXR1cC5leGUKY3RSS05qM0ZlcDc0alJGVUhqakZrYUVCWTFTUTg4VFFZQTljTjhjNkdQK2xIelRDd2thV2k2MWVYT25zdGdkbWRmMVpwZnNFMVNhd056RUxmUlJGQnc9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.7/Raidar_1.1.7_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdndBa2RiS0g1eXhQL1dMYjVVR054SVpxYW1pUkpFajd0SmxCcUgrNW9pNWY5QmlRYjlwUDRWSUFubjZOVGxZVnVFK2lLaThGOC93TVNpa2w3VnF2SFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjI0MTExCWZpbGU6UmFpZGFyXzEuMS44X3g2NC1zZXR1cC5leGUKT2V1L2J0RmZBTHhjTyt5cUdhak5YeGsxTmRvYXU4K1VRM25GQW9lazNpODRUc0ZKWkcwd0JFNjFBOUdhVzA4OCtxQmtoZGRYRzFpaGdKd01RbFJjREE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.8/Raidar_1.1.8_x64-setup.exe"
                                          }
                   }
 }
