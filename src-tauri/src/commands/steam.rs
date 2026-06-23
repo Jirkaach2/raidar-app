@@ -115,10 +115,9 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
                         let start = idx + hours_idx + "<hoursOnRecord>".len();
                         if let Some(end_idx) = games_xml[start..].find("</hoursOnRecord>") {
                             let end = start + end_idx;
-                            let hours_str = games_xml[start..end].trim().replace(",", "");
-                            if let Ok(hours_val) = hours_str.parse::<f64>() {
-                                rust_hours = Some(hours_val);
-                            }
+                            // <hoursOnRecord> is the TOTAL playtime for Rust. It may be
+                            // grouped ("1,520" / "1 520") and/or have a decimal ("1,520.5").
+                            rust_hours = parse_grouped_hours(games_xml[start..end].trim());
                         }
                     }
                 }
@@ -142,51 +141,14 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
                 }
             }
 
-            // Fallback: Parse Rust hours (AppID 252490) from HTML profile page
+            // Fallback: Parse Rust hours (AppID 252490) total playtime from the
+            // HTML profile page. We anchor strictly to the Rust game block and the
+            // "hrs on record" / "hours played" phrase so unrelated numbers on the
+            // page (levels, achievement counts, percentages, "past 2 weeks") are
+            // never picked up. If nothing reliable is found we leave it as None so
+            // the caller can fall back to BattleMetrics / RustStats.
             if rust_hours.is_none() {
-                let mut search_pos = 0;
-                while let Some(idx) = html_body[search_pos..].find("252490") {
-                    let actual_idx = search_pos + idx;
-                    search_pos = actual_idx + 6;
-
-                    let start = actual_idx.saturating_sub(300);
-                    let end = (actual_idx + 300).min(html_body.len());
-                    let sub = &html_body[start..end];
-
-                    let mut found_hours = None;
-                    for word in &["hours played", "hrs on record", "hours", "hrs", "hour", "hr"] {
-                        if let Some(word_idx) = sub.to_lowercase().find(word) {
-                            let mut number_chars = Vec::new();
-                            let mut found_digit = false;
-                            for c in sub[..word_idx].chars().rev() {
-                                if c.is_ascii_digit() {
-                                    number_chars.push(c);
-                                    found_digit = true;
-                                } else if c == ',' || c == '.' || c == ' ' || c == '\u{a0}' {
-                                    number_chars.push(c);
-                                } else if found_digit {
-                                    break;
-                                }
-                            }
-                            if found_digit && !number_chars.is_empty() {
-                                number_chars.reverse();
-                                let number_str: String = number_chars.into_iter().collect();
-                                let clean_number = number_str
-                                    .replace(",", "")
-                                    .replace(" ", "")
-                                    .replace("\u{a0}", "");
-                                if let Ok(hours_val) = clean_number.parse::<f64>() {
-                                    found_hours = Some(hours_val);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if let Some(hrs) = found_hours {
-                        rust_hours = Some(hrs);
-                        break;
-                    }
-                }
+                rust_hours = extract_rust_hours_from_html(&html_body);
             }
         }
     }
@@ -380,3 +342,168 @@ fn extract_stat_value(xml: &str, stat_name: &str) -> u32 {
     0
 }
 
+
+/// True for any character Steam may use as a thousands grouping separator
+/// (locale-dependent) or as a decimal point in English formatting.
+fn is_number_separator(c: char) -> bool {
+    matches!(
+        c,
+        ',' | '.'
+            | ' '
+            | '\u{00A0}' // non-breaking space
+            | '\u{2007}' // figure space
+            | '\u{2009}' // thin space
+            | '\u{202F}' // narrow no-break space
+            | '\u{2060}' // word joiner
+            | '\''        // some locales group with apostrophe
+    )
+}
+
+/// Parse a possibly-grouped hours value into an f64.
+///
+/// Steam renders the total playtime localized, e.g. "1,520" (en), "1 520" /
+/// "1\u{00A0}520" (cs/fr), optionally with a decimal like "1,520.5". We strip
+/// every grouping separator (commas, regular/non-breaking/thin spaces, etc.)
+/// BEFORE parsing so the FULL number is read, and keep a single '.' as the
+/// decimal point. Returns None when there is no parseable number.
+fn parse_grouped_hours(raw: &str) -> Option<f64> {
+    let mut cleaned = String::new();
+    for c in raw.chars() {
+        if c.is_ascii_digit() {
+            cleaned.push(c);
+        } else if c == '.' {
+            // Keep the decimal point only (commas are treated as grouping above).
+            cleaned.push('.');
+        }
+        // Every other character (commas, spaces, nbsp, etc.) is a grouping
+        // separator and is intentionally dropped.
+    }
+    // Guard against a stray "." with no digits.
+    if !cleaned.chars().any(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    cleaned.parse::<f64>().ok()
+}
+
+/// Case-insensitive ASCII substring search returning a byte index into `haystack`.
+/// `needle` must be lowercase ASCII. The returned index is always a valid char
+/// boundary because it points at an ASCII byte.
+fn find_ci_ascii(haystack: &str, needle: &str) -> Option<usize> {
+    let h = haystack.as_bytes();
+    let n = needle.as_bytes();
+    if n.is_empty() || h.len() < n.len() {
+        return None;
+    }
+    'outer: for i in 0..=(h.len() - n.len()) {
+        for j in 0..n.len() {
+            if h[i + j].to_ascii_lowercase() != n[j] {
+                continue 'outer;
+            }
+        }
+        return Some(i);
+    }
+    None
+}
+
+/// Slice `s` by byte range, snapping the bounds to the nearest valid char
+/// boundaries so we never panic on multi-byte content (e.g. non-breaking spaces).
+fn safe_slice(s: &str, mut start: usize, mut end: usize) -> &str {
+    if end > s.len() {
+        end = s.len();
+    }
+    while start < end && !s.is_char_boundary(start) {
+        start += 1;
+    }
+    while end > start && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[start..end]
+}
+
+/// Read the number that immediately precedes `phrase_byte_idx` inside `window`.
+///
+/// We skip only the whitespace gap between the number and the phrase, then walk
+/// backwards collecting a single contiguous run of digits and grouping
+/// separators. A separator is only accepted when it sits between two digits, so
+/// the scan stops cleanly at surrounding markup ('>', tabs, newlines) or words
+/// and can never merge unrelated numbers together.
+fn parse_hours_before(window: &str, phrase_byte_idx: usize) -> Option<f64> {
+    let prefix = safe_slice(window, 0, phrase_byte_idx);
+    let chars: Vec<char> = prefix.chars().collect();
+    let mut i = chars.len();
+
+    // Skip the whitespace separating the number from the phrase.
+    while i > 0 && chars[i - 1].is_whitespace() {
+        i -= 1;
+    }
+
+    let mut collected: Vec<char> = Vec::new();
+    let mut seen_digit = false;
+    while i > 0 {
+        let c = chars[i - 1];
+        if c.is_ascii_digit() {
+            collected.push(c);
+            seen_digit = true;
+            i -= 1;
+        } else if seen_digit && is_number_separator(c) {
+            // Only treat as a grouping/decimal separator if a digit precedes it,
+            // otherwise we have reached the start of the number.
+            if i >= 2 && chars[i - 2].is_ascii_digit() {
+                collected.push(c);
+                i -= 1;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    if !seen_digit {
+        return None;
+    }
+    collected.reverse();
+    let number_str: String = collected.into_iter().collect();
+    parse_grouped_hours(&number_str)
+}
+
+/// Extract Rust's (AppID 252490) TOTAL playtime from a Steam community HTML
+/// profile page. Anchors on the Rust game block and only accepts total-playtime
+/// phrases ("hrs on record" / "hours on record" / "hours played"), never the
+/// "past 2 weeks" value or any unrelated number. Returns None when no reliable
+/// figure is present.
+fn extract_rust_hours_from_html(html: &str) -> Option<f64> {
+    // Total-playtime phrases only. English is forced via `?l=english`, but we
+    // also include the bare localized "hodin" (Czech "hours") as a safety net.
+    let total_phrases = [
+        "hrs on record",
+        "hours on record",
+        "hours played",
+        "hodin celkem", // cs: "X hours total"
+        "hodin",        // cs fallback
+    ];
+
+    let mut search_pos = 0;
+    while let Some(rel) = html[search_pos..].find("252490") {
+        let idx = search_pos + rel;
+        search_pos = idx + "252490".len();
+
+        // The playtime details block sits just after the Rust game/app link.
+        // Look slightly before and well after the appid reference.
+        let win_start = idx.saturating_sub(200);
+        let win_end = (idx + 800).min(html.len());
+        let window = safe_slice(html, win_start, win_end);
+
+        for phrase in &total_phrases {
+            if let Some(p) = find_ci_ascii(window, phrase) {
+                if let Some(hours) = parse_hours_before(window, p) {
+                    // Sanity: ignore absurd values; otherwise accept.
+                    if hours >= 0.0 && hours < 1_000_000.0 {
+                        return Some(hours);
+                    }
+                }
+            }
+        }
+    }
+    None
+}

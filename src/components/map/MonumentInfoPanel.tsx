@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMapStore } from '../../stores/map-store';
-import { getMonumentInfo, getMonumentName, getMonumentImageUrl, getItemIcon, getRequiredCards, CardType, PuzzleItem } from '../../utils/monuments';
+import { getMonumentInfo, getMonumentName, getMonumentImageUrl, getItemIcon, getRequiredCards, CardType, PuzzleItem, PuzzleStep } from '../../utils/monuments';
 import { getLootTable, lootIconUrl } from '../../utils/loot';
 import { getMissionsForMonument, missionIcon, rewardIcon, Mission } from '../../utils/missions';
 
@@ -79,6 +79,51 @@ function FlagChip({ on, label }: { on: boolean; label: string }) {
     }}>
       {on ? '✓ ' : '✕ '}{label}
     </span>
+  );
+}
+
+const PUZZLE_TIER = {
+  red: { label: 'Red Room', color: '#ef4444' },
+  blue: { label: 'Blue Room', color: '#3b82f6' },
+  green: { label: 'Green Room', color: '#2fe06d' },
+  power: { label: 'Power Room', color: '#f5c451' },
+};
+function puzzleTier(p: PuzzleStep) {
+  const names = p.bring.map((b) => b.name.toLowerCase());
+  if (names.some((n) => n.includes('red'))) return PUZZLE_TIER.red;
+  if (names.some((n) => n.includes('blue'))) return PUZZLE_TIER.blue;
+  if (names.some((n) => n.includes('green'))) return PUZZLE_TIER.green;
+  return PUZZLE_TIER.power;
+}
+
+/** A collapsible puzzle room: tier-coloured header with the keycards to bring,
+ *  expanding to the full bring/activate/reward breakdown. */
+function PuzzleCard({ puzzle, open, onToggle }: { puzzle: PuzzleStep; open: boolean; onToggle: () => void }) {
+  const tier = puzzleTier(puzzle);
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${tier.color}`, overflow: 'hidden' }}>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: tier.color, letterSpacing: '0.4px', minWidth: 64 }}>{tier.label}</span>
+        <span style={{ display: 'flex', gap: 4, flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          {puzzle.bring.map((b, i) => b.icon ? (
+            <span key={i} title={`${b.name}${b.qty ? ' ' + b.qty : ''}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <img src={getItemIcon(b.icon)} alt={b.name} width={18} height={18} style={{ objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              {b.qty && b.qty !== 'x1' && <span style={{ fontSize: 8, color: '#f5c451', fontWeight: 700 }}>{b.qty}</span>}
+            </span>
+          ) : null)}
+        </span>
+        {puzzle.resetTime && <span style={{ fontSize: 8.5, color: '#8b857c' }}>{puzzle.resetTime}</span>}
+        <span style={{ color: '#8b857c', fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 10px 10px' }}>
+          <ItemRow label="BRING" items={puzzle.bring} />
+          {puzzle.activate && puzzle.activate.length > 0 && <ItemRow label="ACTIVATE" items={puzzle.activate} />}
+          <div style={{ textAlign: 'center', color: '#5f5a52', fontSize: 13, margin: '4px 0' }}>↓</div>
+          <ItemRow label="REWARDS" items={puzzle.rewards} highlight />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -183,8 +228,9 @@ const MonumentInfoPanel = React.memo(function MonumentInfoPanel() {
   const [imgError, setImgError] = useState(false);
   const [lootPopup, setLootPopup] = useState<string | null>(null);
   const [openMission, setOpenMission] = useState<string | null>(null);
+  const [openPuzzle, setOpenPuzzle] = useState<number | null>(0);
 
-  React.useEffect(() => { setImgError(false); setLootPopup(null); setOpenMission(null); }, [token]);
+  React.useEffect(() => { setImgError(false); setLootPopup(null); setOpenMission(null); setOpenPuzzle(0); }, [token]);
 
   if (!token) return null;
 
@@ -291,7 +337,7 @@ const MonumentInfoPanel = React.memo(function MonumentInfoPanel() {
               )}
 
               {/* Puzzle / cards */}
-              <Section title="PUZZLE & ACCESS">
+              <Section title={info.puzzles.length > 1 ? `PUZZLE ROOMS · ${info.puzzles.length} (tap to expand)` : 'PUZZLE & ACCESS'}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: info.puzzles.length ? 8 : 0 }}>
                   {(() => {
                     const optional = new Set(info.optionalCards || []);
@@ -306,15 +352,16 @@ const MonumentInfoPanel = React.memo(function MonumentInfoPanel() {
                   {(info.optionalCards || []).map((c) => <CardChip key={`o-${c}`} card={c} label={`${c} optional`} />)}
                   {info.givesCards.map((c) => <CardChip key={`g-${c}`} card={c} label={`Gives ${c}`} />)}
                 </div>
-                {info.puzzles.map((p, i) => (
-                  <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '10px', marginBottom: 8, borderLeft: '2px solid #3b82f6' }}>
-                    <ItemRow label="BRING" items={p.bring} />
-                    {p.activate && p.activate.length > 0 && <ItemRow label="ACTIVATE" items={p.activate} />}
-                    <div style={{ textAlign: 'center', color: '#5f5a52', fontSize: 13, margin: '6px 0' }}>↓</div>
-                    <ItemRow label="REWARDS" items={p.rewards} highlight />
-                    {p.resetTime && <div style={{ marginTop: 6, fontSize: 9, color: '#8b857c', textAlign: 'center' }}>Reset time: {p.resetTime}</div>}
-                  </div>
-                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {info.puzzles.map((p, i) => (
+                    <PuzzleCard
+                      key={i}
+                      puzzle={p}
+                      open={openPuzzle === i}
+                      onToggle={() => setOpenPuzzle(openPuzzle === i ? null : i)}
+                    />
+                  ))}
+                </div>
               </Section>
 
               {/* Missions offered at this monument */}

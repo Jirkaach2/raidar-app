@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.3",
-    "notes":  "Raidar 1.1.3: Raid Cost fixes - Armored Door \u0026 Armored Double Door corrected to 1000 HP with rescaled explosive counts. Fixed HV Rocket counts for all doors (they\u0027re flat ~15 dmg/hit like walls), so HV rockets are no longer mis-ranked as the best option for walls/doors - rockets and C4 now correctly win. HV stays optimal for turrets and SAM sites.",
-    "pub_date":  "2026-06-22T18:07:33Z",
+    "version":  "1.1.4",
+    "notes":  "Raidar 1.1.4: Combat Log Analyzer rebuilt (accurate parsing + cleaner UI), Profit Scanner redesigned, Best Shops fixes (map jump, NPC toggle off by default, accurate sale detection), Steam playtime parsing fixed, RustMaps key now saves + shows active status (caves/wells off by default), oil-rig crate timer deducts chinook delay, Raid Cost propane recipe corrected, and the Underwater Lab now lists all 9 puzzle rooms with collapsible, tier-coloured monument cards.",
+    "pub_date":  "2026-06-23T00:12:02Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnlzaStnbk5uK0V6TFpmandQMWVoL2VPR1h3a241UWxldGNNNXNmZ3lYeGowMHlQZ1hGVWtLdVo3YlhLbGhYVXpTei85ZlhhL25YZGlFcmsvYSthd2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTUxNjAxCWZpbGU6UmFpZGFyXzEuMS4zX3g2NC1zZXR1cC5leGUKbGNFZ1ZBSkQrSFpqa2hjdUFLWFRnUmlsWnlLb1FROGZ6RlZISjI4dTFjSFNVK0NTR3FuVWxSbGcyc1VFbnhlb01UKzVDZEVBaUFHTkxtL0NWQXBtQ0E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.3/Raidar_1.1.3_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjFuSGlieS8vanBUY1RlUFErcWdPOUpyNk9FK1F3NGc1L1Y3Q1FWVXQwTmNrVTlBc1UwRWl2Q0NrTjVNTThMR3NnWkVwWCsyOGlWS0x0SmNMVWVaWVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTczNDc5CWZpbGU6UmFpZGFyXzEuMS40X3g2NC1zZXR1cC5leGUKQzFMSTAvQ3I4Z0JmRnFuZzZSSi96NitZcC9lT216TG80NGJyQTdkU2E1SjU4WG13TUVGdXZ6ZGhDZUJqSjV6WnlBZ0JmOXg3aFk1Sy9VTUxra3YvQUE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.4/Raidar_1.1.4_x64-setup.exe"
                                          }
                   }
 }

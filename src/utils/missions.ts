@@ -25,6 +25,7 @@ const FISHING = ['fishing_village', 'large_fishing_village'];
 const DIVE = ['large_fishing_village'];
 const BANDIT = ['bandit_camp'];
 const OUTPOST = ['outpost'];
+const RANCH = ['ranch'];
 
 export const MISSIONS: Mission[] = [
   {
@@ -109,14 +110,14 @@ export const MISSIONS: Mission[] = [
     desc: 'Find and kill a boar then return to the hunter.',
     objectives: ['Find and kill a boar', 'Talk with the mission provider'],
     rewards: [{ name: 'Scrap', qty: 150, icon: 'scrap' }, { name: 'Basic Ore Tea', qty: 1 }],
-    cooldown: '1h', monuments: BANDIT,
+    cooldown: '1h', monuments: [...BANDIT, ...RANCH],
   },
   {
     id: 'deer-hunt', name: 'Deer Hunt', provider: 'Hunter',
     desc: 'Hunt deer for the mission provider.',
     objectives: ['Find and kill 3 Deer', 'Talk with the mission provider'],
     rewards: [{ name: 'Scrap', qty: 150, icon: 'scrap' }, { name: 'Basic Scrap Tea', qty: 1 }],
-    cooldown: '1h', monuments: BANDIT,
+    cooldown: '1h', monuments: [...BANDIT, ...RANCH],
   },
   {
     id: 'gone-killing', name: 'Gone Killing', provider: 'Mission Provider',
@@ -130,7 +131,7 @@ export const MISSIONS: Mission[] = [
     desc: 'A simple mission to find treasure.',
     objectives: ['Find the treasure'],
     rewards: [], rewardNote: 'Loot from the Treasure Mission Box',
-    cooldown: '1h', timeLimit: '6h', monuments: [...BANDIT, ...OUTPOST],
+    cooldown: '1h', timeLimit: '6h', monuments: [...BANDIT, ...OUTPOST, ...RANCH],
   },
   {
     id: 'oil-rig-raid', name: 'Oil Rig Raid', provider: 'Scientist',

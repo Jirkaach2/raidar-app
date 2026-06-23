@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useShopSalesStore, ShopSales } from '@/stores/shop-sales-store';
 import { useMapStore } from '@/stores/map-store';
+import { useUiStore } from '@/stores/ui-store';
 import { isCurrentServer } from '@/utils/server';
 import { getItemShortname } from '@/utils/items';
 import { Trophy, MapPin, Trash2, TrendingUp, X } from 'lucide-react';
@@ -31,6 +32,7 @@ export function BestShops() {
   const removeShop = useShopSalesStore((s) => s.removeShop);
   const [sortBy, setSortBy] = useState<'revenue' | 'sales' | 'recent'>('revenue');
   const [sliderVal, setSliderVal] = useState<number>(8); // Default to 8 (All Time)
+  const [includeNpc, setIncludeNpc] = useState<boolean>(false); // NPC/safe-zone shops hidden by default
 
   const FILTER_OPTIONS = useMemo(() => [
     { label: 'Last 15m', dur: 15 * 60 * 1000 },
@@ -50,6 +52,7 @@ export function BestShops() {
 
     const list = Object.values(shops)
       .filter((s) => isCurrentServer(s.serverId))
+      .filter((s) => includeNpc || !s.isNpc)
       .map((s) => {
         // If "All Time", or no transactions array is present, return as-is.
         // Also if transactions is empty but pre-aggregated sales exist, fall back to as-is for compatibility.
@@ -93,26 +96,46 @@ export function BestShops() {
       if (sortBy === 'recent') return b.lastSale - a.lastSale;
       return totalRevenue(b) - totalRevenue(a);
     });
-  }, [shops, sortBy, sliderVal, FILTER_OPTIONS]);
+  }, [shops, sortBy, sliderVal, includeNpc, FILTER_OPTIONS]);
 
   const locate = (s: ShopSales) => {
+    // Switch to the Map page first so the user actually sees the shop — setting
+    // the viewport alone does nothing while they're still on the vending panel.
+    useUiStore.getState().setActivePage('map');
     useMapStore.getState().setViewport({ x: -(s.x - 0.5) * 800 * 2, y: -(s.y - 0.5) * 800 * 2, zoom: 2.0 });
-    useMapStore.getState().selectMarker(null);
+    // Highlight the matching vending-machine marker if it's currently on the
+    // map. Shops are keyed by quantized position, so match the same way.
+    const qx = Math.round(s.x * 1000);
+    const qy = Math.round(s.y * 1000);
+    const marker = useMapStore.getState().markers.find(
+      (m) => m.type === 'vending_machine' && Math.round(m.x * 1000) === qx && Math.round(m.y * 1000) === qy,
+    );
+    useMapStore.getState().selectMarker(marker ? marker.id : null);
   };
 
   return (
     <div className="bs">
       <div className="bs-head">
         <h3><Trophy size={14} /> BEST SELLING SHOPS</h3>
-        {ranked.length > 0 && (
-          <button className="bs-clear" onClick={clear} title="Reset all tracked sales"><Trash2 size={11} /> Reset</button>
-        )}
+        <div className="bs-head-actions">
+          <label className="bs-npc-toggle" title="Include NPC / safe-zone vendor shops in the leaderboard">
+            <input
+              type="checkbox"
+              checked={includeNpc}
+              onChange={(e) => setIncludeNpc(e.target.checked)}
+            />
+            <span>Include NPC shops</span>
+          </label>
+          {ranked.length > 0 && (
+            <button className="bs-clear" onClick={clear} title="Reset all tracked sales"><Trash2 size={11} /> Reset</button>
+          )}
+        </div>
       </div>
       <p className="bs-sub">
         Live-tracked while you're connected. Each shop's stock drop = a sale; we tally what every store has sold and earned.
       </p>
 
-      {Object.values(shops).filter((s) => isCurrentServer(s.serverId) && s.saleEvents > 0).length === 0 ? (
+      {Object.values(shops).filter((s) => isCurrentServer(s.serverId) && s.saleEvents > 0 && (includeNpc || !s.isNpc)).length === 0 ? (
         <div className="bs-empty">
           <TrendingUp size={20} />
           <p>No sales tracked yet. Keep the app connected — when a shop's stock drops, its sales show up here ranked by revenue.</p>

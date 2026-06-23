@@ -5,6 +5,28 @@
   font-family: var(--font-display); font-size: 13px; font-weight: 800; letter-spacing: 0.8px; color: var(--color-text);
 }
 .bs-head h3 svg { color: #e6c35a; }
+.bs-head-actions { display: inline-flex; align-items: center; gap: 8px; }
+.bs-npc-toggle {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px; padding: 5px 9px; border-radius: 7px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--color-border); color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+.bs-npc-toggle:hover { color: var(--color-text); border-color: var(--color-border-strong); }
+.bs-npc-toggle input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex-shrink: 0;
+  width: 13px; height: 13px; border-radius: 4px; cursor: pointer;
+  background: rgba(0,0,0,0.35); border: 1px solid var(--color-border-strong);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+}
+.bs-npc-toggle input:checked {
+  background: rgba(230,195,90,0.85); border-color: #e6c35a;
+}
+.bs-npc-toggle input:checked::after {
+  content: ''; width: 4px; height: 7px; margin-top: -1px;
+  border: solid #1a1a1a; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
 .bs-clear {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 9.5px; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer;

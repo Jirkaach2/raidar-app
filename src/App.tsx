@@ -201,6 +201,18 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
     const crates = markers.filter((m) => m.type === 'crate');
     persisted.chinookRigPolls = persisted.chinookRigPolls || {};
 
+    // Record the moment a Chinook (CH47) first appears on the map. The CH47 is
+    // what flies in and spawns/hacks the oil-rig locked crate, so the gap
+    // between its spawn (which we detect here) and the crate auto-detection
+    // firing is "dead time" already counting against the real unlock. We stash
+    // the spawn timestamp so we can deduct that elapsed delay below. Cleared
+    // when no CH47 is present so a stale time can't bleed into a later event.
+    if (chinook) {
+      if (!persisted.chinookSpawnAt) persisted.chinookSpawnAt = Date.now();
+    } else {
+      persisted.chinookSpawnAt = undefined;
+    }
+
     for (const rigKey of ['oil_rig_small', 'oil_rig_large']) {
       const rig = monPos(rigKey);
       if (!rig) continue;
@@ -232,7 +244,23 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
         const now = Date.now();
         const name = getMonumentInfo(rigKey)?.name || 'Oil Rig';
         const srv = getCurrentServer();
-        const dur = (useSettingsStore.getState().defaultCrateSeconds || 900) * 1000;
+        const defaultDur = (useSettingsStore.getState().defaultCrateSeconds || 900) * 1000;
+        // Deduct the Chinook (CH47) delay: the CH47 that triggered this crate
+        // spawned earlier than this auto-detection fired (it has to fly in and
+        // hover for a couple of polls first), so the crate's real countdown is
+        // already partway through. Subtract the elapsed time since the CH47 was
+        // first detected to make the unlock timer more accurate. Clamp so we
+        // never drop below ~30s or exceed the full duration. Falls back to the
+        // full duration when no CH47 spawn time is known. Only the AUTO path
+        // reaches here — manually-added crates always get the full duration.
+        let dur = defaultDur;
+        const chinookSpawnAt = persisted.chinookSpawnAt as number | undefined;
+        if (chinookSpawnAt) {
+          const elapsed = now - chinookSpawnAt;
+          if (elapsed > 0) {
+            dur = Math.max(30_000, Math.min(defaultDur, defaultDur - elapsed));
+          }
+        }
 
         const triggerX = crateNearRig ? crateNearRig.x : rig.x;
         const triggerY = crateNearRig ? crateNearRig.y : rig.y;

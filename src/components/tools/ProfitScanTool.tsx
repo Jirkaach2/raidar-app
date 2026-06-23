@@ -3,6 +3,7 @@ import { useMapStore } from '../../stores/map-store';
 import { useUiStore } from '../../stores/ui-store';
 import { getItemIconUrl } from '../../utils/items';
 import { getGridCoordinate } from '../../utils/grid';
+import './ProfitScanTool.css';
 
 /**
  * Profit Scanner — finds profitable 2-step vending trades.
@@ -224,107 +225,110 @@ export function ProfitScanTool() {
     });
   };
 
+  const midIcon = (id: number) => getItemIconUrl(id) || undefined;
+
   return (
-    <div className="decay profit-scan">
+    <div className="decay profit-scan ps">
       <div className="decay-section-head"><h3>PROFIT SCANNER ({routes.length})</h3></div>
-      <p className="text-dim" style={{ margin: '0 0 12px 0', fontSize: 11, lineHeight: 1.4 }}>
+      <p className="ps-sub">
         Arbitrage trade loops across player/NPC shops. Buy the intermediate item at Step 1, then sell it at Step 2. Click a step to show the shop on the map.
       </p>
 
       {routes.length === 0 ? (
-        <div className="decay-empty">No profitable 2-step trades found right now.</div>
+        <div className="ps-empty">No profitable 2-step trades found right now.</div>
       ) : (
-        <div className="profit-list">
+        <div className="ps-list">
           {routes.map((r) => (
-            <div key={r.id} className="profit-card" style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px', padding: '10px 12px', marginBottom: '10px' }}>
-              <div className="profit-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: '6px' }}>
-                <span className="profit-mid" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#eee' }}>
-                  {getItemIconUrl(r.midId) && <img src={getItemIconUrl(r.midId)!} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />}
-                  via {r.midName}
+            <div key={r.id} className="ps-card">
+              {/* Head — intermediate item + profit focal point */}
+              <div className="ps-card-head">
+                <span className="ps-via">
+                  {midIcon(r.midId) && <img src={midIcon(r.midId)} alt="" />}
+                  via <b>{r.midName}</b>
                 </span>
-                <span className="profit-amount" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 'bold', color: 'var(--color-success)' }}>
-                  {getItemIconUrl(r.currencyId) && <img src={getItemIconUrl(r.currencyId)!} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />}
-                  +{fmt(r.profit)} {r.currencyName} / trip
-                </span>
-              </div>
-
-
-              <div 
-                className="profit-step" 
-                onClick={() => handleShopClick(r.step1.id, r.step1.x, r.step1.y)}
-                style={{ 
-                  cursor: 'pointer', 
-                  background: 'rgba(255, 255, 255, 0.02)', 
-                  padding: '6px 10px', 
-                  borderRadius: '4px', 
-                  border: '1px solid rgba(255, 255, 255, 0.04)', 
-                  marginBottom: '6px', 
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.04)';
-                }}
-                title="Center on map"
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontWeight: 700, color: '#aaa' }}>
-                  <span>STEP 1 · BUY IN BULK (×{r.n1})</span>
-                  <span style={{ color: 'var(--color-accent)' }}>{r.step1.grid} &rarr;</span>
-                </div>
-                <span className="profit-step-text" style={{ fontSize: 11, color: '#ccc' }}>
-                  Spend <strong style={{ color: 'var(--color-warning)' }}>{fmt(r.n1 * r.step1.order.cost_per_item)}</strong> {r.currencyName} &rarr; Get <strong style={{ color: 'var(--color-success)' }}>{fmt(r.n1 * r.step1.order.quantity)}</strong> {r.midName}
+                <span className="ps-profit" title={`+${fmt(r.profit)} ${r.currencyName} per round trip`}>
+                  {midIcon(r.currencyId) && <img src={midIcon(r.currencyId)} alt="" />}
+                  <span className="ps-profit-val">+{fmt(r.profit)}</span>
+                  <span className="ps-profit-unit">{r.currencyName}/trip</span>
                 </span>
               </div>
 
-              <div 
-                className="profit-step" 
-                onClick={() => handleShopClick(r.step2.id, r.step2.x, r.step2.y)}
-                style={{ 
-                  cursor: 'pointer', 
-                  background: 'rgba(255, 255, 255, 0.02)', 
-                  padding: '6px 10px', 
-                  borderRadius: '4px', 
-                  border: '1px solid rgba(255, 255, 255, 0.04)', 
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.04)';
-                }}
-                title="Center on map"
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontWeight: 700, color: '#aaa' }}>
-                  <span>STEP 2 · SELL IN BULK (×{r.n2})</span>
-                  <span style={{ color: 'var(--color-accent)' }}>{r.step2.grid} &rarr;</span>
-                </div>
-                <span className="profit-step-text" style={{ fontSize: 11, color: '#ccc' }}>
-                  Pay <strong style={{ color: 'var(--color-success)' }}>{fmt(r.n2 * r.step2.order.cost_per_item)}</strong> {r.midName} &rarr; Receive <strong style={{ color: 'var(--color-warning)' }}>{fmt(r.n2 * r.step2.order.quantity)}</strong> {r.currencyName}
-                </span>
+              <div className="ps-steps">
+                {/* Step 1 — BUY the intermediate */}
+                <button
+                  type="button"
+                  className="ps-step ps-step--buy"
+                  onClick={() => handleShopClick(r.step1.id, r.step1.x, r.step1.y)}
+                  title="Center this shop on the map"
+                >
+                  <span className="ps-badge">1</span>
+                  <span className="ps-step-body">
+                    <span className="ps-step-label">
+                      Buy <span className="ps-step-qty">×{r.n1}</span>
+                    </span>
+                    <span className="ps-flow">
+                      <span className="ps-num ps-num--spend">{fmt(r.n1 * r.step1.order.cost_per_item)}</span>
+                      <span className="ps-tok">{r.currencyName}</span>
+                      <span className="ps-arrow">&rarr;</span>
+                      {midIcon(r.midId) && <img src={midIcon(r.midId)} alt="" />}
+                      <span className="ps-num ps-num--get">{fmt(r.n1 * r.step1.order.quantity)}</span>
+                      <span className="ps-tok">{r.midName}</span>
+                    </span>
+                  </span>
+                  <span className="ps-grid">
+                    {r.step1.grid}
+                    <JumpArrow />
+                  </span>
+                </button>
+
+                {/* Step 2 — SELL the intermediate */}
+                <button
+                  type="button"
+                  className="ps-step ps-step--sell"
+                  onClick={() => handleShopClick(r.step2.id, r.step2.x, r.step2.y)}
+                  title="Center this shop on the map"
+                >
+                  <span className="ps-badge">2</span>
+                  <span className="ps-step-body">
+                    <span className="ps-step-label">
+                      Sell <span className="ps-step-qty">×{r.n2}</span>
+                    </span>
+                    <span className="ps-flow">
+                      {midIcon(r.midId) && <img src={midIcon(r.midId)} alt="" />}
+                      <span className="ps-num ps-num--spend">{fmt(r.n2 * r.step2.order.cost_per_item)}</span>
+                      <span className="ps-tok">{r.midName}</span>
+                      <span className="ps-arrow">&rarr;</span>
+                      {midIcon(r.currencyId) && <img src={midIcon(r.currencyId)} alt="" />}
+                      <span className="ps-num ps-num--get">{fmt(r.n2 * r.step2.order.quantity)}</span>
+                      <span className="ps-tok">{r.currencyName}</span>
+                    </span>
+                  </span>
+                  <span className="ps-grid">
+                    {r.step2.grid}
+                    <JumpArrow />
+                  </span>
+                </button>
               </div>
 
-              <div className="profit-card-foot" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--color-text-dim)', marginTop: '8px', borderTop: '1px dashed rgba(255,255,255,0.04)', paddingTop: '6px' }}>
-                <span>Total Spent: {fmt(r.spent)} {r.currencyName}</span>
-                <span>&rarr;</span>
-                <span>Total Gained: {fmt(r.gained)} {r.currencyName}</span>
+              {/* Footer — totals */}
+              <div className="ps-foot">
+                <span className="ps-foot-out">Spent <b>{fmt(r.spent)}</b> {r.currencyName}</span>
+                <span className="ps-arrow">&rarr;</span>
+                <span className="ps-foot-in">Gained <b>{fmt(r.gained)}</b> {r.currencyName}</span>
               </div>
             </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function JumpArrow() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
   );
 }

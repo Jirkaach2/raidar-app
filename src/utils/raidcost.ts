@@ -401,9 +401,9 @@ export const RAID_TOOLS: RaidTool[] = [
   },
   {
     key: 'propane', name: 'Propane Explosive Bomb', short: 'Propane', icon: 'catapult.ammo.explosive',
-    cost: { sulfur: 200, charcoal: 300, propaneTank: 1 },
+    cost: { sulfur: 900, charcoal: 1350, lowGrade: 20, propaneTank: 1 },
     craftSeconds: 10, fuseSeconds: 3, useSeconds: 5.0, wb: 2, researchScrap: 125, type: 'siege',
-    blurb: 'Catapult ammo (100 gunpowder + propane tank). ~77 structure dmg per hit — fire it from afar.',
+    blurb: 'Catapult ammo (450 gunpowder + 20 low grade fuel + propane tank). ~77 structure dmg per hit — fire it from afar.',
   },
   {
     key: 'battering_ram', name: 'Battering Ram', short: 'Ram', icon: 'batteringram',

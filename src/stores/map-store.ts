@@ -200,7 +200,7 @@ export const useMapStore = create<MapState>((set) => ({
   showDayNight: true,
   showVendingShops: true,
   showResources: false,
-  showRustExtras: true,
+  showRustExtras: false,   // caves + water well off by default; user enables manually
   showTeam: true,
   showRoster: true,
   selectedMonumentToken: null,

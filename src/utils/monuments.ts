@@ -62,6 +62,21 @@ const NORMAL = (qty: string): PuzzleItem => ({ name: 'Normal Crate', icon: 'radt
 const LOCKED = (qty: string): PuzzleItem => ({ name: 'Locked Crate', icon: 'locked-crate', qty });
 const SNOWMOBILE: PuzzleItem = { name: 'Snowmobile', icon: 'snowmobile' };
 
+// Electrical puzzle components + Underwater Lab specific crates (rusthelp data).
+const CARD = (c: PuzzleItem, qty: string): PuzzleItem => ({ ...c, qty });
+const FUSEN = (qty: string): PuzzleItem => ({ name: 'Electric Fuse', icon: 'fuse', qty });
+const TIMER = (qty: string): PuzzleItem => ({ name: 'Timer', icon: 'electric-timer', qty });
+const BUTTON = (qty: string): PuzzleItem => ({ name: 'Button', icon: 'electric-button', qty });
+const SWITCH = (qty: string): PuzzleItem => ({ name: 'Switch', icon: 'electric-switch', qty });
+const UWL_NORMAL = (qty: string): PuzzleItem => ({ name: 'Lab Normal Crate', icon: 'radtown-underwater-labs-crate-normal-2', qty });
+const UWL_FOOD = (qty: string): PuzzleItem => ({ name: 'Lab Food Crate', icon: 'radtown-underwater-labs-crate-food-2', qty });
+const UWL_AMMO = (qty: string): PuzzleItem => ({ name: 'Lab Ammo Crate', icon: 'radtown-underwater-labs-crate-ammunition', qty });
+const UWL_TOOLS = (qty: string): PuzzleItem => ({ name: 'Lab Tools Crate', icon: 'radtown-underwater-labs-crate-tools', qty });
+const UWL_MED = (qty: string): PuzzleItem => ({ name: 'Lab Medical Crate', icon: 'radtown-underwater-labs-crate-medical', qty });
+const UWL_FUEL = (qty: string): PuzzleItem => ({ name: 'Lab Fuel Crate', icon: 'radtown-underwater-labs-crate-fuel', qty });
+const UWL_VEH = (qty: string): PuzzleItem => ({ name: 'Lab Vehicle Parts', icon: 'radtown-underwater-labs-vehicle-parts', qty });
+const UWL_COMP = (qty: string): PuzzleItem => ({ name: 'Tier 2/3 Components', icon: 'radtown-underwater-labs-tech-parts-2', qty });
+
 export interface MonumentInfo {
   key: string;
   name: string;
@@ -601,25 +616,69 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
     crates: [{ loot: 'military', label: 'Military Crate', count: 'several' }, { loot: 'basic', label: 'Tech/Basic Crate', count: 'several' }],
     scientists: [{ loot: 'scientist', label: 'Scientist', count: 4 }],
     hasTunnelEntrance: false, hasChinookDropZone: false, allowsHeliCrash: false,
-    requiresCards: ['green', 'blue'], optionalCards: ['red'], givesCards: [],
+    requiresCards: ['green', 'blue'], optionalCards: ['red'], givesCards: ['green'],
     puzzles: [
+      // Tier 3 — Red room (Timer + Button)
       {
-        bring: [RED, FUSE],
-        rewards: [ADV_BP('x1'), ELITE('x1'), { name: 'Lab crates (components/ammo/tools)' }],
+        bring: [CARD(RED, 'x1'), FUSEN('x2')],
+        activate: [TIMER('x1'), BUTTON('x1')],
+        rewards: [ADV_BP('x2'), ELITE('x2'), UWL_NORMAL('x2'), UWL_COMP('x1'), UWL_AMMO('x3'), UWL_TOOLS('x1')],
         resetTime: '~30m',
       },
+      // Tier 3 — Red + Blue vault (Switch ×2 + Timer)
       {
-        bring: [BLUE, GREEN, FUSE],
-        rewards: [BASIC_BP('x1'), GREEN, { name: 'Lab crates (components/tools/fuel)' }],
+        bring: [CARD(RED, 'x1'), CARD(BLUE, 'x1'), FUSEN('x2')],
+        activate: [SWITCH('x2'), TIMER('x1')],
+        rewards: [ADV_BP('x2'), ELITE('x3'), UWL_NORMAL('x3')],
         resetTime: '~30m',
       },
+      // Tier 2 — Blue room (components)
       {
-        bring: [GREEN],
-        rewards: [{ name: 'Lab Normal Crates', qty: 'x2' }],
+        bring: [CARD(BLUE, 'x1')],
+        rewards: [BASIC_BP('x2'), UWL_NORMAL('x1'), UWL_FOOD('x1'), UWL_COMP('x1'), UWL_AMMO('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 2 — Blue room (tools)
+      {
+        bring: [CARD(BLUE, 'x1')],
+        rewards: [BASIC_BP('x2'), UWL_NORMAL('x2'), UWL_AMMO('x1'), UWL_TOOLS('x1'), UWL_FOOD('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 2 — Blue + Green (Timer + Button), drops a Green card
+      {
+        bring: [CARD(BLUE, 'x1'), CARD(GREEN, 'x1')],
+        activate: [TIMER('x1'), BUTTON('x1')],
+        rewards: [BASIC_BP('x2'), CARD(GREEN, 'x1'), UWL_NORMAL('x2'), UWL_COMP('x2'), UWL_TOOLS('x1'), UWL_FOOD('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 2 — Blue + Green + Fuse (Timer + Switch), garage/vehicle room
+      {
+        bring: [CARD(BLUE, 'x1'), CARD(GREEN, 'x1'), FUSEN('x1')],
+        activate: [TIMER('x1'), SWITCH('x1')],
+        rewards: [BASIC_BP('x1'), CARD(GREEN, 'x1'), UWL_NORMAL('x2'), UWL_AMMO('x1'), UWL_TOOLS('x1'), UWL_FUEL('x1'), UWL_VEH('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 2 — Blue room (medical)
+      {
+        bring: [CARD(BLUE, 'x1')],
+        rewards: [BASIC_BP('x2'), UWL_NORMAL('x1'), UWL_FOOD('x1'), UWL_AMMO('x1'), UWL_TOOLS('x1'), UWL_MED('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 1 — Green card swipe
+      {
+        bring: [CARD(GREEN, 'x1')],
+        rewards: [UWL_NORMAL('x1')],
+        resetTime: '~30m',
+      },
+      // Tier 1 — Fuse-only timed room (Button)
+      {
+        bring: [FUSEN('x1')],
+        activate: [BUTTON('x1')],
+        rewards: [UWL_FOOD('x2'), UWL_MED('x1')],
         resetTime: '~30m',
       },
     ],
-    notes: ['Green + Blue mandatory (Red optional for the top room). Randomized layout reached by submarine. No recycler.'],
+    notes: ['All possible puzzle rooms are listed — a random subset spawns on any given map.', 'Reached by submarine/scuba. Green + Blue cards cover most rooms; Red unlocks the elite vaults. No recycler.'],
   },
   outpost: {
     key: 'outpost', name: 'OUTPOST', imageSlug: 'compound',

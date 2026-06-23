@@ -1,0 +1,153 @@
+/* ════════════════════════════════════════════════════════
+   PROFIT SCANNER — 2-step arbitrage finder
+   ════════════════════════════════════════════════════════ */
+.ps { display: flex; flex-direction: column; gap: var(--space-md); }
+
+/* Header / intro */
+.ps-sub {
+  margin: -2px 0 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Empty state */
+.ps-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center; padding: 30px 16px;
+  color: var(--color-text-dim);
+  font-size: 12px; line-height: 1.5;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgba(0,0,0,0.18);
+}
+
+/* List */
+.ps-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Route card ── */
+.ps-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.22));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px 9px;
+  box-shadow: var(--shadow-panel);
+}
+
+/* Card header — intermediate item + profit focal point */
+.ps-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding-bottom: 9px; margin-bottom: 9px;
+  border-bottom: 1px solid var(--color-border);
+}
+.ps-via {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--color-text-muted);
+  min-width: 0;
+}
+.ps-via img { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+.ps-via b {
+  font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.3px; color: var(--color-text); text-transform: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Profit — the visual anchor */
+.ps-profit {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: var(--radius-md);
+  background: var(--color-success-dim);
+  border: 1px solid rgba(111, 207, 115, 0.35);
+  box-shadow: var(--glow-success);
+}
+.ps-profit img { width: 16px; height: 16px; object-fit: contain; }
+.ps-profit-val {
+  font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+  line-height: 1; color: var(--color-success);
+}
+.ps-profit-unit {
+  font-family: var(--font-mono); font-size: 8.5px; font-weight: 700;
+  letter-spacing: 0.4px; color: var(--color-success);
+  opacity: 0.8; text-transform: uppercase;
+}
+
+/* ── Steps ── */
+.ps-steps { display: flex; flex-direction: column; gap: 6px; }
+.ps-step {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  padding: 7px 9px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font: inherit; color: inherit;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.ps-step:hover {
+  background: rgba(206, 66, 43, 0.10);
+  border-color: var(--color-border-strong);
+  transform: translateX(2px);
+}
+
+/* Step badge (1 / 2) */
+.ps-badge {
+  display: grid; place-items: center;
+  width: 22px; height: 22px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  background: var(--color-accent-glow);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-accent);
+}
+.ps-step--sell .ps-badge {
+  background: var(--color-success-dim);
+  border-color: rgba(111, 207, 115, 0.35);
+  color: var(--color-success);
+}
+
+/* Step body */
+.ps-step-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ps-step-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: 0.7px;
+  text-transform: uppercase; color: var(--color-text-muted);
+}
+.ps-step-qty { font-family: var(--font-mono); color: var(--color-text-dim); }
+.ps-flow {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11px; color: var(--color-text);
+}
+.ps-flow img { width: 13px; height: 13px; object-fit: contain; vertical-align: -2px; }
+.ps-flow .ps-num { font-family: var(--font-mono); font-weight: 700; }
+.ps-flow .ps-num--spend { color: var(--color-warning); }
+.ps-flow .ps-num--get { color: var(--color-success); }
+.ps-flow .ps-tok { color: var(--color-text-muted); }
+.ps-arrow { color: var(--color-text-dim); font-size: 11px; }
+
+/* Grid tag + jump affordance */
+.ps-grid {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  color: var(--color-accent); white-space: nowrap;
+}
+.ps-grid svg { color: var(--color-text-dim); transition: color var(--transition-fast), transform var(--transition-fast); }
+.ps-step:hover .ps-grid svg { color: var(--color-accent); transform: translateX(2px); }
+
+/* ── Footer totals ── */
+.ps-foot {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 8px; padding-top: 7px;
+  border-top: 1px dashed var(--color-border);
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--color-text-muted);
+}
+.ps-foot b { color: var(--color-text); font-weight: 700; }
+.ps-foot .ps-foot-out b { color: var(--color-warning); }
+.ps-foot .ps-foot-in b { color: var(--color-success); }
+.ps-foot .ps-arrow { color: var(--color-text-dim); }

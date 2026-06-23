@@ -7,6 +7,7 @@ import { useTeamStore } from '../../stores/team-store';
 import { useDeviceStore } from '../../stores/device-store';
 import { useSpyStore } from '../../stores/spy-store';
 import { useSettingsStore } from '../../stores/settings-store';
+import { useRustMapsStore } from '../../stores/rustmaps-store';
 import Toggle from '../ui/Toggle';
 import {
   Link2, Bell, MessageSquare, Shield, HelpCircle,
@@ -24,6 +25,23 @@ interface ServerProfile {
   player_token: number;
   server_name: string;
   last_connected: string;
+}
+
+/**
+ * Lightweight section divider used to group related settings cards within a
+ * tab. Purely visual — adds a labelled rule between card clusters so the long
+ * settings lists are easier to scan. Uses shared CSS tokens.
+ */
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 2px 0' }}>
+      <span style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
+        color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
+      }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--color-border), transparent)' }} />
+    </div>
+  );
 }
 
 export function SettingsPanel() {
@@ -69,6 +87,8 @@ export function SettingsPanel() {
 
   const { notifyNewShops, setNotifyNewShops, notifyNewItems, setNotifyNewItems } = useMapStore();
   const settings = useSettingsStore();
+  const rustmapsStatus = useRustMapsStore(s => s.status);
+  const rustmapsMessage = useRustMapsStore(s => s.message);
 
   const currentIp = serverInfo?.ip;
   const currentPort = serverInfo?.port;
@@ -365,9 +385,10 @@ export function SettingsPanel() {
       {/* Connection Tab */}
       {activeTab === 'connection' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionDivider label="Pairing & Servers" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
-            <h3 style={{ color: 'var(--success)', marginBottom: 8, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Link2 size={16} />
+            <h3 style={{ color: 'var(--success)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Link2 size={15} />
               AUTOMATED PAIRING
             </h3>
             <p className="text-dim" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.4 }}>
@@ -514,6 +535,7 @@ export function SettingsPanel() {
       {/* Notifications & Chat Tab */}
       {activeTab === 'notifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionDivider label="Notifications" />
           {/* Map Notifications */}
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -657,6 +679,7 @@ export function SettingsPanel() {
           </div>
 
           {/* Sound Settings Card */}
+          <SectionDivider label="Sounds" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Volume2 size={15} />
@@ -814,6 +837,7 @@ export function SettingsPanel() {
           )}
 
           {/* ── Raidar Bot link ── */}
+          <SectionDivider label="Discord Bot" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <h3 style={{ color: 'var(--color-accent)', margin: 0, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -937,6 +961,7 @@ export function SettingsPanel() {
             )}
           </div>
 
+          <SectionDivider label="Webhooks" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Shield size={15} />
@@ -1103,6 +1128,7 @@ export function SettingsPanel() {
       {/* Game & Recycler Tab */}
       {activeTab === 'game' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionDivider label="Application & Display" />
           {/* App updates */}
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1159,6 +1185,7 @@ export function SettingsPanel() {
           </div>
 
           {/* Recycler card */}
+          <SectionDivider label="Server Tuning" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <RefreshCw size={15} />
@@ -1213,6 +1240,7 @@ export function SettingsPanel() {
           </div>
 
           {/* BattleMetrics & Token */}
+          <SectionDivider label="Integrations" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Shield size={15} />
@@ -1242,11 +1270,30 @@ export function SettingsPanel() {
             <input
               type="password"
               placeholder="Paste RustMaps API key..."
+              value={settings.rustmapsKey}
+              onChange={(e) => settings.setRustmapsKey(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, outline: 'none' }}
             />
+            {(() => {
+              const base: React.CSSProperties = {
+                display: 'flex', alignItems: 'center', gap: 6, marginTop: 12,
+                fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: 1.4,
+              };
+              if (rustmapsStatus === 'ready') {
+                return <div style={{ ...base, color: '#4ade80' }}>● Active — map extras loaded</div>;
+              }
+              if (rustmapsStatus === 'loading' || rustmapsStatus === 'generating') {
+                return <div style={{ ...base, color: '#fbbf24' }}>● {rustmapsMessage || 'Loading map extras…'}</div>;
+              }
+              if (rustmapsStatus === 'error') {
+                return <div style={{ ...base, color: '#f87171' }}>● {rustmapsMessage || 'RustMaps error.'}</div>;
+              }
+              return <div style={{ ...base, color: 'var(--color-text-dim)' }}>Add a key to enable caves, water wells, tunnels &amp; labs.</div>;
+            })()}
           </div>
 
           {/* Locked Crate Default Seconds */}
+          <SectionDivider label="Game" />
           <div className="settings-card glass-panel" style={{ margin: 0, maxWidth: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <HelpCircle size={15} />

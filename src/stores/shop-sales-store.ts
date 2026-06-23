@@ -142,10 +142,26 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
 
     // A single shop can't realistically sell more than this of one item between
     // two ~1s polls; a bigger drop means the machine was relisted/rebuilt, not a
-    // real sale — ignore it (just reset the baseline).
-    const MAX_PLAUSIBLE_DROP = 500;
+    // real sale — ignore it (just reset the baseline). Vanilla servers relist
+    // whole machines at once, which used to produce implausible counts.
+    const MAX_PLAUSIBLE_DROP = 100;
+    // Even within the drop cap, refuse to credit an absurd number of distinct
+    // purchases to one order signature in a single poll.
+    const MAX_PURCHASES_PER_POLL = 25;
+
+    // Restock guard: if the shop's TOTAL stock across every signature went UP
+    // since the last poll, the owner just refilled/rebuilt the machine. Stock
+    // can shuffle between signatures during a rebuild, so don't infer ANY sales
+    // this poll — only refresh the baseline below.
+    let prevTotal = 0;
+    let prevSigCount = 0;
+    for (const sig in shop.lastStock) { prevTotal += shop.lastStock[sig]; prevSigCount++; }
+    let nextTotal = 0;
+    for (const sig in nextStock) nextTotal += nextStock[sig];
+    const shopRestocked = prevSigCount > 0 && nextTotal > prevTotal;
 
     for (const sig in nextStock) {
+      if (shopRestocked) break; // total stock rose → treat whole poll as a restock
       const stock = nextStock[sig];
       const prevStock = shop.lastStock[sig];
       if (prevStock !== undefined && stock < prevStock) {
@@ -155,7 +171,7 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
           const qty = o.quantity || 1;
           const transactionCount = Math.round(rawDrop / qty);
 
-          if (transactionCount > 0) {
+          if (transactionCount > 0 && transactionCount <= MAX_PURCHASES_PER_POLL) {
             const salesMultiplier = useSettingsStore.getState().vendingMultiplier || 1;
             const tQty = transactionCount * qty * salesMultiplier;
             const tEarned = transactionCount * o.cost_per_item;
