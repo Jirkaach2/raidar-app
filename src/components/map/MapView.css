@@ -25,6 +25,34 @@
   cursor: grab;
 }
 
+/* Tactical surround texture for the empty space around the map image. Applied
+   to the canvas container (it sits above this wrap). All pure-CSS so it stays
+   crisp and needs no asset. The opaque map image paints on top of it, so the
+   texture + vignette only show in the empty area around the map:
+     1) faint fine dot-grid (intel-screen feel)
+     2) faint coarse cross-grid lines
+     3) soft radial depth glow toward the centre
+     4) edge vignette so the surround recedes
+     5) deep base fill */
+.mapview__map-canvas {
+  background-color: var(--color-bg-deep);
+  background-image:
+    radial-gradient(rgba(120, 140, 160, 0.05) 1px, transparent 1.4px),
+    linear-gradient(rgba(120, 140, 160, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 140, 160, 0.022) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 80% at 50% 48%, rgba(42, 54, 66, 0.42) 0%, rgba(10, 12, 16, 0) 58%),
+    radial-gradient(ellipse 78% 78% at 50% 50%, rgba(0, 0, 0, 0) 56%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(160deg, #0c0f14 0%, #070809 100%);
+  background-size:
+    22px 22px,
+    110px 110px,
+    110px 110px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-position: center center;
+}
+
 .mapview__canvas-wrap:active {
   cursor: grabbing;
 }

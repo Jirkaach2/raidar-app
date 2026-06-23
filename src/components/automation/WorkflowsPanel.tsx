@@ -13,6 +13,7 @@ import {
   ChevronUp, ChevronDown, Zap, MessageSquare, Send, Timer, GitBranch, Filter,
   Repeat, Sparkles, Clock, Moon, Sun, Users, Bell, ToggleRight, ShieldAlert, Radio, Globe,
 } from 'lucide-react';
+import { Select, SelectOption } from '@/components/ui/Select';
 import './WorkflowsPanel.css';
 
 type IconType = typeof Zap;
@@ -268,17 +269,14 @@ export function WorkflowsPanel() {
           {/* Trigger */}
           <div className="wf-section">
             <span className="wf-section-title"><Zap size={12} /> WHEN (TRIGGER)</span>
-            <div className="wf-select-wrap">
-              <select className="wf-select" value={draft.trigger}
-                onChange={(e) => patch({ trigger: e.target.value as WorkflowTrigger, autoReverse: false })}>
-                {TRIGGER_GROUPS.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.triggers.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-              <ChevronRight size={14} className="wf-select-chev" />
-            </div>
+            <Select
+              ariaLabel="Trigger"
+              value={draft.trigger}
+              onChange={(v) => patch({ trigger: v as WorkflowTrigger, autoReverse: false })}
+              options={TRIGGER_GROUPS.flatMap((g) =>
+                g.triggers.map((t): SelectOption => ({ value: t.key, label: t.label, group: g.label })),
+              )}
+            />
             {TRIGGER_BY_KEY[draft.trigger] && <span className="wf-hint">{TRIGGER_BY_KEY[draft.trigger].desc}</span>}
 
             {/* Trigger params */}
@@ -294,28 +292,29 @@ export function WorkflowsPanel() {
             )}
 
             {triggerNeedsTeammate(draft.trigger) && (
-              <div className="wf-select-wrap">
-                <select className="wf-select" value={draft.triggerParams.teammateName ?? ''}
-                  onChange={(e) => patchParams({ teammateName: e.target.value || undefined })}>
-                  <option value="">Select a teammate…</option>
-                  {members.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-                </select>
-                <ChevronRight size={14} className="wf-select-chev" />
-              </div>
+              <Select
+                ariaLabel="Teammate"
+                placeholder="Select a teammate…"
+                value={draft.triggerParams.teammateName ?? ''}
+                onChange={(v) => patchParams({ teammateName: (v as string) || undefined })}
+                options={members.map((m): SelectOption => ({ value: m.name, label: m.name }))}
+              />
             )}
 
             {draft.trigger === 'smart_alarm' && (
               alarms.length > 0 ? (
-                <div className="wf-select-wrap">
-                  <select className="wf-select" value={draft.triggerParams.alarmFilter ?? ''}
-                    onChange={(e) => patchParams({ alarmFilter: e.target.value || undefined })}>
-                    <option value="">Any Smart Alarm</option>
-                    {alarms.map((al) => (
-                      <option key={al.entityId} value={al.customName || al.entityName}>{al.customName || al.entityName}</option>
-                    ))}
-                  </select>
-                  <ChevronRight size={14} className="wf-select-chev" />
-                </div>
+                <Select
+                  ariaLabel="Smart alarm"
+                  value={draft.triggerParams.alarmFilter ?? ''}
+                  onChange={(v) => patchParams({ alarmFilter: (v as string) || undefined })}
+                  options={[
+                    { value: '', label: 'Any Smart Alarm' },
+                    ...alarms.map((al): SelectOption => ({
+                      value: al.customName || al.entityName,
+                      label: al.customName || al.entityName,
+                    })),
+                  ]}
+                />
               ) : (
                 <input className="wf-input" type="text" placeholder="Match alarm title (blank = any)"
                   value={draft.triggerParams.alarmFilter ?? ''} onChange={(e) => patchParams({ alarmFilter: e.target.value || undefined })} />
@@ -324,23 +323,26 @@ export function WorkflowsPanel() {
 
             {draft.trigger === 'switch_state_changed' && (
               <div className="wf-row wf-row-wrap">
-                <div className="wf-select-wrap wf-grow">
-                  <select className="wf-select" value={draft.triggerParams.switchEntityId ?? ''}
-                    onChange={(e) => patchParams({ switchEntityId: Number(e.target.value) || undefined })}>
-                    <option value="">Select a switch…</option>
-                    {switches.map((s) => <option key={s.entityId} value={s.entityId}>{s.customName || s.entityName} (#{s.entityId})</option>)}
-                  </select>
-                  <ChevronRight size={14} className="wf-select-chev" />
+                <div className="wf-grow">
+                  <Select
+                    ariaLabel="Switch"
+                    placeholder="Select a switch…"
+                    value={draft.triggerParams.switchEntityId ?? ''}
+                    onChange={(v) => patchParams({ switchEntityId: Number(v) || undefined })}
+                    options={switches.map((s): SelectOption => ({ value: s.entityId, label: `${s.customName || s.entityName} (#${s.entityId})` }))}
+                  />
                 </div>
-                <div className="wf-select-wrap wf-grow">
-                  <select className="wf-select"
+                <div className="wf-grow">
+                  <Select
+                    ariaLabel="Switch change"
                     value={draft.triggerParams.switchState === undefined ? 'any' : draft.triggerParams.switchState ? 'on' : 'off'}
-                    onChange={(e) => patchParams({ switchState: e.target.value === 'any' ? undefined : e.target.value === 'on' })}>
-                    <option value="any">on any change</option>
-                    <option value="on">when it turns ON</option>
-                    <option value="off">when it turns OFF</option>
-                  </select>
-                  <ChevronRight size={14} className="wf-select-chev" />
+                    onChange={(v) => patchParams({ switchState: v === 'any' ? undefined : v === 'on' })}
+                    options={[
+                      { value: 'any', label: 'on any change' },
+                      { value: 'on', label: 'when it turns ON' },
+                      { value: 'off', label: 'when it turns OFF' },
+                    ]}
+                  />
                 </div>
               </div>
             )}
@@ -350,14 +352,13 @@ export function WorkflowsPanel() {
                 {monitors.length === 0 ? (
                   <span className="wf-warn"><ShieldAlert size={13} /> Pair a Storage Monitor on a TC to use this trigger.</span>
                 ) : (
-                  <div className="wf-select-wrap">
-                    <select className="wf-select" value={draft.triggerParams.monitorId ?? ''}
-                      onChange={(e) => patchParams({ monitorId: Number(e.target.value) || undefined })}>
-                      <option value="">Select a storage monitor…</option>
-                      {monitors.map((m) => <option key={m.entityId} value={m.entityId}>{m.customName || m.entityName} (#{m.entityId})</option>)}
-                    </select>
-                    <ChevronRight size={14} className="wf-select-chev" />
-                  </div>
+                  <Select
+                    ariaLabel="Storage monitor"
+                    placeholder="Select a storage monitor…"
+                    value={draft.triggerParams.monitorId ?? ''}
+                    onChange={(v) => patchParams({ monitorId: Number(v) || undefined })}
+                    options={monitors.map((m): SelectOption => ({ value: m.entityId, label: `${m.customName || m.entityName} (#${m.entityId})` }))}
+                  />
                 )}
                 <div className="wf-row">
                   <input className="wf-num" type="number" min={1} value={draft.triggerParams.upkeepHours ?? 24}
@@ -382,28 +383,34 @@ export function WorkflowsPanel() {
             {draft.conditions.map((c, idx) => (
               <div key={c.id} className="wf-item">
                 <div className="wf-item-main">
-                  <div className="wf-select-wrap wf-grow">
-                    <select className="wf-select" value={c.type} onChange={(e) => updateCondition(c.id, { type: e.target.value as WorkflowConditionType })}>
-                      {CONDITION_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-                    </select>
-                    <ChevronRight size={14} className="wf-select-chev" />
+                  <div className="wf-grow">
+                    <Select
+                      ariaLabel="Condition"
+                      value={c.type}
+                      onChange={(v) => updateCondition(c.id, { type: v as WorkflowConditionType })}
+                      options={CONDITION_OPTIONS.map((o): SelectOption => ({ value: o.key, label: o.label }))}
+                    />
                   </div>
                   {(c.type === 'teammate_online' || c.type === 'teammate_offline') && (
-                    <div className="wf-select-wrap wf-grow">
-                      <select className="wf-select" value={c.teammateName ?? ''} onChange={(e) => updateCondition(c.id, { teammateName: e.target.value || undefined })}>
-                        <option value="">Select teammate…</option>
-                        {members.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-                      </select>
-                      <ChevronRight size={14} className="wf-select-chev" />
+                    <div className="wf-grow">
+                      <Select
+                        ariaLabel="Teammate"
+                        placeholder="Select teammate…"
+                        value={c.teammateName ?? ''}
+                        onChange={(v) => updateCondition(c.id, { teammateName: (v as string) || undefined })}
+                        options={members.map((m): SelectOption => ({ value: m.name, label: m.name }))}
+                      />
                     </div>
                   )}
                   {(c.type === 'switch_on' || c.type === 'switch_off') && (
-                    <div className="wf-select-wrap wf-grow">
-                      <select className="wf-select" value={c.switchEntityId ?? ''} onChange={(e) => updateCondition(c.id, { switchEntityId: Number(e.target.value) || undefined })}>
-                        <option value="">Select switch…</option>
-                        {switches.map((s) => <option key={s.entityId} value={s.entityId}>{s.customName || s.entityName}</option>)}
-                      </select>
-                      <ChevronRight size={14} className="wf-select-chev" />
+                    <div className="wf-grow">
+                      <Select
+                        ariaLabel="Switch"
+                        placeholder="Select switch…"
+                        value={c.switchEntityId ?? ''}
+                        onChange={(v) => updateCondition(c.id, { switchEntityId: Number(v) || undefined })}
+                        options={switches.map((s): SelectOption => ({ value: s.entityId, label: s.customName || s.entityName }))}
+                      />
                     </div>
                   )}
                 </div>
@@ -424,29 +431,37 @@ export function WorkflowsPanel() {
               <div key={a.id} className="wf-item wf-action">
                 <span className="wf-step">{idx + 1}</span>
                 <div className="wf-item-main">
-                  <div className="wf-select-wrap wf-grow">
-                    <select className="wf-select" value={a.type} onChange={(e) => updateAction(a.id, { type: e.target.value as WorkflowActionType })}>
-                      {ACTION_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-                    </select>
-                    <ChevronRight size={14} className="wf-select-chev" />
+                  <div className="wf-grow">
+                    <Select
+                      ariaLabel="Action type"
+                      value={a.type}
+                      onChange={(v) => updateAction(a.id, { type: v as WorkflowActionType })}
+                      options={ACTION_OPTIONS.map((o): SelectOption => ({ value: o.key, label: o.label }))}
+                    />
                   </div>
 
                   {a.type === 'toggle_switch' && (
                     <div className="wf-row wf-row-wrap">
-                      <div className="wf-select-wrap wf-grow">
-                        <select className="wf-select" value={a.entityId ?? ''} onChange={(e) => updateAction(a.id, { entityId: Number(e.target.value) || undefined })}>
-                          <option value="">Select switch…</option>
-                          {switches.map((s) => <option key={s.entityId} value={s.entityId}>{s.customName || s.entityName} (#{s.entityId})</option>)}
-                        </select>
-                        <ChevronRight size={14} className="wf-select-chev" />
+                      <div className="wf-grow">
+                        <Select
+                          ariaLabel="Switch"
+                          placeholder="Select switch…"
+                          value={a.entityId ?? ''}
+                          onChange={(v) => updateAction(a.id, { entityId: Number(v) || undefined })}
+                          options={switches.map((s): SelectOption => ({ value: s.entityId, label: `${s.customName || s.entityName} (#${s.entityId})` }))}
+                        />
                       </div>
-                      <div className="wf-select-wrap wf-grow">
-                        <select className="wf-select" value={a.switchAction ?? 'toggle'} onChange={(e) => updateAction(a.id, { switchAction: e.target.value as 'on' | 'off' | 'toggle' })}>
-                          <option value="on">turn ON</option>
-                          <option value="off">turn OFF</option>
-                          <option value="toggle">toggle</option>
-                        </select>
-                        <ChevronRight size={14} className="wf-select-chev" />
+                      <div className="wf-grow">
+                        <Select
+                          ariaLabel="Switch action"
+                          value={a.switchAction ?? 'toggle'}
+                          onChange={(v) => updateAction(a.id, { switchAction: v as 'on' | 'off' | 'toggle' })}
+                          options={[
+                            { value: 'on', label: 'turn ON' },
+                            { value: 'off', label: 'turn OFF' },
+                            { value: 'toggle', label: 'toggle' },
+                          ]}
+                        />
                       </div>
                     </div>
                   )}
@@ -474,12 +489,14 @@ export function WorkflowsPanel() {
                   )}
 
                   {a.type === 'trigger_workflow' && (
-                    <div className="wf-select-wrap wf-grow">
-                      <select className="wf-select" value={a.targetWorkflowId ?? ''} onChange={(e) => updateAction(a.id, { targetWorkflowId: e.target.value || undefined })}>
-                        <option value="">Select a workflow…</option>
-                        {mine.filter((w) => w.id !== editingId).map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
-                      <ChevronRight size={14} className="wf-select-chev" />
+                    <div className="wf-grow">
+                      <Select
+                        ariaLabel="Target workflow"
+                        placeholder="Select a workflow…"
+                        value={a.targetWorkflowId ?? ''}
+                        onChange={(v) => updateAction(a.id, { targetWorkflowId: (v as string) || undefined })}
+                        options={mine.filter((w) => w.id !== editingId).map((w): SelectOption => ({ value: w.id, label: w.name }))}
+                      />
                     </div>
                   )}
                 </div>

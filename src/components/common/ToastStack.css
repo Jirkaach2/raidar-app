@@ -1,12 +1,16 @@
-/* ── Minimal toast stack (bottom-right, non-blocking) ──────────────────────
-   Anchored to the bottom-right corner, well clear of the top account bar and
-   map content. Hard width cap keeps it from ever growing across the screen;
-   only a few slim pills show at once (rest live in the Notifications tab). */
+/* ── Minimal toast stack (top-right, non-blocking) ─────────────────────────
+   Anchored to the top-right corner, clear of map content. Hard width cap keeps
+   it from ever growing across the screen; only a few slim pills show at once
+   (rest live in the Notifications tab). */
 .ts-stack {
   position: fixed;
-  bottom: var(--space-lg);
+  top: var(--space-lg);
   right: var(--space-lg);
-  z-index: 9000;
+  /* Must sit ABOVE the always-on full-viewport HUD overlays (AppShell scanlines
+     9999 / vignette 9998 / noise 9997) and the legacy .toasts-container (10000),
+     all of which cover inset:0. At 9000 those layers paint on top of the pills
+     and swallow them, so toasts never appear. 10001 keeps the stack on top. */
+  z-index: 10001;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -130,7 +134,7 @@
 
 /* ── Animation (respects reduced-motion) ───────────────────────────────── */
 @keyframes ts-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

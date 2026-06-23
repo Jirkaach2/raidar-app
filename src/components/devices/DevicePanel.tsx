@@ -7,7 +7,11 @@ import { useUiStore } from '@/stores/ui-store';
 import { getCurrentServerId, isCurrentServer } from '@/utils/server';
 import { ToggleLeft, ToggleRight, BellRing, Database, Trash2, Edit2 } from 'lucide-react';
 import { AutomationPanel } from './AutomationPanel';
+import { WorkflowsPanel } from '../automation/WorkflowsPanel';
+import { SequencesPanel } from '../automation/SequencesPanel';
 import './DevicePanel.css';
+
+type DeviceTab = 'devices' | 'automations' | 'workflows' | 'sequences';
 
 export function DevicePanel() {
   const devicesObj = useDeviceStore(s => s.devices);
@@ -17,7 +21,8 @@ export function DevicePanel() {
   const removeDevice = useDeviceStore(s => s.removeDevice);
   const renameDevice = useDeviceStore(s => s.renameDevice);
   const connectionStatus = useConnectionStore(s => s.status);
-  
+
+  const [activeTab, setActiveTab] = useState<DeviceTab>('devices');
   const [loadingIds, setLoadingIds] = useState<Record<number, boolean>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -274,41 +279,78 @@ export function DevicePanel() {
         </p>
       </div>
 
-      <div className="device-list scrollable">
-        {devices.length === 0 ? (
-          <div className="device-empty">
-            <svg viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
-            <p>No paired devices.</p>
-          </div>
-        ) : (
-          <>
-            {/* Current server devices */}
-            {onCurrent.length > 0 && (
-              <>
-                <div className="device-group-label">
-                  {currentServerId ? 'THIS SERVER' : 'PAIRED DEVICES'}
-                </div>
-                {onCurrent.map((dev) => renderCard(dev, false))}
-              </>
-            )}
-
-            {/* Devices from other servers */}
-            {[...otherGroups.entries()].map(([sid, devs]) => (
-              <div key={sid}>
-                <div className="device-group-label device-group-label--foreign">
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
-                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  {devs[0]?.serverName || 'OTHER SERVER'} · OFF-SERVER
-                </div>
-                {devs.map((dev) => renderCard(dev, true))}
-              </div>
-            ))}
-          </>
-        )}
+      <div className="device-tabbar" role="tablist">
+        {([
+          { id: 'devices', label: 'Devices' },
+          { id: 'automations', label: 'Automations' },
+          { id: 'workflows', label: 'Workflows' },
+          { id: 'sequences', label: 'Sequences' },
+        ] as { id: DeviceTab; label: string }[]).map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
+            className={`device-tab ${activeTab === t.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <AutomationPanel />
+      {activeTab === 'devices' && (
+        <div className="device-list scrollable">
+          {devices.length === 0 ? (
+            <div className="device-empty">
+              <svg viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+              <p>No paired devices.</p>
+            </div>
+          ) : (
+            <>
+              {/* Current server devices */}
+              {onCurrent.length > 0 && (
+                <>
+                  <div className="device-group-label">
+                    {currentServerId ? 'THIS SERVER' : 'PAIRED DEVICES'}
+                  </div>
+                  {onCurrent.map((dev) => renderCard(dev, false))}
+                </>
+              )}
+
+              {/* Devices from other servers */}
+              {[...otherGroups.entries()].map(([sid, devs]) => (
+                <div key={sid}>
+                  <div className="device-group-label device-group-label--foreign">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
+                      <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    {devs[0]?.serverName || 'OTHER SERVER'} · OFF-SERVER
+                  </div>
+                  {devs.map((dev) => renderCard(dev, true))}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'automations' && (
+        <div className="device-tab-content scrollable">
+          <AutomationPanel />
+        </div>
+      )}
+
+      {activeTab === 'workflows' && (
+        <div className="device-tab-content scrollable">
+          <WorkflowsPanel />
+        </div>
+      )}
+
+      {activeTab === 'sequences' && (
+        <div className="device-tab-content scrollable">
+          <SequencesPanel />
+        </div>
+      )}
     </div>
   );
 }

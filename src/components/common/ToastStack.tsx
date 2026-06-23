@@ -10,8 +10,8 @@ import './ToastStack.css';
 const MAX_VISIBLE = 3;
 
 /**
- * Minimal, non-blocking toast stack anchored to the BOTTOM-right corner, well
- * clear of the top account bar and map content. Each toast is a slim dark-glass
+ * Minimal, non-blocking toast stack anchored to the TOP-right corner, clear of
+ * map content. Each toast is a slim dark-glass
  * pill (small title + one short line) with a thin type-colored left accent.
  * Shop toasts keep a click-to-jump affordance. These are lightweight, ephemeral
  * confirmations only — detail lives in the Notifications tab / on the map.

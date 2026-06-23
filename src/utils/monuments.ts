@@ -904,6 +904,10 @@ export const MONUMENT_FEATURES: Record<string, Set<string>> = {
   diesel: new Set([
     'oil_rig_small', 'oil_rig_large',
   ]),
+  // Pump jacks (Crude Oil) operate at these large industrial monuments.
+  pump_jacks: new Set([
+    'power_plant', 'train_yard', 'water_treatment',
+  ]),
 };
 
 /** Resource keys that are placed on specific monuments via MONUMENT_FEATURES. */

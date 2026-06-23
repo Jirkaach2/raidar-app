@@ -133,28 +133,6 @@
 .wf-input:focus,
 .wf-textarea:focus { outline: none; border-color: var(--color-accent-dim); box-shadow: 0 0 0 2px var(--color-accent-glow); }
 
-.wf-select-wrap { position: relative; width: 100%; }
-.wf-select-chev {
-  position: absolute; right: 9px; top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  color: var(--color-text-muted); pointer-events: none;
-}
-.wf-select {
-  -webkit-appearance: none; -moz-appearance: none; appearance: none;
-  width: 100%;
-  padding: 9px 30px 9px 11px;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  font-size: 12px; font-family: inherit; cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.wf-select:hover { border-color: var(--color-border-strong); }
-.wf-select:focus { outline: none; border-color: var(--color-accent-dim); box-shadow: 0 0 0 2px var(--color-accent-glow); }
-.wf-select option { background: #1a1712; color: var(--color-text); }
-.wf-select optgroup { background: #14110d; color: var(--color-text-muted); font-weight: 700; }
-
 .wf-row { display: flex; align-items: center; gap: var(--space-sm); }
 .wf-row-wrap { flex-wrap: wrap; }
 .wf-grow { flex: 1; min-width: 130px; }

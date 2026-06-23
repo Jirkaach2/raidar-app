@@ -220,12 +220,12 @@ export default function MapCanvas() {
   return (
     <div
       ref={containerRef}
+      className="mapview__map-canvas"
       style={{
         width: '100%',
         height: '100%',
         position: 'relative',
         overflow: 'hidden',
-        background: 'var(--color-bg-deep)',
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -875,8 +875,10 @@ function CustomMapMarkers() {
               zIndex: isOpen ? 60 : 8,
             }}
           >
-            {/* Teardrop pin — click toggles the editor popup, drag moves it.
-                The pin's bottom tip is anchored exactly on the coordinate. */}
+            {/* Premium teardrop pin — glossy lens head with a kind-color sheen,
+                dark rim, grounding shadow, and a soft glow + halo when selected.
+                The bottom tip is anchored exactly on the coordinate; click opens
+                the editor, drag moves it. */}
             <div
               onMouseDown={(e) => { e.stopPropagation(); }}
               onClick={(e) => { e.stopPropagation(); setOpenId((id) => (id === m.id ? null : m.id)); }}
@@ -884,25 +886,48 @@ function CustomMapMarkers() {
               style={{
                 position: 'relative',
                 width: pinSize, height: pinSize, cursor: 'pointer',
-                filter: isOpen ? `drop-shadow(0 0 6px ${style.color})` : 'drop-shadow(0 2px 3px rgba(0,0,0,0.8))',
+                filter: isOpen
+                  ? `drop-shadow(0 0 7px ${style.color}) drop-shadow(0 3px 4px rgba(0,0,0,0.7))`
+                  : 'drop-shadow(0 3px 4px rgba(0,0,0,0.7))',
               }}
             >
+              {/* Selected halo ring (pulses subtly via the shared keyframe). */}
+              {isOpen && (
+                <span style={{
+                  position: 'absolute', left: '50%', top: '40%', transform: 'translate(-50%,-50%)',
+                  width: pinSize * 1.55, height: pinSize * 1.55, borderRadius: '50%',
+                  border: `1.5px solid ${style.color}`, opacity: 0.55, pointerEvents: 'none',
+                  animation: 'pulse-dot 1.6s ease-in-out infinite',
+                }} />
+              )}
+              {/* Grounding shadow beneath the tip so the pin reads as standing on the map. */}
+              <span style={{
+                position: 'absolute', left: '50%', bottom: -1.5 * sc, transform: 'translateX(-50%)',
+                width: pinSize * 0.55, height: pinSize * 0.2, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.5)', filter: 'blur(1.5px)', pointerEvents: 'none',
+              }} />
               <div style={{
                 width: '100%', height: '100%', borderRadius: '50% 50% 50% 0',
-                transform: 'rotate(-45deg)', background: style.color, border: '1.5px solid #0c0e12',
+                transform: 'rotate(-45deg)',
+                background: `linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.06) 38%, rgba(0,0,0,0.24) 100%), ${style.color}`,
+                border: '1.5px solid rgba(8,10,13,0.88)',
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.45), inset 0 -2px 3px rgba(0,0,0,0.32)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <span style={{ transform: 'rotate(45deg)', display: 'flex' }}>
-                  <Icon size={Math.round(11 * sc)} color="#0c0e12" strokeWidth={2.6} />
+                  <Icon size={Math.round(11 * sc)} color="#0c0e12" strokeWidth={2.7} />
                 </span>
               </div>
             </div>
             <span style={{
-              position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 1,
-              textAlign: 'center',
-              fontFamily: 'var(--font-mono)', fontSize: Math.max(5, 6 * sc), fontWeight: 700,
-              color: style.color, textShadow: '0 1px 2px rgba(0,0,0,1), 0 0 2px rgba(0,0,0,1)', whiteSpace: 'nowrap',
-              pointerEvents: 'none',
+              position: 'absolute', top: `calc(100% + ${Math.max(2, 3 * sc)}px)`, left: '50%', transform: 'translateX(-50%)',
+              maxWidth: Math.max(70, 92 * sc), overflow: 'hidden', textOverflow: 'ellipsis',
+              padding: `${Math.max(1, 1.5 * sc)}px ${Math.max(4, 5 * sc)}px`, borderRadius: 5,
+              background: 'rgba(10,12,16,0.82)', border: `1px solid ${style.color}55`,
+              backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+              fontFamily: 'var(--font-mono)', fontSize: Math.max(5, 6.2 * sc), fontWeight: 700, letterSpacing: 0.2,
+              color: style.color, textShadow: '0 1px 2px rgba(0,0,0,0.9)', whiteSpace: 'nowrap',
+              pointerEvents: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
             }}>{m.label}</span>
 
             {/* Editor popup — attached directly (no gap) so it stays hoverable/clickable. */}

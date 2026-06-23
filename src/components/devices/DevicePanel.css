@@ -26,6 +26,59 @@
   line-height: 1.45;
 }
 
+/* ── Sub-tab bar ── */
+.device-tabbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 6px);
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+}
+
+.device-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.device-tab:hover {
+  color: var(--color-text);
+  background: rgba(255,255,255,0.05);
+}
+
+.device-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(206,66,43,0.22), rgba(206,66,43,0.08));
+  border-color: var(--color-accent-dim, rgba(206,66,43,0.4));
+  box-shadow: 0 0 12px rgba(206,66,43,0.25), inset 0 0 0 1px rgba(206,66,43,0.15);
+  text-shadow: 0 0 10px rgba(206,66,43,0.4);
+}
+
+/* Tab content surface (shares scroll behaviour with the device list) */
+.device-tab-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .device-list {
   flex: 1;
   overflow-y: auto;

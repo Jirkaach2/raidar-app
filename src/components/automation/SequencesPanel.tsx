@@ -6,6 +6,7 @@ import {
 import { useSequenceStore, Sequence } from '../../stores/sequence-store';
 import { useDeviceStore, SmartDevice } from '../../stores/device-store';
 import { isCurrentServer } from '../../utils/server';
+import { Select, SelectOption } from '../ui/Select';
 import './SequencesPanel.css';
 
 /** Display label for a smart device — user override wins. */
@@ -235,16 +236,13 @@ function SequenceCard({ seq, switches, devices }: CardProps) {
               </div>
 
               {available.length > 0 && (
-                <select
-                  className="seq-add-switch"
+                <Select
+                  ariaLabel="Add switch"
+                  placeholder="+ Add switch…"
                   value=""
-                  onChange={(e) => { const v = Number(e.target.value); if (v) addSwitch(seq.id, g.id, v); }}
-                >
-                  <option value="">+ Add switch…</option>
-                  {available.map((d) => (
-                    <option key={d.entityId} value={d.entityId}>{deviceLabel(d, d.entityId)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => { const n = Number(v); if (n) addSwitch(seq.id, g.id, n); }}
+                  options={available.map((d): SelectOption => ({ value: d.entityId, label: deviceLabel(d, d.entityId) }))}
+                />
               )}
             </div>
           ))}
@@ -260,16 +258,18 @@ function SequenceCard({ seq, switches, devices }: CardProps) {
         <div className="seq-freeze__row">
           <label className="seq-field seq-field--grow">
             <span>Trigger alarm</span>
-            <select
-              className="seq-input"
+            <Select
+              ariaLabel="Trigger alarm"
               value={seq.freezeAlarmFilter ?? ''}
-              onChange={(e) => setFreeze(seq.id, e.target.value, seq.freezeCooldownSeconds ?? 5)}
-            >
-              <option value="">Any alarm</option>
-              {alarms.map((a) => (
-                <option key={a.entityId} value={deviceLabel(a, a.entityId)}>{deviceLabel(a, a.entityId)}</option>
-              ))}
-            </select>
+              onChange={(v) => setFreeze(seq.id, String(v), seq.freezeCooldownSeconds ?? 5)}
+              options={[
+                { value: '', label: 'Any alarm' },
+                ...alarms.map((a): SelectOption => ({
+                  value: deviceLabel(a, a.entityId),
+                  label: deviceLabel(a, a.entityId),
+                })),
+              ]}
+            />
           </label>
           <label className="seq-field">
             <span>Cooldown (s)</span>

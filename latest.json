@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.5",
-    "notes":  "Raidar 1.1.5: Player Lookup now pulls full live Rust stats (RustStats) with a richer card; offline/cross-server death notifications; Workflows \u0026 Sequences automation (turret flip-flop); Team Control Center gets a Leaderboard + summary cards; Notifications moved to their own tab with compact non-blocking toasts; Overlays + custom markers reworked with a global marker-size slider; event cards redesigned; and monument fixes (Ferry Terminal green card, Ranch is now a safe zone, Mining Outpost has no missions, Large Oil Rig needs only Red).",
-    "pub_date":  "2026-06-23T12:48:23Z",
+    "version":  "1.1.6",
+    "notes":  "Raidar 1.1.6: Player Lookup now correctly pulls full live Rust stats for public profiles (fixed the PRIVATE/UNSYNCED bug - Steam stopped exposing stat values in its XML, so we now fall through to RustStats); Workflows and Sequences are integrated into Smart Devices with new custom dropdowns; Pump Jacks added to monument markers (Power Plant, Train Yard, Water Treatment); live-map notifications moved back to the top-right; a new tactical background texture fills the space around the map; and the custom user map markers were reworked into premium glossy pins.",
+    "pub_date":  "2026-06-23T13:42:44Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnd5dUNIc3VEVXkyb3pyV3F3LzF1SCtENVh1QVpHeC8yMHVzcldpRTBRanhadVJWUk5DTUxJeU5kRzhKK1Z0c0dCeFZxdFA1bGtMVzdsaFg5N2UxakFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjE4ODIxCWZpbGU6UmFpZGFyXzEuMS41X3g2NC1zZXR1cC5leGUKUnBidDBpMXREeEh1bmkvSWJLYlJraXVrV3NhZmRwekFqR2JldjBXakhjTlBIdUs5OERnbjVxOE4rQllrd0IrOCtyNU5Sa0RCajNubWVBUmF5RmhSQkE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.5/Raidar_1.1.5_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjZQNVZ1cnFMdEYvejVNeUhqMis4ZjYyTFE0RkIvRjlMRHpWTzJrS0ZWcUg1bHRtbk51SEo3amJremtMb0gyU1M3Q0M3dmdPbmVjd0Zua1FnRDgxK2c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjIyMDc5CWZpbGU6UmFpZGFyXzEuMS42X3g2NC1zZXR1cC5leGUKZnIyV3ltb3Fuam9ISk1RVjE5ZWczUTY3SVpYTW9MNlh4NzllVzMzS2ROOS9pY1lyVFBGZEhBTnp4WUtYNHVvcG1JNWZlU1psQzRIdUhUVU5ZaU1JQnc9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.6/Raidar_1.1.6_x64-setup.exe"
                                          }
                   }
 }

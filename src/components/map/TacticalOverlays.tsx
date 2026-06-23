@@ -156,6 +156,18 @@ function getResourceIcon(iconType: string, color: string) {
           <path d="M10 11.5h4l-1 3h-2z" fill={color} stroke="none" />
         </svg>
       );
+    case 'pumpjack': // Oil pump jack — pivoting beam over a derrick base
+      return (
+        <svg {...common} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 8l16-3" />
+          <path d="M4 8l3 4" fill={`${color}22`} />
+          <circle cx="4" cy="8" r="1.4" fill={color} stroke="none" />
+          <path d="M20 5v5" />
+          <path d="M18 10h4" />
+          <path d="M9 11l3 9M15 11l-3 9" />
+          <line x1="7" y1="20" x2="17" y2="20" />
+        </svg>
+      );
     default:
       return (
         <svg {...common} fill="none" stroke={color} strokeWidth={sw}>
@@ -182,6 +194,7 @@ export const RESOURCE_ITEMS = [
   { key: 'basic_bp', name: 'Basic Blueprint Fragments', color: '#80d8ff', icon: 'bp' },
   { key: 'advanced_bp', name: 'Advanced Blueprint Fragments', color: '#29b6f6', icon: 'bp' },
   { key: 'diesel', name: 'Diesel', color: '#37474f', icon: 'diesel' },
+  { key: 'pump_jacks', name: 'Pump Jacks', color: '#c98a3c', icon: 'pumpjack' },
 ];
 
 /** A single overlay layer row with an icon, label and a sliding toggle switch.

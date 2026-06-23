@@ -251,33 +251,34 @@ pub async fn get_rust_member_stats(steam_id: String) -> Result<RustMemberStats, 
         .build()
         .map_err(|e| format!("client build failed: {}", e))?;
 
-    // 1. PRIMARY SOURCE: the Steam community stats XML endpoint. When the
-    //    player's game details are public this returns the COMPLETE set of
-    //    `<stat><name>X</name><value>Y</value></stat>` pairs, which we collect
-    //    generically into `all_stats`. The frontend renders its rich stat tiles
-    //    purely from this map, so it is essential that this path always fully
-    //    populates it when stats are readable. No value is ever invented — only
-    //    keys that actually exist in the XML are emitted.
+    // 1. PRIMARY SOURCE: the Steam community stats XML endpoint. Historically
+    //    this returned the COMPLETE set of `<stat><name>X</name><value>Y</value>
+    //    </stat>` pairs for public profiles. Steam has since largely STOPPED
+    //    exposing the numeric Rust stats here — for many fully-public profiles
+    //    the `<stats>` container now holds only `<hoursPlayed>0</hoursPlayed>`
+    //    with ZERO `<stat>` blocks (only `<achievements>` remain). Crucially we
+    //    must therefore decide whether to use this source based on whether it
+    //    actually yielded any `<stat>` blocks — NOT on the mere presence of the
+    //    `<stats>` container. Returning an all-zero "public" result here was the
+    //    root cause of public profiles showing "PRIVATE / UNSYNCED": the code
+    //    returned early before ever consulting the RustStats RPC fallback below.
+    //    No value is ever invented — only keys that actually exist are emitted.
     let xml_url = format!("https://steamcommunity.com/profiles/{}/stats/252490/?xml=1", steam_id);
     let xml_body = match client.get(&xml_url).send().await {
         Ok(resp) => resp.text().await.unwrap_or_default(),
         Err(_) => String::new(),
     };
 
-    let xml_permission_denied =
-        xml_body.contains("You do not have permission") || xml_body.contains("fatalerror");
-    let xml_has_stats = xml_body.contains("<stats>");
-
-    if !xml_body.is_empty() && !xml_permission_denied && xml_has_stats {
-        // Stats are public and readable — this is the authoritative, complete
-        // source. Populate the full map and derive the typed fields from it.
-        let all_stats = parse_all_stats(&xml_body);
-
-        let kills = all_stats.get("kill_player").copied().unwrap_or(0);
-        let deaths = all_stats.get("deaths").copied().unwrap_or(0);
-        let headshots = all_stats.get("headshot").copied().unwrap_or(0);
-        let bullet_fired = all_stats.get("bullet_fired").copied().unwrap_or(0);
-        let bullet_hit = all_stats.get("bullet_hit").copied().unwrap_or(0);
+    // Parse whatever `<stat>` blocks are present. We ONLY treat the XML as the
+    // authoritative source when it actually produced stat values; an empty map
+    // (the common modern case) falls through to the RustStats RPC below.
+    let xml_stats = parse_all_stats(&xml_body);
+    if !xml_stats.is_empty() {
+        let kills = xml_stats.get("kill_player").copied().unwrap_or(0);
+        let deaths = xml_stats.get("deaths").copied().unwrap_or(0);
+        let headshots = xml_stats.get("headshot").copied().unwrap_or(0);
+        let bullet_fired = xml_stats.get("bullet_fired").copied().unwrap_or(0);
+        let bullet_hit = xml_stats.get("bullet_hit").copied().unwrap_or(0);
 
         return Ok(RustMemberStats {
             kills,
@@ -286,31 +287,7 @@ pub async fn get_rust_member_stats(steam_id: String) -> Result<RustMemberStats, 
             bullet_fired,
             bullet_hit,
             privacy: "public".to_string(),
-            all_stats,
-        });
-    }
-
-    // 2a. ROBUSTNESS: even though the `<stats>` container check above didn't
-    //     pass, attempt to recover any individual `<stat>` blocks that may still
-    //     be present in whatever XML we received. If we do find a populated map
-    //     the profile's stats are effectively public, so emit the FULL map and
-    //     derive the typed summary fields from it (never inventing a value).
-    let recovered_stats = parse_all_stats(&xml_body);
-    if !recovered_stats.is_empty() {
-        let kills = recovered_stats.get("kill_player").copied().unwrap_or(0);
-        let deaths = recovered_stats.get("deaths").copied().unwrap_or(0);
-        let headshots = recovered_stats.get("headshot").copied().unwrap_or(0);
-        let bullet_fired = recovered_stats.get("bullet_fired").copied().unwrap_or(0);
-        let bullet_hit = recovered_stats.get("bullet_hit").copied().unwrap_or(0);
-
-        return Ok(RustMemberStats {
-            kills,
-            deaths,
-            headshots,
-            bullet_fired,
-            bullet_hit,
-            privacy: "public".to_string(),
-            all_stats: recovered_stats,
+            all_stats: xml_stats,
         });
     }
 
