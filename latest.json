@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.8",
-    "notes":  "Raidar 1.1.8: Simplified, bolder logo - a clean radar-scope mark - now applied consistently across the app titlebar, login screen, window/taskbar icon, web favicon and banner (previous versions only changed the asset files, not the in-app titlebar icon, which is why it didn\u0027t update).",
-    "pub_date":  "2026-06-23T14:15:53Z",
+    "version":  "1.1.9",
+    "notes":  "Raidar 1.1.9: The Discord companion bot has moved to new always-on infrastructure for better reliability. This update repoints the app at the new bot endpoint - no action needed; your linked servers and notifications keep working.",
+    "pub_date":  "2026-06-24T12:59:32Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdndBa2RiS0g1eXhQL1dMYjVVR054SVpxYW1pUkpFajd0SmxCcUgrNW9pNWY5QmlRYjlwUDRWSUFubjZOVGxZVnVFK2lLaThGOC93TVNpa2w3VnF2SFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjI0MTExCWZpbGU6UmFpZGFyXzEuMS44X3g2NC1zZXR1cC5leGUKT2V1L2J0RmZBTHhjTyt5cUdhak5YeGsxTmRvYXU4K1VRM25GQW9lazNpODRUc0ZKWkcwd0JFNjFBOUdhVzA4OCtxQmtoZGRYRzFpaGdKd01RbFJjREE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.8/Raidar_1.1.8_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjk1WHI4U2J2cUpITVNmKzNzM2Y2ZzhCVnZOYWJCQWZLWGtkZWJnaGJxNm1FZGhIZVdYenhVZ0w1WHdpMkUvaGFabUhaUWRDM2RsOVlnWUE0WU5HVXdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzA1OTQ5CWZpbGU6UmFpZGFyXzEuMS45X3g2NC1zZXR1cC5leGUKKzVHNFlOamdOZ3J3UTVqd1ZOZEZrTktVRlJMTE1raE9VMEVVOHFtNXMzRmk0bk4xSmRLbVo1ZlVwU3NodkVnQlc0QmJWZTJqS2c3ekV1U2VOOXBvQlE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.9/Raidar_1.1.9_x64-setup.exe"
                                          }
                   }
 }

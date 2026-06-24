@@ -5,8 +5,8 @@ use tauri::State;
 
 use crate::AppState;
 
-/// The Raidar Discord bot's public base URL (Caddy HTTPS reverse proxy).
-const BOT_BASE_URL: &str = "https://92.5.73.207.nip.io";
+/// The Raidar Discord bot's public base URL (Heroku, HTTPS auto-managed).
+const BOT_BASE_URL: &str = "https://salty-spire-70936-6c1b9945cfaf.herokuapp.com";
 
 /// HTTP client with a sane timeout so a slow/unreachable bot never hangs the UI.
 fn http_client() -> Result<reqwest::Client, String> {
