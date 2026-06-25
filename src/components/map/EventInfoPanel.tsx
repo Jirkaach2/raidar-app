@@ -4,6 +4,7 @@ import { useMapStore, MapMarker } from '../../stores/map-store';
 import { useEventsStore } from '../../stores/events-store';
 import { getGridCoordinate } from '../../utils/grid';
 import { getLootTable, lootIconUrl } from '../../utils/loot';
+import { LootTableView } from '../common/LootTableView';
 import './EventInfoPanel.css';
 
 /**
@@ -422,28 +423,11 @@ function EventLootPopup({ tableId, onClose }: { tableId: string; onClose: () => 
   if (!table) return null;
   return (
     <div className="eip-popup" onClick={(e) => { e.stopPropagation(); onClose(); }} onWheel={(e) => e.stopPropagation()}>
-      <div className="eip-popup__card scrollable" onClick={(e) => e.stopPropagation()}>
-        <div className="eip-popup__head">
-          <div className="eip-popup__title-row">
-            <h3 className="eip-popup__title">{table.name}</h3>
-            <button className="eip-popup__close" onClick={onClose}><X size={11} /></button>
-          </div>
-          {table.note && <div className="eip-popup__note">{table.note}</div>}
+      <div className="eip-popup__card scrollable" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="eip-popup__head" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="eip-popup__close" onClick={onClose}><X size={11} /></button>
         </div>
-        <div className="eip-popup__list">
-          {table.entries.map((e, i) => {
-            const icon = lootIconUrl(e.item);
-            return (
-              <div key={i} className={`eip-loot-entry${i % 2 ? '' : ' eip-loot-entry--alt'}`}>
-                <span className="eip-loot-entry__icon">
-                  {icon ? <img src={icon} alt="" width={20} height={20} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
-                </span>
-                <span className="eip-loot-entry__name">{e.item}{e.amount ? <span className="eip-loot-entry__amount"> {e.amount}</span> : null}</span>
-                <span className="eip-loot-entry__chance">{e.chance}</span>
-              </div>
-            );
-          })}
-        </div>
+        <LootTableView table={table} />
       </div>
     </div>
   );

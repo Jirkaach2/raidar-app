@@ -16,7 +16,8 @@ import { useRustMapsStore } from '../../stores/rustmaps-store';
 import { useCrateStore } from '../../stores/crate-store';
 import { useSettingsStore } from '../../stores/settings-store';
 import { Trash2, X, LockOpen, RotateCcw, Plus, Minus, Info, Flame, Home, Skull, Package, Pickaxe, Boxes, AlertTriangle, MapPin, DoorOpen, Moon, Footprints, Plane, Flag, Move, Droplet, Mountain } from 'lucide-react';
-import { getLootTable, lootIconUrl } from '../../utils/loot';
+import { getLootTable } from '../../utils/loot';
+import { LootTableView } from '../common/LootTableView';
 import './CrateCtrl.css';
 
 /**
@@ -1555,24 +1556,11 @@ function CrateLootPopup({ tableId, onClose }: { tableId: string; onClose: () => 
   if (!table) return null;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }}>
-      <div onClick={(e) => e.stopPropagation()} className="scrollable" style={{ width: 320, maxWidth: '90%', maxHeight: '80%', overflowY: 'auto', background: 'rgba(14,16,21,0.99)', border: '1px solid rgba(245,196,81,0.4)', borderRadius: 12, boxShadow: '0 24px 70px rgba(0,0,0,0.75)', fontFamily: 'var(--font-mono)', color: '#e8e2d9' }}>
-        <div style={{ position: 'sticky', top: 0, padding: '13px 16px', background: 'rgba(14,16,21,0.99)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#f5c451' }}>{table.name}</h3>
-            {table.note && <div style={{ fontSize: 9, color: '#8b857c', marginTop: 2 }}>{table.note}</div>}
-          </div>
+      <div onClick={(e) => e.stopPropagation()} className="scrollable" style={{ width: 320, maxWidth: '90%', maxHeight: '80%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'rgba(14,16,21,0.99)', border: '1px solid rgba(245,196,81,0.4)', borderRadius: 12, boxShadow: '0 24px 70px rgba(0,0,0,0.75)', fontFamily: 'var(--font-mono)', color: '#e8e2d9' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <button onClick={onClose} style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 5, color: '#fff', cursor: 'pointer' }}><X size={11} /></button>
         </div>
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {table.entries.map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, background: 'rgba(255,255,255,0.03)', borderRadius: 5, padding: '5px 8px' }}>
-              <img src={lootIconUrl(e.item) || undefined} alt="" style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
-              <span style={{ flex: 1, color: '#e8e2d9' }}>{e.item}</span>
-              {e.amount && <span style={{ color: '#8b857c', fontSize: 10 }}>{e.amount}</span>}
-              <span style={{ color: '#f5c451', fontWeight: 700, minWidth: 42, textAlign: 'right' }}>{e.chance}</span>
-            </div>
-          ))}
-        </div>
+        <LootTableView table={table} />
       </div>
     </div>
   );

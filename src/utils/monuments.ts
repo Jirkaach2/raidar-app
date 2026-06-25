@@ -183,6 +183,8 @@ const LOCAL_MONUMENT_IMAGES: Record<string, string> = {
   oil_rig_large: '/images/monuments/oil_rig_large.webp',
   oil_rig_small: '/images/monuments/oil_rig_small.webp',
   outpost: '/images/monuments/outpost.webp',
+  bandit_camp: '/images/monuments/bandit_camp.webp',
+  ranch: '/images/monuments/ranch.jpg',
   power_plant: '/images/monuments/power_plant.webp',
   radtown: '/images/monuments/radtown.jpg',
   supermarket: '/images/monuments/supermarket.jfif',
@@ -359,7 +361,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   radtown: {
     key: 'radtown', name: 'RADTOWN', imageSlug: 'radtown',
-    type: 'Roadside', tier: '1/2/3', safezone: false, radiation: 'medium', radMedian: 0, radMax: 26,
+    type: 'Roadside', tier: '2', safezone: false, radiation: 'medium', radMedian: 0, radMax: 26,
     recyclers: 1, barrels: 15, crateCount: 29,
     crates: [{ loot: 'military', label: 'Military Crate', count: '~2' }, { loot: 'basic', label: 'Basic Crate', count: 'several' }],
     scientists: [],
@@ -492,7 +494,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   abandoned_military_base: {
     key: 'abandoned_military_base', name: 'ABANDONED MILITARY BASE', imageSlug: 'desert-military-base',
-    type: 'Medium', tier: '1/2/3', safezone: false, radiation: 'none',
+    type: 'Medium', tier: '2', safezone: false, radiation: 'none',
     recyclers: 0, barrels: 4, crateCount: 9,
     crates: [{ loot: 'military', label: 'Military Crate', count: '~2' }, { loot: 'basic', label: 'Basic Crate', count: 'several' }],
     scientists: [{ loot: 'scientist', label: 'Military Base Scientist (LR-300/MP5)', count: 7 }],
@@ -507,7 +509,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   giant_excavator: {
     key: 'giant_excavator', name: 'GIANT EXCAVATOR PIT', imageSlug: 'excavator',
-    type: 'Large', tier: '1/2/3', safezone: false, radiation: 'low', radMedian: 11, radMax: 11,
+    type: 'Large', tier: '2', safezone: false, radiation: 'low', radMedian: 11, radMax: 11,
     recyclers: 1, crateCount: 18,
     crates: [{ loot: 'military', label: 'Military Crate', count: '~1' }, { loot: 'basic', label: 'Basic / Food Crate', count: 'several' }],
     scientists: [{ loot: 'scientist', label: 'Excavator Scientist', count: 18 }],
@@ -588,7 +590,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   missile_silo: {
     key: 'missile_silo', name: 'MISSILE SILO', imageSlug: 'nuclear-missile-silo',
-    type: 'Medium', tier: '2/3', safezone: false, radiation: 'high', radMedian: 26, radMax: 81,
+    type: 'Medium', tier: '3', safezone: false, radiation: 'high', radMedian: 26, radMax: 81,
     recyclers: 0, crateCount: 35,
     crates: [
       { loot: 'elite', label: 'Elite Crate', count: 'in silo' },
@@ -700,7 +702,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   ferry_terminal: {
     key: 'ferry_terminal', name: 'FERRY TERMINAL', imageSlug: 'ferry-terminal',
-    type: 'Oceanside', tier: '1/2', safezone: false, radiation: 'none',
+    type: 'Oceanside', tier: '1', safezone: false, radiation: 'none',
     recyclers: 1, barrels: 32, crateCount: 11,
     crates: [{ loot: 'military', label: 'Military Crate', count: '~1' }, { loot: 'basic', label: 'Basic Crate', count: 'several' }],
     scientists: [],
@@ -713,7 +715,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   jungle_ziggurat: {
     key: 'jungle_ziggurat', name: 'JUNGLE ZIGGURAT', imageSlug: 'jungle-ziggurat',
-    type: 'Small', tier: '1/2/3', safezone: false, radiation: 'none',
+    type: 'Small', tier: '1', safezone: false, radiation: 'none',
     recyclers: 1, barrels: 6, crateCount: 8,
     crates: [{ loot: 'basic', label: 'Basic Crate', count: '~8' }],
     scientists: [],

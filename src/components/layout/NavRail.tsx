@@ -117,9 +117,14 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
         aria-label="Monuments"
       >
         <svg viewBox="0 0 24 24">
-          <polygon points="12 2 21 20 3 20" />
-          <line x1="8.5" y1="13" x2="15.5" y2="13" />
-          <line x1="12" y1="2" x2="12" y2="20" />
+          <path d="M12 3 3 8h18z" />
+          <path d="M4 8h16" />
+          <path d="M6 8v10" />
+          <path d="M10 8v10" />
+          <path d="M14 8v10" />
+          <path d="M18 8v10" />
+          <path d="M3 18h18" />
+          <path d="M2 21h20" />
         </svg>
       </button>
 

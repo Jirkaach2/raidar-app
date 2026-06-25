@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { useMapStore } from '../../stores/map-store';
 import { getMonumentInfo, getMonumentName, getMonumentImageUrl, getItemIcon, getRequiredCards, CardType, PuzzleItem, PuzzleStep } from '../../utils/monuments';
-import { getLootTable, lootIconUrl } from '../../utils/loot';
+import { getLootTable } from '../../utils/loot';
+import { LootTableView } from '../common/LootTableView';
 import { getMissionsForMonument, missionIcon, rewardIcon, Mission } from '../../utils/missions';
 import './MonumentInfoPanel.css';
 
@@ -213,28 +214,11 @@ function LootTablePopup({ tableId, onClose }: { tableId: string; onClose: () => 
   if (!table) return null;
   return (
     <div className="mip-popup" onClick={onClose}>
-      <div className="mip-popup__card scrollable" onClick={(e) => e.stopPropagation()}>
-        <div className="mip-popup__head">
-          <div className="mip-popup__title-row">
-            <h3 className="mip-popup__title">{table.name}</h3>
-            <button className="mip-popup__close" onClick={onClose}><X size={11} /></button>
-          </div>
-          {table.note && <div className="mip-popup__note">{table.note}</div>}
+      <div className="mip-popup__card scrollable" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="mip-popup__head" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="mip-popup__close" onClick={onClose}><X size={11} /></button>
         </div>
-        <div className="mip-popup__list">
-          {table.entries.map((e, i) => {
-            const icon = lootIconUrl(e.item);
-            return (
-              <div key={i} className={`mip-loot-entry${i % 2 ? '' : ' mip-loot-entry--alt'}`}>
-                <span className="mip-loot-entry__icon">
-                  {icon ? <img src={icon} alt="" width={20} height={20} onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : null}
-                </span>
-                <span className="mip-loot-entry__name">{e.item}{e.amount ? <span className="mip-loot-entry__amount"> {e.amount}</span> : null}</span>
-                <span className="mip-loot-entry__chance">{e.chance}</span>
-              </div>
-            );
-          })}
-        </div>
+        <LootTableView table={table} />
       </div>
     </div>
   );
