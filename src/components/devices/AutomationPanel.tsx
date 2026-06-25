@@ -12,6 +12,7 @@ import {
   Flame, Plane, Waves, Store, ChevronRight, Lightbulb, Bell,
   ShieldAlert, PackageOpen, Boxes, Filter,
 } from 'lucide-react';
+import { Select, SelectOption } from '@/components/ui/Select';
 import './AutomationPanel.css';
 
 type IconType = typeof Zap;
@@ -302,31 +303,27 @@ export function AutomationPanel() {
             <span className="auto-step-num">1</span>
             <label className="auto-label">CONTROL WHICH SWITCH</label>
           </div>
-          <div className="auto-select-wrap">
-            <select className="auto-select" value={entityId ?? ''} onChange={(e) => setEntityId(Number(e.target.value) || null)}>
-              <option value="">Select a switch…</option>
-              {switches.map((s) => (
-                <option key={s.entityId} value={s.entityId}>{s.customName || s.entityName} (#{s.entityId})</option>
-              ))}
-            </select>
-            <ChevronRight size={14} className="auto-select-chev" />
-          </div>
+          <Select
+            ariaLabel="Switch"
+            placeholder="Select a switch…"
+            value={entityId ?? ''}
+            onChange={(v) => setEntityId(Number(v) || null)}
+            options={switches.map((s): SelectOption => ({ value: s.entityId, label: `${s.customName || s.entityName} (#${s.entityId})` }))}
+          />
 
           {/* Step 2 — Trigger */}
           <div className="auto-step">
             <span className="auto-step-num">2</span>
             <label className="auto-label">WHEN THIS HAPPENS</label>
           </div>
-          <div className="auto-select-wrap">
-            <select className="auto-select" value={trigger} onChange={(e) => setTrigger(e.target.value as AutomationTrigger)}>
-              {TRIGGER_GROUPS.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.triggers.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                </optgroup>
-              ))}
-            </select>
-            <ChevronRight size={14} className="auto-select-chev" />
-          </div>
+          <Select
+            ariaLabel="Trigger"
+            value={trigger}
+            onChange={(v) => setTrigger(v as AutomationTrigger)}
+            options={TRIGGER_GROUPS.flatMap((g) =>
+              g.triggers.map((t): SelectOption => ({ value: t.key, label: t.label, group: g.label })),
+            )}
+          />
           {TRIGGER_BY_KEY[trigger] && (
             <span className="auto-trigger-desc">{TRIGGER_BY_KEY[trigger].desc}</span>
           )}
@@ -335,13 +332,17 @@ export function AutomationPanel() {
             <div className="auto-row">
               <input className="auto-num" type="number" min={1} value={intervalValue}
                 onChange={(e) => setIntervalValue(Math.max(1, parseInt(e.target.value) || 1))} />
-              <div className="auto-select-wrap auto-unit">
-                <select className="auto-select" value={intervalUnit} onChange={(e) => setIntervalUnit(e.target.value as any)}>
-                  <option value="s">seconds</option>
-                  <option value="m">minutes</option>
-                  <option value="h">hours</option>
-                </select>
-                <ChevronRight size={14} className="auto-select-chev" />
+              <div className="auto-unit">
+                <Select
+                  ariaLabel="Interval unit"
+                  value={intervalUnit}
+                  onChange={(v) => setIntervalUnit(v as 's' | 'm' | 'h')}
+                  options={[
+                    { value: 's', label: 'seconds' },
+                    { value: 'm', label: 'minutes' },
+                    { value: 'h', label: 'hours' },
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -361,15 +362,13 @@ export function AutomationPanel() {
                 <span className="auto-warn"><ShieldAlert size={13} /> Pair a Storage Monitor on a TC or box to use this trigger.</span>
               ) : (
                 <>
-                  <div className="auto-select-wrap">
-                    <select className="auto-select" value={monitorId ?? ''} onChange={(e) => setMonitorId(Number(e.target.value) || null)}>
-                      <option value="">Select a storage monitor…</option>
-                      {monitors.map((m) => (
-                        <option key={m.entityId} value={m.entityId}>{m.customName || m.entityName} (#{m.entityId})</option>
-                      ))}
-                    </select>
-                    <ChevronRight size={14} className="auto-select-chev" />
-                  </div>
+                  <Select
+                    ariaLabel="Storage monitor"
+                    placeholder="Select a storage monitor…"
+                    value={monitorId ?? ''}
+                    onChange={(v) => setMonitorId(Number(v) || null)}
+                    options={monitors.map((m): SelectOption => ({ value: m.entityId, label: `${m.customName || m.entityName} (#${m.entityId})` }))}
+                  />
 
                   {trigger === 'upkeep_below' && (
                     <div className="auto-row">
@@ -381,12 +380,15 @@ export function AutomationPanel() {
 
                   {isItemTrigger(trigger) && (
                     <div className="auto-row auto-row-item">
-                      <div className="auto-select-wrap auto-item-select">
+                      <div className="auto-item-select">
                         {itemIcon(itemId) && <img className="auto-item-icon" src={itemIcon(itemId)} alt="" />}
-                        <select className="auto-select has-icon" value={itemId} onChange={(e) => setItemId(Number(e.target.value))}>
-                          {COMMON_ITEMS.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
-                        </select>
-                        <ChevronRight size={14} className="auto-select-chev" />
+                        <Select
+                          ariaLabel="Item"
+                          className="auto-item-dropdown"
+                          value={itemId}
+                          onChange={(v) => setItemId(Number(v))}
+                          options={COMMON_ITEMS.map((it): SelectOption => ({ value: it.id, label: it.name }))}
+                        />
                       </div>
                       <input className="auto-num" type="number" min={0} value={itemQty}
                         onChange={(e) => setItemQty(Math.max(0, parseInt(e.target.value) || 0))} />
@@ -400,15 +402,18 @@ export function AutomationPanel() {
           {trigger === 'smart_alarm' && (
             <div className="auto-alarm-filter">
               {alarms.length > 0 ? (
-                <div className="auto-select-wrap">
-                  <select className="auto-select" value={alarmFilter} onChange={(e) => setAlarmFilter(e.target.value)}>
-                    <option value="">Any Smart Alarm</option>
-                    {alarms.map((al) => (
-                      <option key={al.entityId} value={al.customName || al.entityName}>{al.customName || al.entityName}</option>
-                    ))}
-                  </select>
-                  <ChevronRight size={14} className="auto-select-chev" />
-                </div>
+                <Select
+                  ariaLabel="Smart alarm"
+                  value={alarmFilter}
+                  onChange={(v) => setAlarmFilter(String(v))}
+                  options={[
+                    { value: '', label: 'Any Smart Alarm' },
+                    ...alarms.map((al): SelectOption => ({
+                      value: al.customName || al.entityName,
+                      label: al.customName || al.entityName,
+                    })),
+                  ]}
+                />
               ) : (
                 <input className="auto-text" type="text" placeholder="Match alarm title (blank = any)"
                   value={alarmFilter} onChange={(e) => setAlarmFilter(e.target.value)} />
@@ -443,12 +448,12 @@ export function AutomationPanel() {
             <span className="auto-step-num"><Filter size={11} /></span>
             <label className="auto-label">ONLY IF (OPTIONAL)</label>
           </div>
-          <div className="auto-select-wrap">
-            <select className="auto-select" value={condition} onChange={(e) => setCondition(e.target.value as ConditionType)}>
-              {COND_OPTIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-            </select>
-            <ChevronRight size={14} className="auto-select-chev" />
-          </div>
+          <Select
+            ariaLabel="Condition"
+            value={condition}
+            onChange={(v) => setCondition(v as ConditionType)}
+            options={COND_OPTIONS.map((c): SelectOption => ({ value: c.key, label: c.label }))}
+          />
 
           {condition !== 'none' && (
             <div className="auto-monitor-block">
@@ -458,15 +463,13 @@ export function AutomationPanel() {
                 <>
                   {/* Reuse the same monitor unless a monitor trigger already set one */}
                   {!isMonitorTrigger(trigger) && (
-                    <div className="auto-select-wrap">
-                      <select className="auto-select" value={monitorId ?? ''} onChange={(e) => setMonitorId(Number(e.target.value) || null)}>
-                        <option value="">Read from which monitor…</option>
-                        {monitors.map((m) => (
-                          <option key={m.entityId} value={m.entityId}>{m.customName || m.entityName} (#{m.entityId})</option>
-                        ))}
-                      </select>
-                      <ChevronRight size={14} className="auto-select-chev" />
-                    </div>
+                    <Select
+                      ariaLabel="Read from monitor"
+                      placeholder="Read from which monitor…"
+                      value={monitorId ?? ''}
+                      onChange={(v) => setMonitorId(Number(v) || null)}
+                      options={monitors.map((m): SelectOption => ({ value: m.entityId, label: `${m.customName || m.entityName} (#${m.entityId})` }))}
+                    />
                   )}
 
                   {(condition === 'upkeep_below' || condition === 'upkeep_above') && (
@@ -479,12 +482,15 @@ export function AutomationPanel() {
 
                   {(condition === 'item_below' || condition === 'item_above') && (
                     <div className="auto-row auto-row-item">
-                      <div className="auto-select-wrap auto-item-select">
+                      <div className="auto-item-select">
                         {itemIcon(condItemId) && <img className="auto-item-icon" src={itemIcon(condItemId)} alt="" />}
-                        <select className="auto-select has-icon" value={condItemId} onChange={(e) => setCondItemId(Number(e.target.value))}>
-                          {COMMON_ITEMS.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
-                        </select>
-                        <ChevronRight size={14} className="auto-select-chev" />
+                        <Select
+                          ariaLabel="Condition item"
+                          className="auto-item-dropdown"
+                          value={condItemId}
+                          onChange={(v) => setCondItemId(Number(v))}
+                          options={COMMON_ITEMS.map((it): SelectOption => ({ value: it.id, label: it.name }))}
+                        />
                       </div>
                       <input className="auto-num" type="number" min={0} value={condItemQty}
                         onChange={(e) => setCondItemQty(Math.max(0, parseInt(e.target.value) || 0))} />

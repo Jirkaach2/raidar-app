@@ -45,6 +45,8 @@ export interface Sequence {
 interface SequenceState {
   sequences: Sequence[];
   add: (name: string) => void;
+  /** Additive preset helper: create a sequence pre-seeded with named groups. Returns the new id. */
+  addPreset: (name: string, groupNames: string[]) => string;
   remove: (id: string) => void;
   update: (id: string, data: Partial<Sequence>) => void;
   start: (id: string, intervalSeconds?: number) => void;
@@ -88,6 +90,29 @@ export const useSequenceStore = create<SequenceState>()(
         };
         return { sequences: [...s.sequences, seq] };
       }),
+
+      addPreset: (name, groupNames) => {
+        const srv = getCurrentServer();
+        const id = uid('seq');
+        const seq: Sequence = {
+          id,
+          name: name.trim() || 'New Rotation',
+          groups: groupNames.map((gn, i) => ({
+            id: uid('grp'),
+            name: gn.trim() || `Group ${i + 1}`,
+            entityIds: [],
+          })),
+          intervalSeconds: 30,
+          running: false,
+          activeGroupIndex: 0,
+          freezeCooldownSeconds: 5,
+          serverId: srv?.id,
+          serverName: srv?.name,
+          createdAt: Date.now(),
+        };
+        set((s) => ({ sequences: [...s.sequences, seq] }));
+        return id;
+      },
 
       remove: (id) => set((s) => ({ sequences: s.sequences.filter((x) => x.id !== id) })),
 

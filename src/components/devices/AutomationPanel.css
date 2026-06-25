@@ -77,23 +77,7 @@
 .auto-step-num svg { width: 11px; height: 11px; }
 .auto-label { font-size: 9px; font-weight: 800; letter-spacing: 0.7px; color: var(--color-text-muted); }
 
-/* Styled selects — custom chevron, no native arrow */
-.auto-select-wrap { position: relative; width: 100%; }
-.auto-select-chev {
-  position: absolute; right: 9px; top: 50%; transform: translateY(-50%) rotate(90deg);
-  color: var(--color-text-muted); pointer-events: none;
-}
-.auto-select {
-  -webkit-appearance: none; -moz-appearance: none; appearance: none;
-  width: 100%; padding: 9px 30px 9px 11px; border-radius: 8px;
-  background: rgba(0,0,0,0.45); border: 1px solid var(--color-border); color: var(--color-text);
-  font-size: 12px; font-family: inherit; cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.auto-select:hover { border-color: var(--color-border-strong); }
-.auto-select:focus { outline: none; border-color: rgba(245,196,81,0.55); box-shadow: 0 0 0 2px rgba(245,196,81,0.15); }
-.auto-select option { background: #1a1712; color: var(--color-text); }
-.auto-select optgroup { background: #14110d; color: var(--color-text-muted); font-weight: 700; }
+/* Styled selects */
 
 .auto-trigger-desc { font-size: 10px; color: var(--color-text-muted); font-style: italic; margin-top: -2px; padding-left: 2px; }
 
@@ -120,9 +104,9 @@
 .auto-warn { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: #e8b97a; line-height: 1.4; }
 .auto-warn svg { flex-shrink: 0; }
 .auto-row-item { gap: 8px; }
-.auto-item-select { flex: 1; }
-.auto-item-select .auto-select.has-icon { padding-left: 32px; }
-.auto-item-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6)); }
+.auto-item-select { position: relative; flex: 1; }
+.auto-item-select .auto-item-dropdown .rust-select__trigger { padding-left: 32px; }
+.auto-item-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; object-fit: contain; pointer-events: none; z-index: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6)); }
 
 /* Action button group */
 .auto-action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }

@@ -12,6 +12,7 @@ import {
   Workflow as WorkflowIcon, Plus, Trash2, Copy, Pencil, X, Power, ChevronRight,
   ChevronUp, ChevronDown, Zap, MessageSquare, Send, Timer, GitBranch, Filter,
   Repeat, Sparkles, Clock, Moon, Sun, Users, Bell, ToggleRight, ShieldAlert, Radio, Globe,
+  HelpCircle,
 } from 'lucide-react';
 import { Select, SelectOption } from '@/components/ui/Select';
 import './WorkflowsPanel.css';
@@ -82,16 +83,16 @@ const ACTION_OPTIONS: { key: WorkflowActionType; label: string; Icon: IconType }
   { key: 'team_chat', label: 'Team chat', Icon: MessageSquare },
   { key: 'discord', label: 'Discord', Icon: Send },
   { key: 'wait', label: 'Wait', Icon: Timer },
-  { key: 'trigger_workflow', label: 'Run workflow', Icon: GitBranch },
+  { key: 'trigger_workflow', label: 'Run another rule', Icon: GitBranch },
 ];
 
 const triggerNeedsTeammate = (t: WorkflowTrigger) => t === 'specific_teammate_online' || t === 'specific_teammate_offline';
 const triggerNeedsUpkeep = (t: WorkflowTrigger) => t === 'upkeep_low' || t === 'upkeep_restored';
 
-/** A blank editable draft used by the "New workflow" / edit flow. */
+/** A blank editable draft used by the "New rule" / edit flow. */
 function emptyDraft(): WorkflowDraft {
   return {
-    name: 'New Workflow',
+    name: 'New Rule',
     enabled: true,
     trigger: 'night_start',
     triggerParams: {},
@@ -133,6 +134,7 @@ export function WorkflowsPanel() {
   const [draft, setDraft] = useState<WorkflowDraft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const messageRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   const openNew = () => { setEditingId(null); setDraft(emptyDraft()); setShowTemplates(false); };
@@ -201,7 +203,7 @@ export function WorkflowsPanel() {
     if (!draft) return;
     const clean: WorkflowDraft = {
       ...draft,
-      name: draft.name.trim() || 'Untitled Workflow',
+      name: draft.name.trim() || 'Untitled Rule',
       autoReverse: REVERSIBLE.includes(draft.trigger) ? draft.autoReverse : false,
       serverId: draft.serverId ?? srv?.id,
       serverName: draft.serverName ?? srv?.name,
@@ -214,41 +216,67 @@ export function WorkflowsPanel() {
   return (
     <div className="wf-panel">
       <div className="wf-head">
-        <h3><WorkflowIcon size={15} /> WORKFLOWS</h3>
+        <div className="wf-head-title">
+          <h3><WorkflowIcon size={15} /> RULES</h3>
+          <span className="wf-tagline">When this happens, do that.</span>
+        </div>
         <div className="wf-head-right">
           {mine.length > 0 && (
             <span className="wf-count">{mine.filter((w) => w.enabled).length} active{mine.length > mine.filter((w) => w.enabled).length ? ` · ${mine.length - mine.filter((w) => w.enabled).length} off` : ''}</span>
           )}
           {!draft && (
             <>
+              <button className={`wf-btn-ghost ${showGuide ? 'is-on' : ''}`} onClick={() => setShowGuide((v) => !v)} title="How rules work">
+                <HelpCircle size={13} /> How it works
+              </button>
               <button className="wf-btn-ghost" onClick={() => setShowTemplates((v) => !v)}>
-                <Sparkles size={13} /> Templates
+                <Sparkles size={13} /> Use a template
               </button>
               <button className="wf-btn-accent" onClick={openNew}>
-                <Plus size={13} /> New Workflow
+                <Plus size={13} /> New Rule
               </button>
             </>
           )}
         </div>
       </div>
 
+      {/* How it works */}
+      {showGuide && !draft && (
+        <div className="wf-guide">
+          <div className="wf-guide-icon"><HelpCircle size={16} /></div>
+          <div className="wf-guide-body">
+            <strong>What's a Rule?</strong>
+            <p>A rule watches for <b>one trigger</b> (nightfall, a smart alarm, a teammate coming online…), checks any <b>conditions</b> you set, then runs an ordered list of <b>actions</b> — flip switches, post to team chat, ping Discord, wait, or run another rule.</p>
+            <p className="wf-guide-eg"><b>Example:</b> <i>When a smart alarm fires → turn ON the flood lights → post "🚨 Raid!" to team chat.</i></p>
+          </div>
+        </div>
+      )}
+
       {/* Template picker */}
       {showTemplates && !draft && (
         <div className="wf-templates">
-          {WORKFLOW_TEMPLATES.map((t) => (
-            <button key={t.key} className="wf-template" onClick={() => openTemplate(t.build)}>
-              <span className="wf-template-name"><Sparkles size={12} /> {t.name}</span>
-              <span className="wf-template-desc">{t.description}</span>
-            </button>
-          ))}
+          <span className="wf-templates-label">START FROM A PRESET</span>
+          <div className="wf-templates-grid">
+            {WORKFLOW_TEMPLATES.map((t) => (
+              <button key={t.key} className="wf-template" onClick={() => openTemplate(t.build)}>
+                <span className="wf-template-name"><Sparkles size={12} /> {t.name}</span>
+                <span className="wf-template-desc">{t.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Empty state */}
       {mine.length === 0 && !draft && (
         <div className="wf-empty">
-          <WorkflowIcon size={22} />
-          <p>Build a <b>workflow</b> to chain automations: pick a trigger, gate it with conditions, then run an ordered list of actions — toggle switches, post to team chat, ping Discord, wait, or fire another workflow.</p>
+          <div className="wf-empty-icon"><WorkflowIcon size={26} /></div>
+          <h4>No rules yet</h4>
+          <p>A <b>rule</b> chains automations: pick a trigger, gate it with conditions, then run actions — toggle switches, post to team chat, ping Discord, wait, or fire another rule.</p>
+          <div className="wf-empty-actions">
+            <button className="wf-btn-accent" onClick={openNew}><Plus size={13} /> Create your first rule</button>
+            <button className="wf-btn-ghost" onClick={() => setShowTemplates(true)}><Sparkles size={13} /> Use a template</button>
+          </div>
         </div>
       )}
 
@@ -256,14 +284,14 @@ export function WorkflowsPanel() {
       {draft && (
         <div className="wf-editor">
           <div className="wf-editor-head">
-            <span>{editingId ? 'Edit workflow' : 'New workflow'}</span>
+            <span>{editingId ? 'Edit rule' : 'New rule'}</span>
             <button className="wf-icon-btn" onClick={closeEditor} aria-label="Close"><X size={14} /></button>
           </div>
 
           <label className="wf-field">
             <span className="wf-label">NAME</span>
             <input className="wf-input" type="text" value={draft.name}
-              onChange={(e) => patch({ name: e.target.value })} placeholder="Workflow name" />
+              onChange={(e) => patch({ name: e.target.value })} placeholder="Rule name" />
           </label>
 
           {/* Trigger */}
@@ -379,7 +407,7 @@ export function WorkflowsPanel() {
           {/* Conditions */}
           <div className="wf-section">
             <span className="wf-section-title"><Filter size={12} /> ONLY IF (CONDITIONS)</span>
-            {draft.conditions.length === 0 && <span className="wf-hint">No conditions — the workflow always runs when triggered.</span>}
+            {draft.conditions.length === 0 && <span className="wf-hint">No conditions — the rule always runs when triggered.</span>}
             {draft.conditions.map((c, idx) => (
               <div key={c.id} className="wf-item">
                 <div className="wf-item-main">
@@ -492,7 +520,7 @@ export function WorkflowsPanel() {
                     <div className="wf-grow">
                       <Select
                         ariaLabel="Target workflow"
-                        placeholder="Select a workflow…"
+                        placeholder="Select a rule…"
                         value={a.targetWorkflowId ?? ''}
                         onChange={(v) => updateAction(a.id, { targetWorkflowId: (v as string) || undefined })}
                         options={mine.filter((w) => w.id !== editingId).map((w): SelectOption => ({ value: w.id, label: w.name }))}
@@ -514,7 +542,7 @@ export function WorkflowsPanel() {
           <div className="wf-editor-actions">
             <button className="wf-cancel" onClick={closeEditor}>Cancel</button>
             <button className="wf-save" onClick={save} disabled={draft.actions.length === 0}>
-              <Plus size={13} /> {editingId ? 'Save changes' : 'Create workflow'}
+              <Plus size={13} /> {editingId ? 'Save changes' : 'Create rule'}
             </button>
           </div>
         </div>

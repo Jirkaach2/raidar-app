@@ -14,6 +14,7 @@
 }
 
 /* ── Header ─────────────────────────────────────────────── */
+.seq-head { display: flex; flex-direction: column; gap: var(--space-xs); }
 .seq-head__title {
   display: flex;
   align-items: center;
@@ -34,6 +35,8 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
+.seq-head__actions { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); flex-wrap: wrap; }
+.seq-btn--ghost.is-on { color: var(--color-accent); border-color: var(--color-accent-dim); background: var(--color-accent-glow); }
 
 /* ── Explainer ──────────────────────────────────────────── */
 .seq-explain {
@@ -50,6 +53,9 @@
 .seq-explain__icon { flex-shrink: 0; color: var(--color-accent); margin-top: 2px; }
 .seq-explain strong { color: var(--color-text); }
 .seq-explain b { color: var(--color-accent); }
+.seq-explain__eg { display: block; margin-top: 6px; color: var(--color-text-dim); }
+.seq-explain__eg b { color: var(--color-accent); }
+.seq-explain__eg i { font-style: italic; }
 
 /* ── Create row ─────────────────────────────────────────── */
 .seq-create { display: flex; gap: var(--space-sm); }
@@ -131,13 +137,27 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-3xl) var(--space-lg);
+  padding: var(--space-2xl) var(--space-lg);
   text-align: center;
   color: var(--color-text-dim);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-lg);
 }
-.seq-empty p { margin: 0; font-size: 12px; max-width: 380px; line-height: 1.5; }
+.seq-empty__icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin-bottom: 4px;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-glow);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-accent);
+}
+.seq-empty h4 {
+  margin: 0; font-family: var(--font-display);
+  font-size: 14px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text);
+}
+.seq-empty p { margin: 0; font-size: 12px; max-width: 400px; line-height: 1.5; }
+.seq-empty b { color: var(--color-text-dim); }
+.seq-empty__actions { display: flex; gap: var(--space-sm); margin-top: 8px; }
 
 /* ── Sequence list / card ───────────────────────────────── */
 .seq-list { display: flex; flex-direction: column; gap: var(--space-lg); }

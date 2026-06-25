@@ -283,8 +283,8 @@ export function DevicePanel() {
         {([
           { id: 'devices', label: 'Devices' },
           { id: 'automations', label: 'Automations' },
-          { id: 'workflows', label: 'Workflows' },
-          { id: 'sequences', label: 'Sequences' },
+          { id: 'workflows', label: 'Rules' },
+          { id: 'sequences', label: 'Rotations' },
         ] as { id: DeviceTab; label: string }[]).map((t) => (
           <button
             key={t.id}

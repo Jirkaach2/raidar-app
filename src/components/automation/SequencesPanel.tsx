@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Repeat, Play, Square, Plus, Trash2, Columns3, ShieldAlert,
-  Power, GripVertical, X, Pencil, Check, Zap, Info,
+  Power, GripVertical, X, Pencil, Check, Zap, Info, HelpCircle, Sparkles,
 } from 'lucide-react';
 import { useSequenceStore, Sequence } from '../../stores/sequence-store';
 import { useDeviceStore, SmartDevice } from '../../stores/device-store';
@@ -20,9 +20,11 @@ interface DragInfo { seqId: string; entityId: number; }
 export function SequencesPanel() {
   const sequences = useSequenceStore((s) => s.sequences);
   const add = useSequenceStore((s) => s.add);
+  const addPreset = useSequenceStore((s) => s.addPreset);
   const devices = useDeviceStore((s) => s.devices);
 
   const [newName, setNewName] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   // Switches paired on the connected server, available to assign.
   const switches = useMemo(
@@ -37,26 +39,37 @@ export function SequencesPanel() {
       <header className="seq-head">
         <div className="seq-head__title">
           <Repeat size={18} />
-          <h2>Sequences</h2>
+          <h2>Rotations</h2>
         </div>
         <p className="seq-head__sub">Turret flip-flop — rotate power through groups to beat the 12-turret limit.</p>
+        <div className="seq-head__actions">
+          <button className={`seq-btn seq-btn--ghost ${showGuide ? 'is-on' : ''}`} onClick={() => setShowGuide((v) => !v)}>
+            <HelpCircle size={14} /> How it works
+          </button>
+          <button className="seq-btn seq-btn--ghost" onClick={() => addPreset('Turret Flip-Flop', ['Group A', 'Group B'])}>
+            <Sparkles size={14} /> Use a template
+          </button>
+        </div>
       </header>
 
-      <div className="seq-explain">
-        <Info size={15} className="seq-explain__icon" />
-        <div>
-          <strong>The flip-flop trick.</strong> Rust only powers <b>12 turrets</b> per electrical branch.
-          Split your turrets into groups, then rotate power between them on a timer: while one group is live
-          the others sit dark, so you never trip the limit yet still cover every angle over time. Set a
-          <b> freeze trigger</b> (a paired Smart Alarm) and every group powers on at once for full firepower
-          the moment you're hit.
+      {showGuide && (
+        <div className="seq-explain">
+          <Info size={15} className="seq-explain__icon" />
+          <div>
+            <strong>The flip-flop trick.</strong> Rust only powers <b>12 turrets</b> per electrical branch.
+            Split your turrets into groups, then rotate power between them on a timer: while one group is live
+            the others sit dark, so you never trip the limit yet still cover every angle over time. Set a
+            <b> freeze trigger</b> (a paired Smart Alarm) and every group powers on at once for full firepower
+            the moment you're hit.
+            <span className="seq-explain__eg"><b>Example:</b> <i>2 groups of 12 turrets, swapping every 30s.</i></span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="seq-create">
         <input
           className="seq-input"
-          placeholder="New sequence name…"
+          placeholder="New rotation name…"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && newName.trim()) { add(newName); setNewName(''); } }}
@@ -72,8 +85,14 @@ export function SequencesPanel() {
 
       {visible.length === 0 ? (
         <div className="seq-empty">
-          <Columns3 size={26} />
-          <p>No sequences yet. Create one above, add a couple of groups, and drop your turret switches in.</p>
+          <div className="seq-empty__icon"><Columns3 size={26} /></div>
+          <h4>No rotations yet</h4>
+          <p>A <b>rotation</b> rotates power across turret groups so you beat Rust's 12-turret-per-branch limit. Create one, add a couple of groups, then drop your turret switches in.</p>
+          <div className="seq-empty__actions">
+            <button className="seq-btn seq-btn--accent" onClick={() => addPreset('Turret Flip-Flop', ['Group A', 'Group B'])}>
+              <Sparkles size={14} /> Start from a template
+            </button>
+          </div>
         </div>
       ) : (
         <div className="seq-list">
@@ -154,7 +173,7 @@ function SequenceCard({ seq, switches, devices }: CardProps) {
             )}
           </div>
         </div>
-        <button className="seq-icon-btn seq-icon-btn--danger" onClick={() => remove(seq.id)} title="Delete sequence">
+        <button className="seq-icon-btn seq-icon-btn--danger" onClick={() => remove(seq.id)} title="Delete rotation">
           <Trash2 size={15} />
         </button>
       </div>

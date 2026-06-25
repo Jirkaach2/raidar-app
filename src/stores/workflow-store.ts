@@ -344,6 +344,31 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     ),
   },
   {
+    key: 'alarm_flood_lights',
+    name: 'Alarm → Flood Lights',
+    description: 'Base alarm trips → flick the flood lights on so you can see attackers.',
+    build: () => baseDraft(
+      'Alarm Flood Lights',
+      'smart_alarm',
+      { alarmFilter: '' },
+      [{ type: 'toggle_switch', switchAction: 'on' }],
+    ),
+  },
+  {
+    key: 'low_upkeep_notify',
+    name: 'Low Upkeep → Notify Me',
+    description: 'TC upkeep drops below 24h → warn the team and ping Discord.',
+    build: () => baseDraft(
+      'Low Upkeep Notify',
+      'upkeep_low',
+      { upkeepHours: 24 },
+      [
+        { type: 'team_chat', message: '⚠️ Upkeep low — {upkeep} left. Top up the TC!' },
+        { type: 'discord', message: '⚠️ **Upkeep Low** on {server} — {upkeep} remaining. Restock the TC.' },
+      ],
+    ),
+  },
+  {
     key: 'player_tracking',
     name: 'Player Tracking Alert',
     description: 'A tracked player comes online → notify the team and Discord.',
@@ -421,7 +446,7 @@ export function describeWorkflowAction(a: WorkflowAction): string {
     case 'team_chat': return 'Team chat';
     case 'discord': return 'Discord';
     case 'wait': return `Wait ${a.seconds ?? 0}s`;
-    case 'trigger_workflow': return 'Run workflow';
+    case 'trigger_workflow': return 'Run rule';
     default: return a.type;
   }
 }

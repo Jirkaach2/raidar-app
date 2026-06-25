@@ -1,11 +1,11 @@
 {
-    "version":  "1.2.1",
-    "notes":  "Raidar 1.2.1: Player Lookup inventory now shows the 7 most valuable skins with an optional View-all toggle. New /check Discord command and in-game !check team-chat command to look up any player by SteamID. Fixes: travelling vendor marker rotation, RustMaps monument/cave positions on the live map, AFK detection (no longer flags players right after they reconnect), and more accurate vending sales detection.",
-    "pub_date":  "2026-06-25T02:22:24Z",
+    "version":  "1.3.0",
+    "notes":  "Raidar 1.3.0: Player Lookup fully reworked - cleaner card layout, a transparent 0-100 cheat-risk score with the exact factors behind it, a combat scorecard, collapsible career stats, and the inventory scan. Automations overhauled: \u0027Workflows\u0027 are now \u0027Rules\u0027 and \u0027Sequences\u0027 are now \u0027Rotations\u0027, with modern UIs, friendly empty states, in-app how-it-works guides, and one-click templates.",
+    "pub_date":  "2026-06-25T02:49:37Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjFiUlVlaEUzMFVpRGJXUVFMRWxFUmI0c3NmZUZkWFBncENLSDFvUkRyNjBaWWVQRnZqU2FCRVlLWm1hS0hpQ0dXR2hQS2kvSXVvUlAxTG9nVnlpTFFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzU0MTExCWZpbGU6UmFpZGFyXzEuMi4xX3g2NC1zZXR1cC5leGUKdWpsQW1WbmxVSjJ3Ni9GeXhxUGlHMTFYRWpUdXdZOU5Pd3VZVjlLQ3hIQm9hRDFaSmZTOHZYUExxUDlXaTZEUWd0cFJiUlErMDZ2MzV3VCtCNzRmQ0E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.2.1/Raidar_1.2.1_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnpKWE93ZUY1TFJMclc0SzY3OWJhOWlnb2o4aEJTOE5lcFlWTzVXN1JxSitnN3JjZ2x1Z2RpV245d0hjdzZpRWFYMjJSc0Rac2FWWkxzZHdyNWNEc3dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzU1NzM0CWZpbGU6UmFpZGFyXzEuMy4wX3g2NC1zZXR1cC5leGUKeUxzT3VsWU81SFJnVGRFaERrcGhCQjFYS2dWMElMYXhMMjYrUnZJQlJtdHVGVWVoTGlyakNuT0ZjWDVUM1lCSDhQeDlST1IrYXNveGJTSWxSTGdOQ0E9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.3.0/Raidar_1.3.0_x64-setup.exe"
                                          }
                   }
 }
