@@ -2,7 +2,7 @@ import { useTeamStore } from '@/stores/team-store';
 import { useNotificationsStore } from '@/stores/notifications-store';
 import './NavRail.css';
 
-export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'notifications' | 'settings';
+export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'notifications' | 'commands' | 'settings';
 
 interface NavRailProps {
   active: NavPage;
@@ -123,6 +123,19 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
         {notifUnread > 0 && (
           <span className="navrail__badge">{notifUnread > 9 ? '9+' : notifUnread}</span>
         )}
+      </button>
+
+      {/* Commands */}
+      <button
+        className={`navrail__item ${active === 'commands' ? 'navrail__item--active' : ''}`}
+        onClick={() => onNavigate('commands')}
+        data-tooltip="Commands"
+        aria-label="Commands"
+      >
+        <svg viewBox="0 0 24 24">
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
+        </svg>
       </button>
 
       {/* Settings */}

@@ -1,0 +1,275 @@
+.cmd-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(15, 17, 23, 0.7) 0%, rgba(9, 10, 15, 0.8) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.cmd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(206, 66, 43, 0.08), transparent);
+}
+.cmd-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #fff;
+  font-family: var(--font-display);
+}
+.cmd-sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-accent);
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+}
+
+.cmd-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.cmd-intro {
+  margin: 0 0 24px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  max-width: 760px;
+}
+.cmd-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-accent);
+  background: var(--color-accent-glow);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* ── Sections ── */
+.cmd-section {
+  margin-bottom: 30px;
+}
+.cmd-section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cmd-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+.cmd-section-tag {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-info);
+  background: var(--color-info-dim);
+  border: 1px solid rgba(88, 198, 232, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+}
+.cmd-section-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.cmd-search {
+  margin-left: auto;
+  width: 200px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 13, 17, 0.6);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.cmd-search:focus {
+  border-color: var(--color-accent-dim);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
+}
+.cmd-search::placeholder {
+  color: var(--color-text-dim);
+}
+
+/* ── Table ── */
+.cmd-table {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.015);
+}
+.cmd-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 110px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+.cmd-row:last-child {
+  border-bottom: none;
+}
+.cmd-row:not(.cmd-row--header):hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.cmd-row--header {
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.cmd-col-cmd {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cmd-col-desc {
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+.cmd-col-desc--wide {
+  grid-column: 2 / span 2;
+}
+.cmd-col-access {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cmd-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(206, 66, 43, 0.1);
+  border: 1px solid rgba(206, 66, 43, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+.cmd-args {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-dim);
+  letter-spacing: 0.3px;
+}
+
+.cmd-empty {
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-dim);
+}
+
+/* ── Access badges ── */
+.cmd-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.cmd-badge--everyone {
+  color: var(--color-success);
+  background: var(--color-success-dim);
+  border-color: rgba(111, 207, 115, 0.3);
+}
+.cmd-badge--restricted {
+  color: var(--color-warning);
+  background: var(--color-warning-dim);
+  border-color: rgba(232, 168, 56, 0.3);
+}
+.cmd-badge--admin {
+  color: var(--color-danger);
+  background: var(--color-danger-dim);
+  border-color: rgba(232, 69, 69, 0.3);
+}
+
+/* ── Alerts ── */
+.cmd-alert-text {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  max-width: 760px;
+}
+.cmd-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.cmd-action {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  border: 1px solid transparent;
+}
+.cmd-action--danger {
+  color: var(--color-danger);
+  background: var(--color-danger-dim);
+  border-color: rgba(232, 69, 69, 0.35);
+}
+.cmd-action--muted {
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.cmd-action--info {
+  color: var(--color-info);
+  background: var(--color-info-dim);
+  border-color: rgba(88, 198, 232, 0.35);
+}
+
+@media (max-width: 700px) {
+  .cmd-row {
+    grid-template-columns: 1fr 90px;
+  }
+  .cmd-col-desc {
+    grid-column: 1 / -1;
+  }
+  .cmd-col-desc--wide {
+    grid-column: 1 / -1;
+  }
+  .cmd-search {
+    width: 140px;
+  }
+}

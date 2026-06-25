@@ -1,11 +1,11 @@
 {
-    "version":  "1.3.1",
-    "notes":  "Raidar 1.3.1: Fixed RustMaps caves \u0026 water wells appearing in the wrong place (a coordinate-origin regression that offset them by half the map). Smoothed live event markers (cargo, heli, chinook, vendor) so they glide continuously between polls instead of stutter-jumping.",
-    "pub_date":  "2026-06-25T12:53:21Z",
+    "version":  "1.0.0",
+    "notes":  "Raidar 1.0.0 - Public release. Custom rich Discord raid alerts with Alert Team / Mute / Live Map actions, expanded bot command set (/help, /wipe, /cargo, !pop, !time, !wipe), new in-app Commands reference tab, and live-map event smoothing.",
+    "pub_date":  "2026-06-25T13:12:52Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnhhbS83a1RveEc4ZFUxa0l5cDRON01MRS91L2QzMVBXM1hBWE84RmxyenQ5OFRuT3B0dXdRdWJnNGdjT25tUzFJOElUQ2pLRWlOdllTRDliVFZRSEFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzkxOTU3CWZpbGU6UmFpZGFyXzEuMy4xX3g2NC1zZXR1cC5leGUKV3ozbHgyY29ZbXRheklldGt0Uk9WMjYzbFMwNklDQklWenVtQjNOa3hOblByTlRnQXMxdTRCc1pMN1BVWjRpTkhPQlprdzFiNjJVbk1KaHNtNEhCQ1E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.3.1/Raidar_1.3.1_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdncxemJWNm5VNXFNOHFzRWpGelQwcC9PLzNsSjI4Sm1xREpBdFBxZXR1NDU0aTZPK0d0WVdjTXkxVy9maEpTcGM3ZmNLUGNBU3N1citQVk5LeFNITlFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzkzMTQwCWZpbGU6UmFpZGFyXzEuMC4wX3g2NC1zZXR1cC5leGUKYWx2c0NCSEhtQTNKRTQvTW5YYU5iME5QUk5rNTdKOHhZeC94MUE3TU9SL3ZNTFNjZUpUZ205MWhFNmZleUxFTUY1azc0dXQ1U0RuemNRUWdvbHZxQ1E9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.0/Raidar_1.0.0_x64-setup.exe"
                                          }
                   }
 }

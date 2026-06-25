@@ -14,6 +14,7 @@ const PAGES: { label: string; page: NavPage }[] = [
   { label: 'Smart Devices', page: 'devices' },
   { label: 'Tools', page: 'tools' },
   { label: 'Rust Spy', page: 'spy' },
+  { label: 'Commands', page: 'commands' },
   { label: 'Settings', page: 'settings' },
 ];
 

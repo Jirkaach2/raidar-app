@@ -12,6 +12,7 @@ import { SettingsPanel } from './components/settings/SettingsPanel';
 import { ToolsPanel } from './components/tools/ToolsPanel';
 import { SpyPanel } from './components/spy/SpyPanel';
 import { NotificationsLog } from './components/tools/NotificationsLog';
+import { CommandsPanel } from './components/commands/CommandsPanel';
 
 import { useRustPlusEvents } from './hooks/useRustPlusEvents';
 import { useOverlayMode } from './hooks/useOverlayMode';
@@ -1566,6 +1567,7 @@ function App() {
         {activePage === 'tools' && <ToolsPanel />}
         {activePage === 'spy' && <SpyPanel />}
         {activePage === 'notifications' && <NotificationsLog />}
+        {activePage === 'commands' && <CommandsPanel />}
         {activePage === 'settings' && <SettingsPanel />}
       </AppShell>
       )}
