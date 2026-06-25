@@ -87,9 +87,6 @@ interface SettingsState {
   /** Per-event enable flags. Missing key = enabled (default on). */
   soundEvents: Record<string, boolean>;
 
-  // Vending sales rate multiplier
-  vendingMultiplier: number;
-
   setBroadcastEvents: (v: boolean) => void;
   setBroadcastNewShops: (v: boolean) => void;
   setBroadcastDecay: (v: boolean) => void;
@@ -138,7 +135,6 @@ interface SettingsState {
   setMarkerScale: (v: number) => void;
   setCustomSound: (action: string, base64: string | null) => void;
   setSoundEvent: (action: string, enabled: boolean) => void;
-  setVendingMultiplier: (v: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -195,7 +191,6 @@ export const useSettingsStore = create<SettingsState>()(
       customSounds: {},
       // Per-event opt-outs (all remaining events default on once sound is enabled).
       soundEvents: {},
-      vendingMultiplier: 1,
 
       setBroadcastEvents: (v) => set({ broadcastEvents: v }),
       setBroadcastNewShops: (v) => set({ broadcastNewShops: v }),
@@ -251,7 +246,6 @@ export const useSettingsStore = create<SettingsState>()(
       setSoundEvent: (action, enabled) => set((s) => ({
         soundEvents: { ...s.soundEvents, [action]: enabled },
       })),
-      setVendingMultiplier: (v) => set({ vendingMultiplier: Math.max(1, v) }),
     }),
     { name: 'raidar.settings' },
   ),

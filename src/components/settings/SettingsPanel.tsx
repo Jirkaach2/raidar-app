@@ -13,7 +13,7 @@ import Toggle from '../ui/Toggle';
 import {
   Link2, Bell, MessageSquare, Shield, HelpCircle,
   Database, RefreshCw, Check, Power, Trash2,
-  Volume2, VolumeX, Play, Upload, TrendingUp,
+  Volume2, VolumeX, Play, Upload,
   SlidersHorizontal, Plug, Info, Eye, EyeOff,
   Monitor, Map as MapIcon, Webhook, KeyRound,
   Skull, Radio,
@@ -1114,22 +1114,6 @@ export function SettingsPanel() {
                     className="settings-input settings-input--num"
                     value={settings.recyclerMultiplier}
                     onChange={(e) => { settings.setRecyclerAutoDetect(false); settings.setRecyclerMultiplier(parseInt(e.target.value) || 1); }}
-                  />
-                </SettingRow>
-              </SettingsSection>
-
-              <SettingsSection
-                icon={<TrendingUp size={15} />}
-                title="Vending Sales Multiplier"
-                description="Scale tracked sales quantities for modded servers."
-              >
-                <SettingRow title="Sales multiplier" description="Multiply tracked sales quantities by this rate.">
-                  <input
-                    type="number"
-                    min={1}
-                    className="settings-input settings-input--num"
-                    value={settings.vendingMultiplier}
-                    onChange={(e) => settings.setVendingMultiplier(parseInt(e.target.value) || 1)}
                   />
                 </SettingRow>
               </SettingsSection>

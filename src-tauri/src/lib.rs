@@ -316,6 +316,7 @@ pub fn run() {
             commands::steam::get_steam_avatar,
             commands::steam::get_steam_profile_info,
             commands::steam::get_rust_member_stats,
+            commands::steam::get_steam_inventory,
             commands::steam::open_external_url,
             commands::camera::camera_subscribe,
             commands::camera::camera_unsubscribe,

@@ -11,13 +11,16 @@ async function winCtl(action: 'minimize' | 'close') {
   } catch { /* browser dev */ }
 }
 
-/** Raidar radar-scope mark, matching the title bar / web branding. */
+/** Raidar mark — hex bolt (rust) enclosing a radar sweep + ping. */
 function RadarMark() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="gate-mark">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <path d="M12 12 L12 3 A9 9 0 0 1 20.16 8.2 Z" fill="currentColor" />
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <path d="M12 5 L18.06 8.5 L18.06 15.5 L12 19 L5.94 15.5 L5.94 8.5 Z" />
+        <line x1="12" y1="12" x2="16.1" y2="7.9" />
+      </g>
       <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+      <circle cx="16.1" cy="7.9" r="1.4" fill="currentColor" />
     </svg>
   );
 }

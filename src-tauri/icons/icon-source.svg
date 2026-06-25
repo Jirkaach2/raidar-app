@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
-  <!-- Flat app tile -->
-  <rect width="512" height="512" rx="116" fill="#E5422B"/>
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4622E"/>
+      <stop offset="1" stop-color="#C7361B"/>
+    </linearGradient>
+  </defs>
 
-  <!-- Simple radar scope: ring + solid sweep + pivot dot -->
-  <g fill="none" stroke="#ffffff" stroke-width="34">
-    <circle cx="256" cy="256" r="150"/>
+  <!-- App tile -->
+  <rect width="512" height="512" rx="116" fill="url(#brand)"/>
+
+  <!-- Hex bolt (Rust / industrial) enclosing a radar sweep + ping (radar) -->
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M256 106 L385.9 181 L385.9 331 L256 406 L126.1 331 L126.1 181 Z"/>
+    <line x1="256" y1="256" x2="343.7" y2="168.3"/>
   </g>
-  <path d="M256 256 L256 106 A150 150 0 0 1 391.9 192.6 Z" fill="#ffffff"/>
-  <circle cx="256" cy="256" r="30" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="25" fill="#ffffff"/>
+  <circle cx="343.7" cy="168.3" r="20" fill="#ffffff"/>
 </svg>

@@ -70,6 +70,7 @@ interface SteamProfile {
   trade_ban_state: string;
   is_limited: boolean;
   rust_hours: number | null;
+  recent_hours: number | null;
   steam_level: number;
   is_playing_rust: boolean;
 }const getSteamLevelColor = (lvl: number): string => {
@@ -462,6 +463,8 @@ export function PlayerLookupTool() {
   const [result, setResult] = useState<SteamIdApiResponse | null>(null);
   const [steamProfile, setSteamProfile] = useState<SteamProfile | null>(null);
   const [rustStats, setRustStats] = useState<any | null>(null);
+  const [inventory, setInventory] = useState<any | null>(null);
+  const [invLoading, setInvLoading] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
@@ -519,6 +522,7 @@ export function PlayerLookupTool() {
     setResult(null);
     setSteamProfile(null);
     setRustStats(null);
+    setInventory(null);
     setNoteError(null);
 
     try {
@@ -603,6 +607,13 @@ export function PlayerLookupTool() {
       } catch (err) {
         console.error("Failed to fetch rust member stats:", err);
       }
+
+      // Fetch & value the player's public Rust inventory (best-effort).
+      setInvLoading(true);
+      invoke<any>('get_steam_inventory', { steamId: steamId64 })
+        .then((inv) => setInventory(inv))
+        .catch((err) => console.error('Failed to fetch inventory:', err))
+        .finally(() => setInvLoading(false));
     } catch (err: any) {
       setError(err.message || 'An error occurred during lookup.');
     } finally {
@@ -945,6 +956,18 @@ export function PlayerLookupTool() {
                     </div>
                   )}
 
+                  {steamProfile?.recent_hours !== undefined && steamProfile.recent_hours !== null && steamProfile.recent_hours > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 6px', borderRadius: 4 }} title="Rust playtime over the last 2 weeks">
+                      <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>2-WK:</span>
+                      <span style={{ fontSize: 10, fontWeight: 'bold', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                        {Math.round(steamProfile.recent_hours)} hrs
+                      </span>
+                      <span style={{ fontSize: 8.5, color: 'var(--color-text-dim)' }}>
+                        · {(steamProfile.recent_hours / 14).toFixed(1)}/day
+                      </span>
+                    </div>
+                  )}
+
                   {steamProfile?.is_playing_rust && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '2px 6px', borderRadius: 4 }}>
                       <style>{`
@@ -1229,6 +1252,88 @@ export function PlayerLookupTool() {
                   </div>
                 );
               })()}
+            </div>
+          )}
+
+          {/* INVENTORY SCAN — public Rust inventory + best-effort Steam Market value */}
+          {(invLoading || inventory) && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: 'var(--color-accent)', fontFamily: 'var(--font-mono)' }}>
+                  <Database size={13} /> INVENTORY SCAN
+                </span>
+                {inventory && !inventory.is_private && (
+                  <span style={{ fontSize: 10, color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)' }}>
+                    ${inventory.total_value.toFixed(2)} estimate
+                  </span>
+                )}
+              </div>
+
+              {invLoading && !inventory ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 0', color: 'var(--color-text-dim)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                  <div className="camview-rec-dot" style={{ width: 10, height: 10 }} /> SCANNING INVENTORY &amp; PRICING…
+                </div>
+              ) : inventory && inventory.is_private ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-dim)', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                  <Shield size={12} /> This player's Steam inventory is private.
+                </div>
+              ) : inventory && inventory.distinct_items === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--color-text-dim)', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                  No Rust items in this player's public inventory.
+                </div>
+              ) : inventory ? (
+                <>
+                  {/* Value summary */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 10 }}>
+                    <div style={{ background: 'rgba(206,66,43,0.08)', border: '1px solid rgba(206,66,43,0.25)', borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ fontSize: 9, color: 'var(--color-text-dim)', letterSpacing: 0.4 }}>TOTAL VALUE</div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>${inventory.total_value.toFixed(2)}</div>
+                    </div>
+                    <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ fontSize: 9, color: 'var(--color-text-dim)', letterSpacing: 0.4 }}>TRADABLE</div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>${inventory.tradable_value.toFixed(2)}</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ fontSize: 9, color: 'var(--color-text-dim)', letterSpacing: 0.4 }}>ITEMS</div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>{inventory.total_items}</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ fontSize: 9, color: 'var(--color-text-dim)', letterSpacing: 0.4 }}>PRICED</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                        {inventory.priced_count} priced · {inventory.unpriced_count} unpriced
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Item grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: 8 }}>
+                    {inventory.items.slice(0, 60).map((it: any, i: number) => (
+                      <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 56, background: 'rgba(0,0,0,0.25)', borderRadius: 6, position: 'relative' }}>
+                          {it.icon_url ? <img src={it.icon_url} alt="" style={{ maxHeight: 50, maxWidth: '90%', objectFit: 'contain' }} /> : <Database size={20} style={{ color: 'var(--color-text-dim)' }} />}
+                          {it.count > 1 && (
+                            <span style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 9, fontWeight: 800, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '0 4px', borderRadius: 4 }}>×{it.count}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>{it.name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 8.5, color: 'var(--color-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.item_type || 'Item'}</span>
+                          {it.price != null ? (
+                            <span style={{ fontSize: 9.5, fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>${it.price.toFixed(2)}</span>
+                          ) : (
+                            <span style={{ fontSize: 8.5, color: 'var(--color-text-dim)' }}>—</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {inventory.distinct_items > 60 && (
+                    <div style={{ fontSize: 9, color: 'var(--color-text-dim)', textAlign: 'center', marginTop: 8 }}>
+                      +{inventory.distinct_items - 60} more item types
+                    </div>
+                  )}
+                </>
+              ) : null}
             </div>
           )}
 

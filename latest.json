@@ -1,11 +1,11 @@
 {
-    "version":  "1.1.9",
-    "notes":  "Raidar 1.1.9: The Discord companion bot has moved to new always-on infrastructure for better reliability. This update repoints the app at the new bot endpoint - no action needed; your linked servers and notifications keep working.",
-    "pub_date":  "2026-06-24T12:59:32Z",
+    "version":  "1.2.0",
+    "notes":  "Raidar 1.2.0: Player Lookup now shows accurate Rust hours again (total + last-2-weeks playtime via the Steam Web API) and adds an Inventory Scan with best-effort Steam Market value, tradable value, and an item grid. New hex-bolt radar logo across the app, icons and web. Removed the Vending Sales Multiplier setting (it could inflate tracked sales).",
+    "pub_date":  "2026-06-25T02:03:09Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjk1WHI4U2J2cUpITVNmKzNzM2Y2ZzhCVnZOYWJCQWZLWGtkZWJnaGJxNm1FZGhIZVdYenhVZ0w1WHdpMkUvaGFabUhaUWRDM2RsOVlnWUE0WU5HVXdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzA1OTQ5CWZpbGU6UmFpZGFyXzEuMS45X3g2NC1zZXR1cC5leGUKKzVHNFlOamdOZ3J3UTVqd1ZOZEZrTktVRlJMTE1raE9VMEVVOHFtNXMzRmk0bk4xSmRLbVo1ZlVwU3NodkVnQlc0QmJWZTJqS2c3ekV1U2VOOXBvQlE9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.9/Raidar_1.1.9_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjM3YksvRlhaNnR2alF0QUdNYTJQQjNKR3QvbDQzVHNSd043ZEl4NWdiTzdtVzlYMmJUS25zWC85UEl5TEQvRHNFdUlaTEo2N1ZrNXdTc1B0eXZIS2c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzUyODQ2CWZpbGU6UmFpZGFyXzEuMi4wX3g2NC1zZXR1cC5leGUKSjY4VzdMeldoamhXNm5sZVF0Nm1hSHRTdnZhVE4vajl2cGVFU0hQcHBPZUtSRXdxYzJSWkhzZXN2eS9VV2dIdkZxemVWVS9XbzhoY2xXNWdFUTU5Q3c9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.2.0/Raidar_1.2.0_x64-setup.exe"
                                          }
                   }
 }

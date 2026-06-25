@@ -44,11 +44,14 @@ export default function Titlebar() {
     <header className="titlebar">
       <div className="titlebar__drag" data-tauri-drag-region>
         <div className="titlebar__icon">
-          {/* Raidar — simple radar-scope mark (ring + sweep + pivot dot) */}
+          {/* Raidar — hex bolt (rust) + radar sweep/ping */}
           <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 12 L12 3 A9 9 0 0 1 20.16 8.2 Z" fill="currentColor" />
+            <g stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" fill="none">
+              <path d="M12 5 L18.06 8.5 L18.06 15.5 L12 19 L5.94 15.5 L5.94 8.5 Z" />
+              <line x1="12" y1="12" x2="16.1" y2="7.9" />
+            </g>
             <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+            <circle cx="16.1" cy="7.9" r="1.4" fill="currentColor" />
           </svg>
         </div>
         <span className="titlebar__title">RAIDAR</span>

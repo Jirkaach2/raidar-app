@@ -1,5 +1,10 @@
 use std::time::Duration;
 
+/// Steam Web API key (server-side). Used for GetOwnedGames (authoritative Rust
+/// playtime: total + last-2-weeks) and other IPlayerService/ISteamUser calls.
+/// Kept in the Rust backend so it is never shipped in the web bundle.
+const STEAM_API_KEY: &str = "D92F91DA6E65A414EF233A3BAE2C82E0";
+
 #[derive(serde::Serialize)]
 pub struct SteamProfileInfo {
     pub name: String,
@@ -9,8 +14,56 @@ pub struct SteamProfileInfo {
     pub trade_ban_state: String,
     pub is_limited: bool,
     pub rust_hours: Option<f64>,
+    /// Rust playtime over the last 2 weeks (hours). Enables an hrs/day figure.
+    pub recent_hours: Option<f64>,
     pub steam_level: u32,
     pub is_playing_rust: bool,
+}
+
+/// Fetch authoritative Rust playtime via the Steam Web API GetOwnedGames.
+/// Returns (total_hours, last_2weeks_hours). Requires the player's game details
+/// to be public (the common case); returns (None, None) otherwise. This is the
+/// reliable source now that Steam gates the community games XML/HTML behind a
+/// login, so anonymous scraping returns a sign-in page.
+async fn fetch_rust_playtime(
+    client: &reqwest::Client,
+    steam_id: &str,
+) -> (Option<f64>, Option<f64>) {
+    let url = format!(
+        "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={}&steamid={}&include_played_free_games=1&appids_filter[0]=252490",
+        STEAM_API_KEY, steam_id
+    );
+    let resp = match client.get(&url).send().await {
+        Ok(r) => r,
+        Err(_) => return (None, None),
+    };
+    if !resp.status().is_success() {
+        return (None, None);
+    }
+    let val = match resp.json::<serde_json::Value>().await {
+        Ok(v) => v,
+        Err(_) => return (None, None),
+    };
+    let games = match val.get("response").and_then(|r| r.get("games")).and_then(|g| g.as_array()) {
+        Some(g) => g,
+        None => return (None, None),
+    };
+    for game in games {
+        if game.get("appid").and_then(|a| a.as_u64()) == Some(252490) {
+            let forever = game
+                .get("playtime_forever")
+                .and_then(|v| v.as_f64())
+                .map(|m| m / 60.0)
+                .filter(|h| *h > 0.0);
+            let recent = game
+                .get("playtime_2weeks")
+                .and_then(|v| v.as_f64())
+                .map(|m| m / 60.0)
+                .filter(|h| *h > 0.0);
+            return (forever, recent);
+        }
+    }
+    (None, None)
 }
 
 /// Fetch a Steam profile avatar URL from the public community XML endpoint.
@@ -104,9 +157,15 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
     let is_playing_rust = extract_xml_tag(&profile_xml, "gameID").map(|s| s.trim() == "252490").unwrap_or(false)
         || extract_xml_tag(&profile_xml, "gamePlayed").map(|s| s.trim().to_lowercase().contains("rust")).unwrap_or(false);
 
-    // 2. Fetch Games XML to get Rust hours (appID: 252490)
-    let mut rust_hours = None;
-    if privacy_state == "public" {
+    // 1b. PRIMARY hours source: Steam Web API GetOwnedGames (authoritative —
+    //     total playtime + last-2-weeks). This replaces the now-defunct
+    //     community games XML/HTML scraping, which Steam gates behind a login.
+    let (api_total_hours, recent_hours) = fetch_rust_playtime(&client, &steam_id).await;
+    let mut rust_hours = api_total_hours;
+
+    // 2. Fallback: Games XML for Rust hours (appID 252490) only if the Web API
+    //    didn't return them.
+    if rust_hours.is_none() && privacy_state == "public" {
         let games_url = format!("https://steamcommunity.com/profiles/{}/games/?tab=all&xml=1", steam_id);
         if let Ok(resp) = client.get(&games_url).send().await {
             if let Ok(games_xml) = resp.text().await {
@@ -190,6 +249,7 @@ pub async fn get_steam_profile_info(steam_id: String) -> Result<SteamProfileInfo
         trade_ban_state,
         is_limited,
         rust_hours,
+        recent_hours,
         steam_level,
         is_playing_rust,
     })
@@ -807,4 +867,257 @@ fn extract_rust_hours_from_html(html: &str) -> Option<f64> {
         }
     }
     None
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Steam inventory scan (Rust, appid 252490, context 2)
+// ─────────────────────────────────────────────────────────────────────────
+
+#[derive(serde::Serialize)]
+pub struct InventoryItem {
+    pub name: String,
+    pub icon_url: String,
+    pub item_type: String,
+    pub count: u32,
+    pub marketable: bool,
+    pub tradable: bool,
+    /// Per-unit price in USD, when a Steam Market quote was available.
+    pub price: Option<f64>,
+}
+
+#[derive(serde::Serialize)]
+pub struct SteamInventory {
+    pub total_items: u32,
+    pub distinct_items: u32,
+    pub items: Vec<InventoryItem>,
+    pub total_value: f64,
+    pub tradable_value: f64,
+    pub priced_count: u32,
+    pub unpriced_count: u32,
+    pub is_private: bool,
+}
+
+/// Parse a Steam Market price string ("$1.23", "1,23€", "£0.59") into a float.
+fn parse_market_price(s: &str) -> Option<f64> {
+    let mut cleaned: String = s
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == ',')
+        .collect();
+    // If both separators exist, assume ',' is thousands and '.' is decimal.
+    if cleaned.contains('.') && cleaned.contains(',') {
+        cleaned = cleaned.replace(',', "");
+    } else if cleaned.contains(',') && !cleaned.contains('.') {
+        // Lone comma → decimal separator (EU formatting).
+        cleaned = cleaned.replace(',', ".");
+    }
+    cleaned.parse::<f64>().ok().filter(|v| *v > 0.0)
+}
+
+/// Fetch and value a player's public Rust inventory.
+///
+/// Items come from the public community inventory JSON (no key needed). Prices
+/// are best-effort live quotes from the Steam Market `priceoverview` endpoint,
+/// which is aggressively rate-limited — so we price unique marketable items
+/// within a bounded budget and report how many resolved ("priced") vs not
+/// ("unpriced"). No value is invented: unpriced items contribute 0.
+#[tauri::command]
+pub async fn get_steam_inventory(steam_id: String) -> Result<SteamInventory, String> {
+    if steam_id.len() < 16 || steam_id.len() > 20 || !steam_id.chars().all(|c| c.is_ascii_digit()) {
+        return Err("Invalid Steam ID".into());
+    }
+
+    let empty = || SteamInventory {
+        total_items: 0,
+        distinct_items: 0,
+        items: vec![],
+        total_value: 0.0,
+        tradable_value: 0.0,
+        priced_count: 0,
+        unpriced_count: 0,
+        is_private: true,
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(12))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| format!("client build failed: {}", e))?;
+
+    let inv_url = format!(
+        "https://steamcommunity.com/inventory/{}/252490/2?l=english&count=2000",
+        steam_id
+    );
+    let resp = match client.get(&inv_url).send().await {
+        Ok(r) => r,
+        Err(_) => return Ok(empty()),
+    };
+    // Private/empty inventories return 403 or a null/!success body.
+    if resp.status().as_u16() == 403 {
+        return Ok(empty());
+    }
+    let val = match resp.json::<serde_json::Value>().await {
+        Ok(v) => v,
+        Err(_) => return Ok(empty()),
+    };
+    let descriptions = match val.get("descriptions").and_then(|d| d.as_array()) {
+        Some(d) => d,
+        None => return Ok(empty()),
+    };
+    let assets = val.get("assets").and_then(|a| a.as_array()).cloned().unwrap_or_default();
+
+    // Count how many of each (classid,instanceid) the player holds.
+    let mut counts: std::collections::HashMap<(String, String), u32> = std::collections::HashMap::new();
+    for a in &assets {
+        let cid = a.get("classid").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let iid = a.get("instanceid").and_then(|v| v.as_str()).unwrap_or("0").to_string();
+        let amount = a
+            .get("amount")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(1);
+        *counts.entry((cid, iid)).or_insert(0) += amount;
+    }
+
+    let icon_base = "https://community.cloudflare.steamstatic.com/economy/image/";
+    let mut items: Vec<InventoryItem> = Vec::new();
+    // Unique marketable hash names → price once, apply to all matching stacks.
+    let mut price_cache: std::collections::HashMap<String, Option<f64>> = std::collections::HashMap::new();
+
+    for d in descriptions {
+        let cid = d.get("classid").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let iid = d.get("instanceid").and_then(|v| v.as_str()).unwrap_or("0").to_string();
+        let count = counts.get(&(cid.clone(), iid.clone())).copied().unwrap_or(0);
+        if count == 0 {
+            continue;
+        }
+        let name = d.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+        let item_type = d.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let icon = d.get("icon_url").and_then(|v| v.as_str()).unwrap_or("");
+        let icon_url = if icon.is_empty() { String::new() } else { format!("{}{}", icon_base, icon) };
+        let marketable = d.get("marketable").and_then(|v| v.as_u64()).unwrap_or(0) == 1;
+        let tradable = d.get("tradable").and_then(|v| v.as_u64()).unwrap_or(0) == 1;
+        let market_hash_name = d
+            .get("market_hash_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&name)
+            .to_string();
+
+        if marketable && !price_cache.contains_key(&market_hash_name) {
+            price_cache.insert(market_hash_name.clone(), None); // placeholder
+        }
+
+        items.push(InventoryItem {
+            name,
+            icon_url,
+            item_type,
+            count,
+            marketable,
+            tradable,
+            price: None,
+        });
+    }
+
+    // Build a name→hash map so we can apply cached prices after fetching.
+    // (descriptions iterate in the same order; rebuild hash list cheaply.)
+    let mut hash_for_index: Vec<String> = Vec::with_capacity(items.len());
+    {
+        let mut i = 0usize;
+        for d in descriptions {
+            let cid = d.get("classid").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let iid = d.get("instanceid").and_then(|v| v.as_str()).unwrap_or("0").to_string();
+            let count = counts.get(&(cid, iid)).copied().unwrap_or(0);
+            if count == 0 {
+                continue;
+            }
+            let name = d.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown");
+            let hash = d.get("market_hash_name").and_then(|v| v.as_str()).unwrap_or(name).to_string();
+            if i < items.len() {
+                hash_for_index.push(hash);
+                i += 1;
+            }
+        }
+    }
+
+    // Price unique marketable hash names within a bounded budget (the Steam
+    // Market endpoint 429s aggressively). Stop early on sustained throttling.
+    let start = std::time::Instant::now();
+    let budget = Duration::from_secs(18);
+    let mut consecutive_429 = 0u32;
+    let unique_names: Vec<String> = price_cache.keys().cloned().collect();
+    for hash in unique_names {
+        if start.elapsed() > budget || consecutive_429 >= 6 {
+            break;
+        }
+        let r = client
+            .get("https://steamcommunity.com/market/priceoverview/")
+            .query(&[("appid", "252490"), ("currency", "1"), ("market_hash_name", hash.as_str())])
+            .send()
+            .await;
+        match r {
+            Ok(resp) => {
+                if resp.status().as_u16() == 429 {
+                    consecutive_429 += 1;
+                    tokio::time::sleep(Duration::from_millis(800)).await;
+                    continue;
+                }
+                consecutive_429 = 0;
+                if let Ok(pv) = resp.json::<serde_json::Value>().await {
+                    let price = pv
+                        .get("lowest_price")
+                        .or_else(|| pv.get("median_price"))
+                        .and_then(|v| v.as_str())
+                        .and_then(parse_market_price);
+                    price_cache.insert(hash, price);
+                }
+            }
+            Err(_) => {}
+        }
+        tokio::time::sleep(Duration::from_millis(120)).await;
+    }
+
+    // Apply prices, compute totals.
+    let mut total_value = 0.0f64;
+    let mut tradable_value = 0.0f64;
+    let mut priced_count = 0u32;
+    let mut unpriced_count = 0u32;
+    let mut total_items = 0u32;
+    for (idx, item) in items.iter_mut().enumerate() {
+        total_items += item.count;
+        let hash = hash_for_index.get(idx).cloned().unwrap_or_default();
+        let price = price_cache.get(&hash).and_then(|p| *p);
+        if item.marketable {
+            if let Some(p) = price {
+                item.price = Some(p);
+                let line = p * item.count as f64;
+                total_value += line;
+                if item.tradable {
+                    tradable_value += line;
+                }
+                priced_count += item.count;
+            } else {
+                unpriced_count += item.count;
+            }
+        } else {
+            unpriced_count += item.count;
+        }
+    }
+
+    // Sort: priced (desc by line value) first, then the rest by count.
+    items.sort_by(|a, b| {
+        let av = a.price.map(|p| p * a.count as f64).unwrap_or(0.0);
+        let bv = b.price.map(|p| p * b.count as f64).unwrap_or(0.0);
+        bv.partial_cmp(&av).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let distinct_items = items.len() as u32;
+    Ok(SteamInventory {
+        total_items,
+        distinct_items,
+        items,
+        total_value,
+        tradable_value,
+        priced_count,
+        unpriced_count,
+        is_private: false,
+    })
 }

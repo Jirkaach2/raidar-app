@@ -1,22 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
-  <!-- Flat dark backdrop -->
-  <rect width="1280" height="400" fill="#0d0f12"/>
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4622E"/>
+      <stop offset="1" stop-color="#C7361B"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101318"/>
+      <stop offset="1" stop-color="#0a0c10"/>
+    </linearGradient>
+    <clipPath id="clip"><rect width="1280" height="400"/></clipPath>
+  </defs>
 
-  <!-- ── Scope mark tile ── -->
-  <g transform="translate(150 124)">
-    <rect width="152" height="152" rx="34" fill="#E5422B"/>
-    <g transform="translate(76 76) scale(0.252) translate(-256 -256)">
-      <g fill="none" stroke="#ffffff" stroke-width="34">
-        <circle cx="256" cy="256" r="150"/>
+  <g clip-path="url(#clip)">
+    <rect width="1280" height="400" fill="url(#bg)"/>
+
+    <!-- Mark tile -->
+    <g transform="translate(150 124)">
+      <rect width="152" height="152" rx="34" fill="url(#brand)"/>
+      <g transform="translate(76 76) scale(0.252) translate(-256 -256)">
+        <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M256 106 L385.9 181 L385.9 331 L256 406 L126.1 331 L126.1 181 Z"/>
+          <line x1="256" y1="256" x2="343.7" y2="168.3"/>
+        </g>
+        <circle cx="256" cy="256" r="25" fill="#ffffff"/>
+        <circle cx="343.7" cy="168.3" r="20" fill="#ffffff"/>
       </g>
-      <path d="M256 256 L256 106 A150 150 0 0 1 391.9 192.6 Z" fill="#ffffff"/>
-      <circle cx="256" cy="256" r="30" fill="#ffffff"/>
     </g>
-  </g>
 
-  <!-- ── Wordmark ── -->
-  <text x="350" y="222" font-family="'Arial Black','Segoe UI',Impact,sans-serif"
-        font-size="120" font-weight="900" letter-spacing="4" fill="#f5f6f8">RAIDAR</text>
-  <text x="354" y="270" font-family="'Consolas','Segoe UI',monospace"
-        font-size="22" font-weight="600" letter-spacing="9" fill="#7d8590">RUST INTELLIGENCE</text>
+    <!-- Wordmark -->
+    <text x="350" y="222" font-family="'Arial Black','Segoe UI',Impact,sans-serif"
+          font-size="120" font-weight="900" letter-spacing="4" fill="#f5f6f8">RAIDAR</text>
+    <text x="354" y="270" font-family="'Consolas','Segoe UI',monospace"
+          font-size="22" font-weight="600" letter-spacing="9" fill="#7d8590">RUST INTELLIGENCE</text>
+  </g>
 </svg>

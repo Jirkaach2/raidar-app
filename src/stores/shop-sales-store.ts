@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { useSettingsStore } from './settings-store';
 
 /**
  * Shop sales tracker.
@@ -172,8 +171,7 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
           const transactionCount = Math.round(rawDrop / qty);
 
           if (transactionCount > 0 && transactionCount <= MAX_PURCHASES_PER_POLL) {
-            const salesMultiplier = useSettingsStore.getState().vendingMultiplier || 1;
-            const tQty = transactionCount * qty * salesMultiplier;
+            const tQty = transactionCount * qty;
             const tEarned = transactionCount * o.cost_per_item;
 
             shop.soldUnits[o.item_id] = (shop.soldUnits[o.item_id] || 0) + tQty;
