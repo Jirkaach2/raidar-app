@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.0",
-    "notes":  "Raidar 1.0.0 - Public release. Custom rich Discord raid alerts with Alert Team / Mute / Live Map actions, expanded bot command set (/help, /wipe, /cargo, !pop, !time, !wipe), new in-app Commands reference tab, and live-map event smoothing.",
-    "pub_date":  "2026-06-25T13:12:52Z",
+    "version":  "1.1.0",
+    "notes":  "Raidar 1.1.0 - New Monuments viewer (loot, puzzles, keycards \u0026 hazards), role-based Discord control whitelist (pick top-role members or search by name), crate hack timer tuning in minutes + seconds, new bot commands (/heli, /sun, /vendor) and many more in-game chat commands (!team, !cargo, !heli, !events, !sun, !status, !help). /test now previews the rich raid-alert format.",
+    "pub_date":  "2026-06-25T13:52:46Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdncxemJWNm5VNXFNOHFzRWpGelQwcC9PLzNsSjI4Sm1xREpBdFBxZXR1NDU0aTZPK0d0WVdjTXkxVy9maEpTcGM3ZmNLUGNBU3N1citQVk5LeFNITlFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzkzMTQwCWZpbGU6UmFpZGFyXzEuMC4wX3g2NC1zZXR1cC5leGUKYWx2c0NCSEhtQTNKRTQvTW5YYU5iME5QUk5rNTdKOHhZeC94MUE3TU9SL3ZNTFNjZUpUZ205MWhFNmZleUxFTUY1azc0dXQ1U0RuemNRUWdvbHZxQ1E9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.0.0/Raidar_1.0.0_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdnlBVVV2UCtOUmNtLzRqWS9NK1YreUtkOER1VHEvZ1V4ODBWVHdlN1ZFUzhTYmpIZVNSK3kvMzdCZzBXUU9xdkR3Q2hGWTEra3U0SUhhdUFYT0g3OEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzk1NTI5CWZpbGU6UmFpZGFyXzEuMS4wX3g2NC1zZXR1cC5leGUKUXBjTUdoVSticzlCQlVBUWo5dW9oNE9uaS8valJ2NEFuUkNkTVI4SFg1cWx1a0VtR2lXaEFYVUx4cXROZStER2N2Yk9MZXVTUFFkYUcyVGRkRzRBQUE9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.1.0/Raidar_1.1.0_x64-setup.exe"
                                          }
                   }
 }

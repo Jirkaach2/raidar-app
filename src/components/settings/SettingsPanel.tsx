@@ -31,6 +31,14 @@ interface ServerProfile {
   last_connected: string;
 }
 
+interface DiscordMember {
+  id: string;
+  name: string;
+  roleName: string;
+  isAdmin: boolean;
+  isOwner: boolean;
+}
+
 type SettingsCategory =
   | 'connection'
   | 'overlay'
@@ -226,6 +234,9 @@ export function SettingsPanel() {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [botAvailable, setBotAvailable] = useState<boolean | null>(null);
   const [allowDraft, setAllowDraft] = useState<Record<string, string>>({});
+  const [members, setMembers] = useState<Record<string, DiscordMember[]>>({});
+  const [memberSearch, setMemberSearch] = useState<Record<string, string>>({});
+  const [membersUnavailable, setMembersUnavailable] = useState<Record<string, boolean>>({});
   const [switchingServerId, setSwitchingServerId] = useState<number | null>(null);
   const [hasPendingSteam, setHasPendingSteam] = useState(false);
 
@@ -409,6 +420,20 @@ export function SettingsPanel() {
     saveAllowed(guildId, (link?.allowedUserIds || []).filter((u) => u !== id));
   };
 
+  const loadMembers = async (guildId: string) => {
+    try {
+      const list = await invoke<DiscordMember[]>('get_discord_members', { guildId });
+      if (Array.isArray(list) && list.length > 0) {
+        setMembers((m) => ({ ...m, [guildId]: list }));
+        setMembersUnavailable((u) => ({ ...u, [guildId]: false }));
+      } else {
+        setMembersUnavailable((u) => ({ ...u, [guildId]: true }));
+      }
+    } catch {
+      setMembersUnavailable((u) => ({ ...u, [guildId]: true }));
+    }
+  };
+
   const handleTestNotify = async () => {
     try {
       const n = await invoke<number>('notify_discord_bot', {
@@ -438,6 +463,13 @@ export function SettingsPanel() {
   useEffect(() => {
     if (activeTab === 'discord') refreshLinks();
   }, [activeTab]);
+
+  // Load the member list for each linked guild so the picker can resolve names.
+  useEffect(() => {
+    if (botAvailable === false) return;
+    botLinks.forEach((l) => { loadMembers(l.guildId); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botLinks, botAvailable]);
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
@@ -535,8 +567,9 @@ export function SettingsPanel() {
     { label: 'Watchlist Game / VAC Bans', feature: 'bans', enabled: settings.discordBans, onToggle: settings.setDiscordBans },
   ];
 
-  const crateMinutes = settings.defaultCrateSeconds / 60;
-  const crateMinutesDisplay = crateMinutes % 1 === 0 ? crateMinutes : crateMinutes.toFixed(1);
+  const totalCrateSec = settings.defaultCrateSeconds;
+  const crateMins = Math.floor(totalCrateSec / 60);
+  const crateSecs = totalCrateSec % 60;
 
   const active = ALL_CATEGORIES.find((c) => c.id === activeTab)!;
 
@@ -934,38 +967,128 @@ export function SettingsPanel() {
                         <div className="bot-link__whitelist">
                           <div className="bot-link__whitelist-title">Who can control devices</div>
                           <div className="bot-link__chips">
-                            {l.allowedUserIds.map((id) => (
-                              <span key={id} className="user-chip">
-                                {id}
-                                <button onClick={() => handleRemoveAllowed(l.guildId, id)} disabled={botAvailable === false} title="Remove" className="user-chip__x">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
-                                </button>
-                              </span>
-                            ))}
+                            {l.allowedUserIds.map((id) => {
+                              const mem = (members[l.guildId] || []).find((m) => m.id === id);
+                              return (
+                                <span key={id} className="user-chip">
+                                  {mem ? mem.name : id}
+                                  <button onClick={() => handleRemoveAllowed(l.guildId, id)} disabled={botAvailable === false} title="Remove" className="user-chip__x">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
+                                  </button>
+                                </span>
+                              );
+                            })}
                             {l.allowedUserIds.length === 0 && (
                               <span className="bot-link__empty">Server admins only (no one whitelisted yet)</span>
                             )}
                           </div>
-                          <div className="settings-inline-input">
-                            <input
-                              type="text"
-                              placeholder="Discord user ID"
-                              value={allowDraft[l.guildId] || ''}
-                              onChange={(e) => setAllowDraft((d) => ({ ...d, [l.guildId]: e.target.value.replace(/\D/g, '') }))}
-                              onKeyDown={(e) => { if (e.key === 'Enter') handleAddAllowed(l.guildId); }}
-                              disabled={botAvailable === false}
-                              className="settings-input settings-input--mono"
-                            />
-                            <button
-                              onClick={() => handleAddAllowed(l.guildId)}
-                              disabled={botAvailable === false || !(allowDraft[l.guildId] || '').trim()}
-                              className="btn-accent btn-accent--sm"
-                            >
-                              Add
-                            </button>
-                          </div>
+
+                          {(() => {
+                            const manualEntry = (
+                              <div className="settings-inline-input">
+                                <input
+                                  type="text"
+                                  placeholder="Discord user ID"
+                                  value={allowDraft[l.guildId] || ''}
+                                  onChange={(e) => setAllowDraft((d) => ({ ...d, [l.guildId]: e.target.value.replace(/\D/g, '') }))}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddAllowed(l.guildId); }}
+                                  disabled={botAvailable === false}
+                                  className="settings-input settings-input--mono"
+                                />
+                                <button
+                                  onClick={() => handleAddAllowed(l.guildId)}
+                                  disabled={botAvailable === false || !(allowDraft[l.guildId] || '').trim()}
+                                  className="btn-accent btn-accent--sm"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            );
+
+                            const all = members[l.guildId] || [];
+                            const hasMembers = !membersUnavailable[l.guildId] && all.length > 0;
+
+                            if (!hasMembers) {
+                              return (
+                                <>
+                                  {manualEntry}
+                                  {membersUnavailable[l.guildId] && (
+                                    <p className="settings-fineprint">
+                                      Member list unavailable — enable the bot's Server Members Intent, or add by ID.
+                                    </p>
+                                  )}
+                                </>
+                              );
+                            }
+
+                            const allowed = new Set(l.allowedUserIds);
+                            const top = all.filter((m) => !allowed.has(m.id)).slice(0, 4);
+                            const q = (memberSearch[l.guildId] || '').trim().toLowerCase();
+                            const results = q
+                              ? all.filter((m) => !allowed.has(m.id) && m.name.toLowerCase().includes(q)).slice(0, 8)
+                              : [];
+
+                            return (
+                              <>
+                                {top.length > 0 && (
+                                  <div className="member-picker">
+                                    <div className="member-picker__label">Top roles</div>
+                                    <div className="member-picker__quick">
+                                      {top.map((m) => (
+                                        <button
+                                          key={m.id}
+                                          className="member-add"
+                                          disabled={botAvailable === false}
+                                          onClick={() => saveAllowed(l.guildId, [...l.allowedUserIds, m.id])}
+                                          title={`Add ${m.name}`}
+                                        >
+                                          <span className="member-add__plus">＋</span>
+                                          <span className="member-add__name">{m.name}</span>
+                                          <span className="member-add__role">{m.isOwner ? 'Owner' : m.roleName}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="member-search">
+                                  <input
+                                    type="text"
+                                    placeholder="Search members by name…"
+                                    value={memberSearch[l.guildId] || ''}
+                                    onChange={(e) => setMemberSearch((s) => ({ ...s, [l.guildId]: e.target.value }))}
+                                    disabled={botAvailable === false}
+                                    className="settings-input"
+                                  />
+                                  {results.length > 0 && (
+                                    <div className="member-results">
+                                      {results.map((m) => (
+                                        <button
+                                          key={m.id}
+                                          className="member-result"
+                                          disabled={botAvailable === false}
+                                          onClick={() => {
+                                            saveAllowed(l.guildId, [...l.allowedUserIds, m.id]);
+                                            setMemberSearch((s) => ({ ...s, [l.guildId]: '' }));
+                                          }}
+                                        >
+                                          <span className="member-result__name">{m.name}</span>
+                                          <span className="member-result__role">{m.isOwner ? 'Owner' : m.roleName}</span>
+                                          <span className="member-add__plus">＋</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <details className="member-manual">
+                                  <summary className="member-manual__summary">Add by ID</summary>
+                                  {manualEntry}
+                                </details>
+                              </>
+                            );
+                          })()}
+
                           <p className="settings-fineprint">
-                            Enable Developer Mode in Discord, right-click a user → Copy User ID. Listed users (and server admins) can use <strong>/control</strong>, <strong>/toggle</strong> and <strong>/say</strong>.
+                            Listed users (and server admins) can use <strong>/control</strong>, <strong>/toggle</strong> and <strong>/say</strong>.
                           </p>
                         </div>
                       </div>
@@ -1125,18 +1248,40 @@ export function SettingsPanel() {
               >
                 <SettingRow title="Default hack time" description="Used when a crate's timer isn't reported by the server.">
                   <div className="settings-inline">
-                    <input
-                      type="number"
-                      min={1}
-                      max={60}
-                      className="settings-input settings-input--num"
-                      value={crateMinutesDisplay}
-                      onChange={(e) => {
-                        const mins = parseFloat(e.target.value);
-                        if (!isNaN(mins)) settings.setDefaultCrateSeconds(Math.round(mins * 60));
-                      }}
-                    />
-                    <span className="settings-hint">minutes</span>
+                    <div className="settings-inline">
+                      <input
+                        type="number"
+                        min={0}
+                        max={60}
+                        className="settings-input settings-input--num"
+                        value={crateMins}
+                        onChange={(e) => {
+                          const mins = parseInt(e.target.value, 10);
+                          if (!isNaN(mins)) {
+                            const clamped = Math.max(0, Math.min(60, mins));
+                            settings.setDefaultCrateSeconds(clamped * 60 + crateSecs);
+                          }
+                        }}
+                      />
+                      <span className="settings-hint">min</span>
+                    </div>
+                    <div className="settings-inline">
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        className="settings-input settings-input--num"
+                        value={crateSecs}
+                        onChange={(e) => {
+                          const secs = parseInt(e.target.value, 10);
+                          if (!isNaN(secs)) {
+                            const clamped = Math.max(0, Math.min(59, secs));
+                            settings.setDefaultCrateSeconds(crateMins * 60 + clamped);
+                          }
+                        }}
+                      />
+                      <span className="settings-hint">sec</span>
+                    </div>
                   </div>
                 </SettingRow>
               </SettingsSection>

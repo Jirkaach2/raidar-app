@@ -79,6 +79,9 @@
   font-family: var(--font-mono);
 }
 .cmd-section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 700;
@@ -90,6 +93,39 @@
   border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
+
+/* Discord slash-command tag — Discord blurple */
+.cmd-section-tag--discord {
+  font-size: 9px;
+  color: #fff;
+  background: #5865f2;
+  border-color: #5865f2;
+  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.35), 0 2px 8px rgba(88, 101, 242, 0.35);
+}
+.cmd-discord-glyph {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* In-game team-chat tag — app accent (red/orange) */
+.cmd-section-tag--ingame {
+  font-size: 9px;
+  color: var(--color-accent);
+  background: var(--color-accent-glow);
+  border-color: var(--color-border-strong);
+}
+
+/* Inline emphasis in the intro paragraph */
+.cmd-emph {
+  font-weight: 700;
+}
+.cmd-emph--discord {
+  color: #7c87ff;
+}
+.cmd-emph--ingame {
+  color: var(--color-accent);
+}
+
 .cmd-section-note {
   margin: 0 0 12px;
   font-size: 12px;

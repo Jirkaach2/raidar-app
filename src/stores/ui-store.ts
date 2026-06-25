@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'notifications' | 'commands' | 'settings';
+export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'monuments' | 'notifications' | 'commands' | 'settings';
 export type ToolsTab = 'recycler' | 'cctv' | 'decay' | 'activity' | 'pricewatch' | 'cupboard' | 'crates' | 'profit' | 'richbase' | 'raidcost' | 'lookup' | 'loadout' | 'marketindex' | 'fishing' | 'farming' | 'combatlog' | 'leaderboard' | 'notifications';
 
 interface UiState {

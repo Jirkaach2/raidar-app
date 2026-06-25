@@ -25,6 +25,16 @@ pub struct DiscordLink {
     pub allowed_user_ids: Vec<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordMember {
+    pub id: String,
+    pub name: String,
+    pub role_name: String,
+    pub is_admin: bool,
+    pub is_owner: bool,
+}
+
 /// Read the FCM/auth credentials the sidecar wrote in the app data directory.
 fn read_credentials(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     use tauri::Manager;
@@ -193,6 +203,59 @@ pub async fn set_discord_permissions(
         .await
         .map_err(|e| format!("Couldn't reach the bot: {}", e))?;
     if resp.status().is_success() { Ok(()) } else { Err(format!("Failed ({})", resp.status())) }
+}
+
+/// Fetch the member list for a linked guild so the Settings UI can offer a
+/// role-based picker instead of raw Discord IDs. The bot returns members
+/// sorted highest-role first. If the bot can't read members (missing Server
+/// Members Intent), it replies `{ "ok": false }` and we return an empty list
+/// so the UI can fall back to manual ID entry.
+#[tauri::command]
+pub async fn get_discord_members(
+    app: tauri::AppHandle,
+    guild_id: String,
+) -> Result<Vec<DiscordMember>, String> {
+    let cfg = read_credentials(app)?;
+    let auth_token = cfg
+        .get("rustplus_auth_token")
+        .and_then(|v| v.as_str())
+        .ok_or("Missing auth token.")?;
+
+    let resp = http_client()?
+        .post(format!("{}/api/members", BOT_BASE_URL))
+        .json(&json!({ "authToken": auth_token, "guildId": guild_id }))
+        .send()
+        .await
+        .map_err(|e| format!("Couldn't reach the bot: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Bot returned {}", resp.status()));
+    }
+
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+
+    // Bot replies with HTTP 200 even when members are unavailable; treat a
+    // missing/false `ok` as "no members" so the UI falls back gracefully.
+    if !body.get("ok").and_then(|v| v.as_bool()).unwrap_or(false) {
+        return Ok(vec![]);
+    }
+
+    let members = body
+        .get("members")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|m| DiscordMember {
+                    id: m.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    name: m.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string(),
+                    role_name: m.get("roleName").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    is_admin: m.get("isAdmin").and_then(|v| v.as_bool()).unwrap_or(false),
+                    is_owner: m.get("isOwner").and_then(|v| v.as_bool()).unwrap_or(false),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(members)
 }
 
 /// Re-point all of this account's linked Discord servers to the currently

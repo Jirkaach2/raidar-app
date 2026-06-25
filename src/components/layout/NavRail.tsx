@@ -2,7 +2,7 @@ import { useTeamStore } from '@/stores/team-store';
 import { useNotificationsStore } from '@/stores/notifications-store';
 import './NavRail.css';
 
-export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'notifications' | 'commands' | 'settings';
+export type NavPage = 'map' | 'team' | 'vending' | 'devices' | 'tools' | 'spy' | 'monuments' | 'notifications' | 'commands' | 'settings';
 
 interface NavRailProps {
   active: NavPage;
@@ -106,6 +106,20 @@ export default function NavRail({ active, onNavigate }: NavRailProps) {
         <svg viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3" />
           <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+        </svg>
+      </button>
+
+      {/* Monuments */}
+      <button
+        className={`navrail__item ${active === 'monuments' ? 'navrail__item--active' : ''}`}
+        onClick={() => onNavigate('monuments')}
+        data-tooltip="Monuments"
+        aria-label="Monuments"
+      >
+        <svg viewBox="0 0 24 24">
+          <polygon points="12 2 21 20 3 20" />
+          <line x1="8.5" y1="13" x2="15.5" y2="13" />
+          <line x1="12" y1="2" x2="12" y2="20" />
         </svg>
       </button>
 

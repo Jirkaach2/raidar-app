@@ -328,6 +328,7 @@ pub fn run() {
             commands::discord::get_discord_links,
             commands::discord::sync_discord_server,
             commands::discord::set_discord_permissions,
+            commands::discord::get_discord_members,
             commands::discord::notify_discord_bot,
             commands::discord::unlink_discord,
             commands::discord::check_bot_health,

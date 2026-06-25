@@ -13,6 +13,7 @@ import { ToolsPanel } from './components/tools/ToolsPanel';
 import { SpyPanel } from './components/spy/SpyPanel';
 import { NotificationsLog } from './components/tools/NotificationsLog';
 import { CommandsPanel } from './components/commands/CommandsPanel';
+import { MonumentViewer } from './components/monuments/MonumentViewer';
 
 import { useRustPlusEvents } from './hooks/useRustPlusEvents';
 import { useOverlayMode } from './hooks/useOverlayMode';
@@ -1566,6 +1567,7 @@ function App() {
         {activePage === 'devices' && <DevicePanel />}
         {activePage === 'tools' && <ToolsPanel />}
         {activePage === 'spy' && <SpyPanel />}
+        {activePage === 'monuments' && <MonumentViewer />}
         {activePage === 'notifications' && <NotificationsLog />}
         {activePage === 'commands' && <CommandsPanel />}
         {activePage === 'settings' && <SettingsPanel />}
