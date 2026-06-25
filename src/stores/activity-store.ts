@@ -91,7 +91,11 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
       if (prev) {
         // Online/offline transitions
-        if (online && !prev.online) log = push(log, 'online', `${m.name} came online`, grid);
+        if (online && !prev.online) {
+          log = push(log, 'online', `${m.name} came online`, grid);
+          // Reconnect reset: avoid instantly flagging a returning member AFK.
+          stat.lastMovedAt = Date.now();
+        }
         if (!online && prev.online) log = push(log, 'offline', `${m.name} went offline`, grid);
         // Death/respawn transitions (only count while we knew them)
         if (!alive && prev.alive) {
@@ -102,8 +106,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
         }
         if (alive && !prev.alive) log = push(log, 'respawn', `${m.name} respawned`, grid);
 
-        // Movement / AFK tracking
-        const moved = Math.abs(m.x - prev.x) > 1 || Math.abs(m.y - prev.y) > 1;
+        // Movement / AFK tracking (2 world units, matching leaderboard-store)
+        const moved = Math.abs(m.x - prev.x) > 2 || Math.abs(m.y - prev.y) > 2;
         if (moved) {
           stat.lastMovedAt = Date.now();
           stat.lastGrid = grid;

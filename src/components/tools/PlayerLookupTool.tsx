@@ -465,6 +465,7 @@ export function PlayerLookupTool() {
   const [rustStats, setRustStats] = useState<any | null>(null);
   const [inventory, setInventory] = useState<any | null>(null);
   const [invLoading, setInvLoading] = useState(false);
+  const [showAllItems, setShowAllItems] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
@@ -523,6 +524,7 @@ export function PlayerLookupTool() {
     setSteamProfile(null);
     setRustStats(null);
     setInventory(null);
+    setShowAllItems(false);
     setNoteError(null);
 
     try {
@@ -1305,9 +1307,9 @@ export function PlayerLookupTool() {
                     </div>
                   </div>
 
-                  {/* Item grid */}
+                  {/* Item grid — most valuable first; show top 7, expand on demand */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: 8 }}>
-                    {inventory.items.slice(0, 60).map((it: any, i: number) => (
+                    {inventory.items.slice(0, showAllItems ? 200 : 7).map((it: any, i: number) => (
                       <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 56, background: 'rgba(0,0,0,0.25)', borderRadius: 6, position: 'relative' }}>
                           {it.icon_url ? <img src={it.icon_url} alt="" style={{ maxHeight: 50, maxWidth: '90%', objectFit: 'contain' }} /> : <Database size={20} style={{ color: 'var(--color-text-dim)' }} />}
@@ -1327,10 +1329,20 @@ export function PlayerLookupTool() {
                       </div>
                     ))}
                   </div>
-                  {inventory.distinct_items > 60 && (
-                    <div style={{ fontSize: 9, color: 'var(--color-text-dim)', textAlign: 'center', marginTop: 8 }}>
-                      +{inventory.distinct_items - 60} more item types
-                    </div>
+                  {inventory.distinct_items > 7 && (
+                    <button
+                      onClick={() => setShowAllItems((v) => !v)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', marginTop: 8,
+                        padding: '7px', borderRadius: 8, cursor: 'pointer', fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)', color: 'var(--color-text-dim)',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      {showAllItems
+                        ? '▲ Show top 7 only'
+                        : `▼ View all ${inventory.distinct_items} item types`}
+                    </button>
                   )}
                 </>
               ) : null}

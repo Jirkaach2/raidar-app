@@ -228,8 +228,9 @@ const MapMarkers = React.memo(function MapMarkers() {
                 transform: (() => {
                   const base = 'translate(-50%, -50%)';
                   if (marker.type === 'vendor') {
-                    //Travelling vendor image faces EAST by default, heading system expects NORTH as 0
-                    return `${base} rotate(${(marker.rotation || 0) - 90}deg)`;
+                    // Travelling vendor sprite's long axis faces NORTH (0deg), same as the
+                    // other heading-driven markers, so use the rotation directly with no offset.
+                    return `${base} rotate(${marker.rotation || 0}deg)`;
                   }
                   if (isMovingEvent) return `${base} rotate(${marker.rotation || 0}deg)`;
                   if (marker.type === 'player') return `${base} rotate(${marker.rotation || 0}deg)`;

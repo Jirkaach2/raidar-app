@@ -190,6 +190,17 @@ export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({
         online,
       };
 
+      // Reconnect reset: when a member transitions offline→online this tick,
+      // reset their AFK timer and re-seed the movement baseline so they aren't
+      // instantly flagged AFK on return.
+      if (online && !e.online) {
+        updated._lastMovedAt = now;
+        if (pos) {
+          updated._lastWorldX = pos.x;
+          updated._lastWorldY = pos.y;
+        }
+      }
+
       // Detect movement to maintain the AFK timer.
       if (pos) {
         const moved =

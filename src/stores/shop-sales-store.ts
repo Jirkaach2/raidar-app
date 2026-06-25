@@ -147,6 +147,8 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
     // Even within the drop cap, refuse to credit an absurd number of distinct
     // purchases to one order signature in a single poll.
     const MAX_PURCHASES_PER_POLL = 25;
+    // A single signature's poll value above this is bad data, not a real sale.
+    const MAX_PLAUSIBLE_VALUE = 100000;
 
     // Restock guard: if the shop's TOTAL stock across every signature went UP
     // since the last poll, the owner just refilled/rebuilt the machine. Stock
@@ -157,7 +159,17 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
     for (const sig in shop.lastStock) { prevTotal += shop.lastStock[sig]; prevSigCount++; }
     let nextTotal = 0;
     for (const sig in nextStock) nextTotal += nextStock[sig];
-    const shopRestocked = prevSigCount > 0 && nextTotal > prevTotal;
+    // Relist/rebuild guard: also treat the poll as a relist if the SET of order
+    // signatures changed — i.e. any signature now present was absent from the
+    // previous baseline (when that baseline was non-empty). A rebuilt machine
+    // re-lists with fresh signatures, so we rebaseline rather than infer sales.
+    let sigSetChanged = false;
+    if (prevSigCount > 0) {
+      for (const sig in nextStock) {
+        if (shop.lastStock[sig] === undefined) { sigSetChanged = true; break; }
+      }
+    }
+    const shopRestocked = (prevSigCount > 0 && nextTotal > prevTotal) || sigSetChanged;
 
     for (const sig in nextStock) {
       if (shopRestocked) break; // total stock rose → treat whole poll as a restock
@@ -168,11 +180,15 @@ export const useShopSalesStore = create<ShopSalesState>((set, get) => ({
         if (rawDrop > 0 && rawDrop <= MAX_PLAUSIBLE_DROP) {
           const o = metaBySig[sig];
           const qty = o.quantity || 1;
-          const transactionCount = Math.round(rawDrop / qty);
+          const transactionCount = Math.floor(rawDrop / qty);
 
           if (transactionCount > 0 && transactionCount <= MAX_PURCHASES_PER_POLL) {
             const tQty = transactionCount * qty;
             const tEarned = transactionCount * o.cost_per_item;
+
+            // Value sanity clamp: an implausibly large single-poll value means
+            // bad data (relist/overflow), not a genuine sale — skip crediting.
+            if (tEarned > MAX_PLAUSIBLE_VALUE) continue;
 
             shop.soldUnits[o.item_id] = (shop.soldUnits[o.item_id] || 0) + tQty;
             shop.earned[o.currency_id] = (shop.earned[o.currency_id] || 0) + tEarned;

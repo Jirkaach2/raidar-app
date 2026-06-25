@@ -635,13 +635,10 @@ function RustMapsExtras() {
     const out: Ex[] = [];
     if (raw.length === 0) return out;
 
-    // RustMaps coordinate system varies; auto-detect from the data bounds.
-    // Negative values → Unity world space centered at (0,0) (−size/2 … +size/2),
-    // so shift by +size/2. Otherwise it's already 0…size corner-origin. Then
-    // getNormalizedCoordinates applies the ocean-margin + Y-flip like live markers.
-    let minX = Infinity, minY = Infinity;
-    for (const m of raw) { if (m.wx < minX) minX = m.wx; if (m.wy < minY) minY = m.wy; }
-    const shift = (minX < 0 || minY < 0) ? mapSize / 2 : 0;
+    // RustMaps v4 coordinates are ALWAYS Unity center-origin (−size/2 … +size/2),
+    // so shift by +size/2 unconditionally to map into 0…size corner-origin space.
+    // getNormalizedCoordinates then applies the ocean-margin + Y-flip like live markers.
+    const shift = mapSize / 2;
 
     /** "Cave Small Easy" → "Small Cave". */
     const caveLabel = (t: string) => {

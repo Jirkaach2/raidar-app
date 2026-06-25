@@ -1,11 +1,11 @@
 {
-    "version":  "1.2.0",
-    "notes":  "Raidar 1.2.0: Player Lookup now shows accurate Rust hours again (total + last-2-weeks playtime via the Steam Web API) and adds an Inventory Scan with best-effort Steam Market value, tradable value, and an item grid. New hex-bolt radar logo across the app, icons and web. Removed the Vending Sales Multiplier setting (it could inflate tracked sales).",
-    "pub_date":  "2026-06-25T02:03:09Z",
+    "version":  "1.2.1",
+    "notes":  "Raidar 1.2.1: Player Lookup inventory now shows the 7 most valuable skins with an optional View-all toggle. New /check Discord command and in-game !check team-chat command to look up any player by SteamID. Fixes: travelling vendor marker rotation, RustMaps monument/cave positions on the live map, AFK detection (no longer flags players right after they reconnect), and more accurate vending sales detection.",
+    "pub_date":  "2026-06-25T02:22:24Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjM3YksvRlhaNnR2alF0QUdNYTJQQjNKR3QvbDQzVHNSd043ZEl4NWdiTzdtVzlYMmJUS25zWC85UEl5TEQvRHNFdUlaTEo2N1ZrNXdTc1B0eXZIS2c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzUyODQ2CWZpbGU6UmFpZGFyXzEuMi4wX3g2NC1zZXR1cC5leGUKSjY4VzdMeldoamhXNm5sZVF0Nm1hSHRTdnZhVE4vajl2cGVFU0hQcHBPZUtSRXdxYzJSWkhzZXN2eS9VV2dIdkZxemVWVS9XbzhoY2xXNWdFUTU5Q3c9PQo=",
-                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.2.0/Raidar_1.2.0_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUamNuM01CcnNKdjFiUlVlaEUzMFVpRGJXUVFMRWxFUmI0c3NmZUZkWFBncENLSDFvUkRyNjBaWWVQRnZqU2FCRVlLWm1hS0hpQ0dXR2hQS2kvSXVvUlAxTG9nVnlpTFFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzU0MTExCWZpbGU6UmFpZGFyXzEuMi4xX3g2NC1zZXR1cC5leGUKdWpsQW1WbmxVSjJ3Ni9GeXhxUGlHMTFYRWpUdXdZOU5Pd3VZVjlLQ3hIQm9hRDFaSmZTOHZYUExxUDlXaTZEUWd0cFJiUlErMDZ2MzV3VCtCNzRmQ0E9PQo=",
+                                             "url":  "https://github.com/JirkaachS/raidar-app/releases/download/v1.2.1/Raidar_1.2.1_x64-setup.exe"
                                          }
                   }
 }
