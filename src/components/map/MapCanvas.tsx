@@ -635,10 +635,15 @@ function RustMapsExtras() {
     const out: Ex[] = [];
     if (raw.length === 0) return out;
 
-    // RustMaps v4 coordinates are ALWAYS Unity center-origin (−size/2 … +size/2),
-    // so shift by +size/2 unconditionally to map into 0…size corner-origin space.
-    // getNormalizedCoordinates then applies the ocean-margin + Y-flip like live markers.
-    const shift = mapSize / 2;
+    // RustMaps world coordinates may be EITHER centre-origin (−size/2 … +size/2)
+    // or already corner-origin (0 … size) depending on the map/version. Detect
+    // from the data: any negative coordinate means centre-origin, so shift by
+    // +size/2 into the 0 … size space getNormalizedCoordinates expects (it then
+    // applies the ocean-margin + Y-flip like live markers). Corner-origin data
+    // needs NO shift — an unconditional +size/2 pushed caves/wells half a map off.
+    let minX = Infinity, minY = Infinity;
+    for (const m of raw) { if (m.wx < minX) minX = m.wx; if (m.wy < minY) minY = m.wy; }
+    const shift = (minX < 0 || minY < 0) ? mapSize / 2 : 0;
 
     /** "Cave Small Easy" → "Small Cave". */
     const caveLabel = (t: string) => {
@@ -1293,7 +1298,7 @@ function CrateMapMarkers() {
               pointerEvents: 'auto',
               cursor: 'pointer',
               zIndex: isHover ? 50 : 9,
-              transition: isCargo ? 'left 1s linear, top 1s linear' : 'none',
+              transition: isCargo ? 'left 1.5s linear, top 1.5s linear' : 'none',
               willChange: isCargo ? 'left, top' : undefined,
             }}
           >

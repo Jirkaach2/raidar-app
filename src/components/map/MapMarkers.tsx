@@ -168,8 +168,11 @@ const MapMarkers = React.memo(function MapMarkers() {
               zIndex: isSelected ? 40 : 20,
               pointerEvents: 'auto',
               cursor: 'pointer',
-              // Glide moving events smoothly between 1s polls; snap others.
-              transition: isMovingEvent ? 'left 1s linear, top 1s linear' : 'none',
+              // Glide moving events smoothly between polls. The poll lands ~1.2-1.5s
+              // apart, so a hard 1s glide finished early then froze/jumped (read as
+              // jitter); a slightly longer linear glide tracks the latest position
+              // continuously without the freeze-then-snap bob. Others snap.
+              transition: isMovingEvent ? 'left 1.5s linear, top 1.5s linear' : 'none',
               willChange: isMovingEvent ? 'left, top' : undefined,
             }}
             onClick={async (e) => {
