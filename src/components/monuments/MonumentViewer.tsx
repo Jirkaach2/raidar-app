@@ -12,12 +12,20 @@ import {
 import { getLootTable } from '../../utils/loot';
 import { LootTableView } from '../common/LootTableView';
 import { getGridCoordinate } from '../../utils/grid';
+import {
+  getMissionsForMonument,
+  missionIcon,
+  rewardIcon,
+  Mission,
+  MissionReward,
+} from '../../utils/missions';
 import { useMapStore } from '../../stores/map-store';
 import './MonumentViewer.css';
 
 type TierFilter = 'all' | 't1' | 't2' | 't3' | 'safe' | 'onmap';
 
-const RUSTMAPS_3D_URL = 'https://rustmaps.com/monuments';
+/** Base URL for RustMaps monument pages; per-monument slug is appended. */
+const RUSTMAPS_3D_BASE = 'https://rustmaps.com/monuments';
 
 const RADIATION_LABEL: Record<MonumentInfo['radiation'], string> = {
   none: 'None',
@@ -105,6 +113,98 @@ function CardPill({ card, kind }: { card: CardType; kind: 'req' | 'opt' | 'gives
       {CARD_LABEL[card]}
       {kind === 'opt' && <span className="mon-card-tag">optional</span>}
     </span>
+  );
+}
+
+/** Mission reward chip with CDN icon + graceful fallback. */
+function RewardChip({ reward }: { reward: MissionReward }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="mon-item mon-reward" title={reward.name}>
+      {!failed ? (
+        <img
+          className="mon-item-icon"
+          src={rewardIcon(reward)}
+          alt={reward.name}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="mon-item-icon mon-item-icon--ph" aria-hidden="true" />
+      )}
+      <span className="mon-item-name">{reward.name}</span>
+      {reward.qty != null && <span className="mon-item-qty">×{reward.qty}</span>}
+    </span>
+  );
+}
+
+/** A single NPC mission card. */
+function MissionCard({ mission: m }: { mission: Mission }) {
+  const [iconFailed, setIconFailed] = useState(false);
+  return (
+    <div className="mon-mission">
+      <div className="mon-mission-head">
+        <div className="mon-mission-icon">
+          {!iconFailed ? (
+            <img
+              src={missionIcon(m.id, 64)}
+              alt={m.name}
+              loading="lazy"
+              onError={() => setIconFailed(true)}
+            />
+          ) : (
+            <span className="mon-mission-icon--ph" aria-hidden="true" />
+          )}
+        </div>
+        <div className="mon-mission-headtext">
+          <span className="mon-mission-name">{m.name}</span>
+          <span className="mon-mission-provider">{m.provider}</span>
+        </div>
+      </div>
+
+      <p className="mon-mission-desc">{m.desc}</p>
+
+      {m.requires && m.requires.length > 0 && (
+        <div className="mon-mission-meta">
+          <span className="mon-mission-tag mon-mission-tag--req">
+            Requires: {m.requires.join(', ')}
+          </span>
+        </div>
+      )}
+
+      <div className="mon-mission-block">
+        <span className="mon-mission-block-label">Objectives</span>
+        <ol className="mon-mission-objectives">
+          {m.objectives.map((o, i) => (
+            <li key={i}>{o}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="mon-mission-block">
+        <span className="mon-mission-block-label mon-mission-block-label--reward">Rewards</span>
+        {m.rewards.length > 0 ? (
+          <div className="mon-item-row">
+            {m.rewards.map((r, i) => (
+              <RewardChip key={i} reward={r} />
+            ))}
+          </div>
+        ) : m.rewardNote ? (
+          <p className="mon-mission-rewardnote">{m.rewardNote}</p>
+        ) : null}
+      </div>
+
+      {(m.cooldown || m.timeLimit || m.bonus || (m.rewards.length > 0 && m.rewardNote)) && (
+        <div className="mon-mission-meta">
+          {m.cooldown && <span className="mon-mission-tag">Cooldown: {m.cooldown}</span>}
+          {m.timeLimit && <span className="mon-mission-tag">Time limit: {m.timeLimit}</span>}
+          {m.bonus && <span className="mon-mission-tag mon-mission-tag--bonus">{m.bonus}</span>}
+          {m.rewards.length > 0 && m.rewardNote && (
+            <span className="mon-mission-tag">{m.rewardNote}</span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -264,6 +364,13 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   const [openCrates, setOpenCrates] = useState<Set<number>>(() => new Set());
   const [show3d, setShow3d] = useState(false);
 
+  // RustMaps and RustHelp share monument slugs; our imageSlug is the RustHelp
+  // (dash-separated) slug, so the RustMaps slug uses underscores.
+  const rmSlug = info.imageSlug.replace(/-/g, '_');
+  const rm3dUrl = `${RUSTMAPS_3D_BASE}/${rmSlug}`;
+
+  const missions = getMissionsForMonument(info.key);
+
   const radText =
     info.radMedian != null || info.radMax != null
       ? `${RADIATION_LABEL[info.radiation]} (median ${info.radMedian ?? '–'} / max ${info.radMax ?? '–'})`
@@ -279,7 +386,7 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
 
   const open3dExternal = async () => {
     try {
-      await invoke('open_external_url', { url: RUSTMAPS_3D_URL });
+      await invoke('open_external_url', { url: rm3dUrl });
     } catch (err) {
       console.error('Failed to open RustMaps 3D viewer:', err);
     }
@@ -290,9 +397,18 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
       <div className="mon-hero">
         <MonImage monKey={info.key} name={info.name} variant="hero" />
         <div className="mon-hero-overlay">
-          <span className={`mon-tier mon-tier--${tierRank(info)} mon-tier--lg`}>
-            {info.safezone ? 'Safe Zone' : `Tier ${info.tier}`}
-          </span>
+          <div className="mon-hero-chips">
+            <span className={`mon-tier mon-tier--${tierRank(info)} mon-tier--lg`}>
+              {info.safezone ? 'Safe Zone' : `Tier ${info.tier}`}
+            </span>
+            {info.radiation !== 'none' && (
+              <span className={`mon-hero-chip mon-hero-chip--rad mon-hero-chip--rad-${info.radiation}`}>
+                <span className={`mon-rad-dot mon-rad-dot--${info.radiation}`} />
+                {RADIATION_LABEL[info.radiation]} rad
+              </span>
+            )}
+            {info.safezone && <span className="mon-hero-chip mon-hero-chip--safe">Safe Zone</span>}
+          </div>
           <h2 className="mon-name">{info.name}</h2>
           <span className="mon-type">{info.type}</span>
         </div>
@@ -323,18 +439,27 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
 
         {show3d && (
           <div className="mon-3d-body">
-            <div className="mon-3d-frame-wrap">
-              <iframe
-                className="mon-3d-frame"
-                src={RUSTMAPS_3D_URL}
-                title="RustMaps 3D monument viewer"
-                loading="lazy"
-              />
+            <div className="mon-3d-frame-card">
+              <div className="mon-3d-frame-bar">
+                <span className="mon-3d-frame-bar-dot" />
+                <span className="mon-3d-frame-bar-title">Interactive 3D · {info.name}</span>
+                <button className="mon-3d-frame-bar-open" onClick={open3dExternal}>
+                  Open ↗
+                </button>
+              </div>
+              <div className="mon-3d-frame-wrap">
+                <iframe
+                  className="mon-3d-frame"
+                  src={rm3dUrl}
+                  title={`RustMaps 3D model — ${info.name}`}
+                  loading="lazy"
+                />
+              </div>
             </div>
             <div className="mon-3d-note-row">
               <p className="mon-3d-note">
-                Interactive 3D models are hosted by RustMaps. If the viewer doesn't load below, open it
-                in your browser.
+                Loads the live 3D model for this monument from RustMaps. The first load may show a
+                one-time cookie prompt — if it doesn't appear, open it in your browser.
               </p>
               <button className="mon-3d-open" onClick={open3dExternal}>
                 Open 3D viewer on RustMaps ↗
@@ -488,6 +613,17 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {/* Missions */}
+      {missions.length > 0 && (
+        <Section title="Missions">
+          <div className="mon-missions">
+            {missions.map((m) => (
+              <MissionCard key={m.id} mission={m} />
+            ))}
+          </div>
         </Section>
       )}
 
