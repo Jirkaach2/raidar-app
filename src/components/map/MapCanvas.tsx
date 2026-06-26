@@ -917,9 +917,7 @@ function CustomMapMarkers() {
         // Per-marker scale × the global multiplier, so the Overlays slider can
         // shrink every custom marker (down to really small) at once.
         const sc = Math.max(0.1, (m.scale || 1) * (globalScale || 1));
-        const headSize = 22 * sc;             // diameter of the circular pin head
-        const tailH = headSize * 0.62;        // pointer height below the head
-        const wrapH = headSize + tailH;       // full pin height (head + tip)
+        const headSize = 22 * sc;             // diameter of the circular pin
         const iconPx = Math.max(7, Math.round(12 * sc));
         // Below this effective size the label is dropped so the marker collapses
         // to a clean pin/dot that stays legible at 0.1×.
@@ -931,38 +929,27 @@ function CustomMapMarkers() {
             className="cmark"
             style={{
               position: 'absolute', left: `${m.x * 100}%`, top: `${m.y * 100}%`,
-              transform: 'translate(-50%, -100%)', pointerEvents: 'auto',
+              transform: 'translate(-50%, -50%)', pointerEvents: 'auto',
               zIndex: highlight ? 60 : 8,
               opacity: movingId && !isMoving ? 0.45 : 1,
               transition: 'opacity 0.12s ease-out',
             }}
           >
-            {/* Map pin: a perfect circular head (icon dead-centered at every
-                size) sitting on a triangular tail whose tip lands exactly on the
-                coordinate. Click opens the editor; the editor's "Move" button
-                starts click-to-place move mode. */}
+            {/* Map pin: a clean circular head with the icon dead-centered at
+                every size, centred exactly on the coordinate. Click opens the
+                editor; the editor's "Move" button starts click-to-place move
+                mode. */}
             <div
               onMouseDown={(e) => { e.stopPropagation(); }}
               onClick={(e) => { e.stopPropagation(); setOpenId((id) => (id === m.id ? null : m.id)); }}
               title={m.label}
               style={{
-                position: 'relative', width: headSize, height: wrapH, cursor: 'pointer',
+                position: 'relative', width: headSize, height: headSize, cursor: 'pointer',
                 filter: highlight
                   ? `drop-shadow(0 0 6px ${style.color}) drop-shadow(0 3px 4px rgba(0,0,0,0.7))`
                   : 'drop-shadow(0 3px 4px rgba(0,0,0,0.7))',
               }}
             >
-              {/* Triangular tail — colour matches the head so the pin reads as
-                  one shape; its base tucks behind the circle (no seam) and the
-                  tip sits at the bottom-centre, exactly on the coordinate. */}
-              <span style={{
-                position: 'absolute', left: '50%', bottom: 0, transform: 'translateX(-50%)',
-                width: 0, height: 0,
-                borderLeft: `${headSize * 0.30}px solid transparent`,
-                borderRight: `${headSize * 0.30}px solid transparent`,
-                borderTop: `${tailH + headSize * 0.2}px solid ${style.color}`,
-                pointerEvents: 'none',
-              }} />
               {/* Circular head with a glossy sheen + dark rim. */}
               <div style={{
                 position: 'absolute', top: 0, left: 0, width: headSize, height: headSize,

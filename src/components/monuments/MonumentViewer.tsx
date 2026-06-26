@@ -666,11 +666,27 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   );
 }
 
+/** Controls documented for the embedded 3D viewer (cosmetic hint overlay). */
+const MON_3D_CONTROLS: { keys: string; action: string }[] = [
+  { keys: 'WASD', action: 'move' },
+  { keys: 'Mouse', action: 'look' },
+  { keys: 'Space / Q', action: 'up' },
+  { keys: 'E / C', action: 'down' },
+  { keys: 'Shift', action: 'fast' },
+  { keys: 'Scroll', action: 'speed' },
+  { keys: 'Esc', action: 'unlock' },
+];
+
 /**
  * Large modal overlay that mounts the RustMaps 3D model iframe on demand.
+ *
  * The iframe is rendered taller than its container and shifted up so the
- * RustMaps top navbar is clipped out of view. Closable via the ✕ button
- * (kept above the iframe with a high z-index), a backdrop click, or Escape.
+ * RustMaps top navbar AND bottom footer are clipped fully out of view,
+ * leaving only the clean 3D viewport. Because the embed is cross-origin we
+ * cannot restyle RustMaps' own in-iframe controls/panels — instead we crop
+ * their chrome and layer our own themed controls hint + loading overlay on
+ * top. Closable via the ✕ button (kept above the iframe with a high
+ * z-index), a backdrop click, or Escape.
  */
 function Monument3dModal({
   name,
@@ -681,6 +697,10 @@ function Monument3dModal({
   src: string;
   onClose: () => void;
 }) {
+  // Tracks the iframe load so we can swap our themed loading overlay for the
+  // live 3D viewport once RustMaps' page has finished loading.
+  const [loaded, setLoaded] = useState(false);
+
   // Close on Escape — listener lives on window so it works even after the
   // iframe has captured mouse/keyboard focus.
   useEffect(() => {
@@ -703,7 +723,6 @@ function Monument3dModal({
         <div className="mon-3d-modal-bar">
           <span className="mon-3d-modal-tag">3D MODEL</span>
           <span className="mon-3d-modal-title">{name}</span>
-          <span className="mon-3d-modal-credit">Live 3D model by RustMaps</span>
         </div>
         <div className="mon-3d-modal-body">
           {/* Floating close affordance that always stays above the iframe so
@@ -723,7 +742,28 @@ function Monument3dModal({
             className="mon-3d-modal-frame"
             src={src}
             title={`RustMaps 3D model — ${name}`}
+            onLoad={() => setLoaded(true)}
           />
+          {/* Our own themed controls hint. The cross-origin RustMaps embed
+              renders its own controls panel which our crop hides, so we
+              re-surface the same controls in our dark theme. */}
+          <div className="mon-3d-controls" aria-hidden="true">
+            <span className="mon-3d-controls-title">Controls</span>
+            <ul className="mon-3d-controls-list">
+              {MON_3D_CONTROLS.map((c) => (
+                <li key={c.keys} className="mon-3d-controls-row">
+                  <span className="mon-3d-controls-keys">{c.keys}</span>
+                  <span className="mon-3d-controls-action">{c.action}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Our own loading overlay covers the body until the iframe fires
+              onLoad, then fades out. */}
+          <div className={`mon-3d-loading ${loaded ? 'mon-3d-loading--done' : ''}`}>
+            <span className="mon-3d-spinner" aria-hidden="true" />
+            <span className="mon-3d-loading-text">Loading 3D model…</span>
+          </div>
         </div>
       </div>
     </div>

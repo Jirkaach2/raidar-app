@@ -1,62 +1,33 @@
 import { useMapStore } from '../stores/map-store';
-import { getNormalizedCoordinates } from './grid';
 
 /**
  * Single source of truth for "is this vending machine an NPC / safe-zone shop?".
  *
  * This is the EXACT detection every surface uses (Market search, Best Shops,
  * Market Index, sale-tracking, map markers), so shops classify identically
- * everywhere. The detection is deliberately ACCURATE and CONSERVATIVE: a normal
- * player shop must never be mistaken for an NPC shop just because it happens to
- * sit near the coast or carry a generic word in its name. A shop is an NPC shop
- * only when either:
- *   1. its name matches a genuine NPC vendor / safe-zone label, OR
- *   2. it sits VERY close to an actual safe-zone monument (Outpost / Bandit
- *      Camp only).
- *
- * `nx`/`ny` are the shop's NORMALIZED map coordinates (0-1), matching the
- * coordinate space used for markers and monuments elsewhere in the app.
+ * everywhere. Detection is by NAME ONLY: a shop is an NPC shop when its name
+ * matches one of the curated, real NPC vendor / safe-zone labels below
+ * (case-insensitive substring match). No coordinate / monument-proximity logic
+ * is used — a normal player shop is never mistaken for an NPC shop just because
+ * of where it sits on the map.
  *
  * NOTE: "deep sea" lives in its own detector (`isDeepSeaShop`) and takes
  * precedence — a deep-sea shop is NEVER also counted as an NPC shop.
  */
 const NPC_SHOP_NAMES = [
-  'outpost', 'bandit camp', 'air wolf', 'airwolf', 'dome',
-  'small oil rig', 'large oil rig',
-  // Literal stall names that ONLY the NPC safe-zone shops ever use.
-  'medical supplies', 'components', 'resources shop', 'weapons shop',
+  'fish exchange', 'boat vendor', 'stables shopkeeper', 'outpost outfitters',
+  'components', 'building', 'tools & stuff', 'weapons', 'shop keeper',
+  'shopkeeper', 'air wolf', 'airwolf', 'outpost', 'bandit',
 ];
 
-/**
- * Monument tokens whose immediate vicinity hosts a real safe-zone NPC vendor.
- * Only the two actual safe-zone monuments qualify — fishing/ranch/barn/stable
- * are NOT here, since player shops legitimately cluster near them.
- */
-const NPC_MONUMENT_KEYS = ['outpost', 'bandit'];
-
-/**
- * Proximity (in normalized 0-1 map units) for a shop to count as "at" a
- * safe-zone monument. Kept very tight so only shops literally inside the
- * safe-zone are flagged — not nearby player bases.
- */
-const MONUMENT_ZONE_RADIUS = 0.02;
-
-export function isNpcShop(label: string, nx: number, ny: number): boolean {
-  // Deep-sea shops take precedence and are never treated as NPC shops.
-  if (isDeepSeaShop(label, nx, ny)) return false;
+export function isNpcShop(label: string, _nx: number, _ny: number): boolean {
+  // Deep-sea shops take precedence and are never treated as NPC shops. The
+  // coordinate args are accepted for caller compatibility but only consumed by
+  // the deep-sea detector — NPC detection itself is name-only.
+  if (isDeepSeaShop(label, _nx, _ny)) return false;
 
   const lname = (label || '').toLowerCase();
-  if (NPC_SHOP_NAMES.some((n) => lname.includes(n))) return true;
-
-  const { monuments, mapSize, mapImageWidth, mapImageHeight, oceanMargin } = useMapStore.getState();
-  for (const m of monuments) {
-    const key = (m.token || '').toLowerCase();
-    if (NPC_MONUMENT_KEYS.some((k) => key.includes(k))) {
-      const p = getNormalizedCoordinates(m.x, m.y, mapSize, mapImageWidth, mapImageHeight, oceanMargin);
-      if (Math.hypot(nx - p.x, ny - p.y) <= MONUMENT_ZONE_RADIUS) return true;
-    }
-  }
-  return false;
+  return NPC_SHOP_NAMES.some((n) => lname.includes(n));
 }
 
 /**

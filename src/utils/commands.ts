@@ -13,6 +13,7 @@ import { useMapStore } from '../stores/map-store';
 import { useTeamStore } from '../stores/team-store';
 import { useConnectionStore } from '../stores/connection-store';
 import { useEventsStore } from '../stores/events-store';
+import { useActivityStore, ActivityKind } from '../stores/activity-store';
 import { getCurrentServer, isCurrentServer } from './server';
 import { normalizeMonumentKey, getMonumentInfo } from './monuments';
 import { invoke } from '@tauri-apps/api/core';
@@ -25,6 +26,39 @@ function fmtTimer(ms: number): string {
   const sec = s % 60;
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+/** Compact relative age from a millisecond duration, e.g. "1h4m ago". */
+function agoMs(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}h${m}m ago`;
+  if (m > 0) return `${m}m ago`;
+  return `${s}s ago`;
+}
+
+/**
+ * Newest timestamp (epoch ms) we logged a given event kind spawn, or null.
+ * Backs the "last seen" fallback for !cargo / !heli when nothing is on the map.
+ */
+function lastSeen(kind: ActivityKind): number | null {
+  const e = useActivityStore.getState().log.find((x) => x.kind === kind); // log is newest-first
+  return e ? e.timestamp : null;
+}
+
+/**
+ * Tiny localStorage record of when an oil-rig crate last finished unlocking
+ * ("opened"), keyed 'small' | 'large'. Lets !oilrig/!largeoilrig report a
+ * last-opened age once a timer has expired. Kept intentionally minimal.
+ */
+const OILRIG_OPENED_KEY = 'raidar.oilrigLastOpened';
+function readOilrigOpened(): Record<string, number> {
+  try { return JSON.parse(localStorage.getItem(OILRIG_OPENED_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function writeOilrigOpened(rec: Record<string, number>): void {
+  try { localStorage.setItem(OILRIG_OPENED_KEY, JSON.stringify(rec)); } catch { /* ignore */ }
 }
 
 const DEVICE_TYPE_LABEL: Record<number, string> = {
@@ -55,9 +89,10 @@ export function handleTeamCommand(text: string): boolean {
     case 'help':
     case 'commands':
       reply([
-        '[BOT] !pop !online !team !grid !status !time !sun !wipe !server !map',
-        '[BOT] !cargo !heli !vendor !events !crates !devices !upkeep',
-        '[BOT] !crate add <mon> <mm:ss> · !crate del/edit <name> · !switch <name>',
+        '[BOT] !pop !team !status !time !wipe !server !map',
+        '[BOT] !cargo !heli !vendor !events !crates !deepsea !vend <item>',
+        '[BOT] !oilrig !largeoilrig · !crate add|del|edit <mon> [mm:ss] · !switch <name>',
+        '[BOT] !devices !upkeep',
       ]);
       return true;
 
@@ -204,14 +239,18 @@ export function handleTeamCommand(text: string): boolean {
 
     case 'cargo': {
       const cargo = useMapStore.getState().markers.find((m) => m.type === 'cargo_ship');
-      const dock = useEventsStore.getState().events['cargo_dock'];
-      if (!cargo) { reply(['[BOT] No Cargo Ship on the map.']); return true; }
-      if (dock) {
-        const rem = dock.endsAt - Date.now();
-        reply([`[BOT] Cargo docked${dock.grid ? ` @ ${dock.grid}` : ''} — leaves in ${fmtTimer(rem)}`]);
-      } else {
-        reply([`[BOT] Cargo Ship active${cargo.detail ? ` @ ${cargo.detail}` : ''}`]);
+      if (cargo) {
+        const dock = useEventsStore.getState().events['cargo_dock'];
+        if (dock) {
+          const rem = dock.endsAt - Date.now();
+          reply([`[BOT] Cargo docked${dock.grid ? ` @ ${dock.grid}` : ''} — leaves in ${fmtTimer(rem)}`]);
+        } else {
+          reply([`[BOT] Cargo Ship active${cargo.detail ? ` @ ${cargo.detail}` : ''}`]);
+        }
+        return true;
       }
+      const ts = lastSeen('event_cargo');
+      reply([ts ? `[BOT] cargo not up — last seen ${agoMs(Date.now() - ts)}` : '[BOT] no cargo on map']);
       return true;
     }
 
@@ -240,10 +279,14 @@ export function handleTeamCommand(text: string): boolean {
 
     case 'team': {
       const members = useTeamStore.getState().members;
-      const online = members.filter((m) => m.status === 'online');
       if (members.length === 0) { reply(['[BOT] No team data.']); return true; }
-      const names = online.map((m) => `${m.name}@${m.grid || '?'}`).join(', ');
-      reply([`[BOT] Online ${online.length}/${members.length}: ${names || 'none'}`]);
+      const online = members.filter((m) => m.status === 'online');
+      // One compact line with each online teammate's grid, e.g.
+      // "[BOT] 3/5 online — Joe K12, Bob D7, Sam P4"
+      const names = online.map((m) => `${m.name} ${m.grid || '?'}`).join(', ');
+      let line = `[BOT] ${online.length}/${members.length} online${names ? ` — ${names}` : ''}`;
+      if (line.length > 120) line = line.slice(0, 119) + '…';
+      reply([line]);
       return true;
     }
 
@@ -260,40 +303,95 @@ export function handleTeamCommand(text: string): boolean {
       const markers = useMapStore.getState().markers;
       const heli = markers.find((m) => m.type === 'patrol_heli');
       const chinook = markers.find((m) => m.type === 'chinook');
-      if (!heli && !chinook) { reply(['[BOT] No Patrol Heli or Chinook on the map.']); return true; }
-      const parts: string[] = [];
-      if (heli) parts.push(`Patrol Heli${heli.detail ? ` @ ${heli.detail}` : ''}`);
-      if (chinook) parts.push(`Chinook${chinook.detail ? ` @ ${chinook.detail}` : ''}`);
-      reply([`[BOT] ${parts.join(' · ')}`]);
+      if (heli || chinook) {
+        const parts: string[] = [];
+        if (heli) parts.push(`Patrol Heli${heli.detail ? ` @ ${heli.detail}` : ''}`);
+        if (chinook) parts.push(`Chinook${chinook.detail ? ` @ ${chinook.detail}` : ''}`);
+        reply([`[BOT] ${parts.join(' · ')}`]);
+        return true;
+      }
+      const ts = lastSeen('event_heli');
+      reply([ts ? `[BOT] heli not up — last seen ${agoMs(Date.now() - ts)}` : '[BOT] no heli on map']);
       return true;
     }
 
     case 'vendor': {
       const vendor = useMapStore.getState().markers.find((m) => m.type === 'vendor');
-      reply([vendor
-        ? `[BOT] Travelling Vendor${vendor.detail ? ` @ ${vendor.detail}` : ''}`
-        : '[BOT] No travelling vendor on the map.']);
+      if (vendor) {
+        // Record a last-seen stamp so we can answer once it leaves.
+        try { localStorage.setItem('raidar.vendorLastSeen', String(Date.now())); } catch { /* ignore */ }
+        reply([`[BOT] Travelling Vendor${vendor.detail ? ` @ ${vendor.detail}` : ''}`]);
+        return true;
+      }
+      let ts: number | null = null;
+      try { const v = localStorage.getItem('raidar.vendorLastSeen'); ts = v ? Number(v) : null; } catch { ts = null; }
+      reply([ts ? `[BOT] vendor not up — last seen ${agoMs(Date.now() - ts)}` : '[BOT] no travelling vendor on map']);
       return true;
     }
 
-    case 'sun': {
-      const t = useMapStore.getState().timeInfo;
-      if (!t) { reply(['[BOT] Time data unavailable.']); return true; }
-      const isDay = t.time >= t.sunrise && t.time < t.sunset;
-      const realMinPerHour = t.dayLengthMinutes > 0 ? t.dayLengthMinutes / 24 : 0;
-      let hoursUntil: number;
-      if (isDay) hoursUntil = t.sunset - t.time;
-      else hoursUntil = t.time < t.sunrise ? t.sunrise - t.time : 24 - t.time + t.sunrise;
-      const mins = Math.round(hoursUntil * realMinPerHour);
-      reply([`[BOT] ${isDay ? 'Nightfall' : 'Sunrise'} in ~${mins}m`]);
+    case 'deepsea': {
+      // Deep-sea shops live off the playable grid and are filtered out of the
+      // live marker set, so we report the tracked deep-sea event instead.
+      const ds = useEventsStore.getState().events['deep_sea'];
+      reply([ds ? '[BOT] Deep sea ACTIVE — offshore shops & loot available' : '[BOT] no deep sea shops detected']);
       return true;
     }
 
-    case 'online': {
-      const members = useTeamStore.getState().members;
-      if (members.length === 0) { reply(['[BOT] No team data.']); return true; }
-      const online = members.filter((m) => m.status === 'online').length;
-      reply([`[BOT] ${online}/${members.length} teammates online`]);
+    case 'vend': {
+      const query = args.join(' ').toLowerCase().trim();
+      if (!query) { reply(['[BOT] Usage: !vend <item>']); return true; }
+      const shops = useMapStore.getState().markers.filter((m) => m.type === 'vending_machine');
+      const hits: string[] = [];
+      for (const m of shops) {
+        const orders = (m.raw?.sell_orders || []) as any[];
+        const order = orders.find((o) =>
+          (o.amount_in_stock ?? 0) > 0 &&
+          String(o.item_name || '').toLowerCase().includes(query));
+        if (!order) continue;
+        const grid = m.detail || '?';
+        hits.push(`${grid} @${order.cost_per_item} ${order.currency_name || 'scrap'}`);
+        if (hits.length >= 4) break;
+      }
+      if (hits.length === 0) { reply([`[BOT] no shops selling ${query}`]); return true; }
+      let line = `[BOT] ${query} — ${hits.join(', ')}`;
+      if (line.length > 120) line = line.slice(0, 119) + '…';
+      reply([line]);
+      return true;
+    }
+
+    case 'oilrig':
+    case 'largeoilrig': {
+      const large = cmd === 'largeoilrig';
+      const rigKey = large ? 'large' : 'small';
+      const label = large ? 'Large Oil Rig' : 'Oil Rig';
+      const now = Date.now();
+      const isRig = (t: string) => {
+        const s = (t || '').toLowerCase();
+        return s.includes('oil') && (large ? s.includes('large') : !s.includes('large'));
+      };
+      const rigCrates = useCrateStore.getState().markers
+        .filter((c) => isCurrentServer(c.serverId) && (isRig(c.target) || isRig(c.label)));
+      const active = rigCrates
+        .filter((c) => c.unlocksAt > now)
+        .sort((a, b) => a.unlocksAt - b.unlocksAt)[0];
+      if (active) {
+        reply([`[BOT] ${label} crate unlocks in ${fmtTimer(active.unlocksAt - now)}`]);
+        return true;
+      }
+      // No active timer — capture the most recent expiry as "last opened".
+      const opened = readOilrigOpened();
+      const expired = rigCrates
+        .filter((c) => c.unlocksAt <= now)
+        .sort((a, b) => b.unlocksAt - a.unlocksAt)[0];
+      if (expired && (!opened[rigKey] || expired.unlocksAt > opened[rigKey])) {
+        opened[rigKey] = expired.unlocksAt;
+        writeOilrigOpened(opened);
+      }
+      if (opened[rigKey]) {
+        reply([`[BOT] ${label} — last crate opened ${agoMs(now - opened[rigKey])}`]);
+        return true;
+      }
+      reply([`[BOT] ${label} — no crate timer`]);
       return true;
     }
 
@@ -312,16 +410,6 @@ export function handleTeamCommand(text: string): boolean {
         parts.push(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${isDay ? 'day' : 'night'}`);
       }
       reply([parts.length ? `[BOT] ${parts.join(' · ')}` : '[BOT] Status unavailable.']);
-      return true;
-    }
-
-    case 'grid': {
-      const members = useTeamStore.getState().members;
-      const online = members.filter((m) => m.status === 'online');
-      if (online.length === 0) { reply(['[BOT] No teammates online.']); return true; }
-      let line = online.map((m) => `${m.name}@${m.grid || '?'}`).join(', ');
-      if (line.length > 110) line = line.slice(0, 109) + '…';
-      reply([`[BOT] ${line}`]);
       return true;
     }
 

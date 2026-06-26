@@ -52,7 +52,6 @@ const SLASH_COMMANDS: SlashCommand[] = [
 const CHAT_COMMANDS: ChatCommand[] = [
   // ── Server & status ──
   { command: '!pop', description: 'Current server population' },
-  { command: '!queue', description: 'Players waiting in the join queue' },
   { command: '!status', description: 'Population + in-game time at a glance' },
   { command: '!server', description: 'Server name, population & map size' },
   { command: '!map', description: 'Map size & seed' },
@@ -60,22 +59,22 @@ const CHAT_COMMANDS: ChatCommand[] = [
   { command: '!wipe', description: 'Last wipe age' },
   // ── Time ──
   { command: '!time', description: 'In-game time (day/night)' },
-  { command: '!sun', description: 'Time until next day/night' },
   // ── Team ──
-  { command: '!online', description: 'Online teammate count' },
-  { command: '!team', description: 'Online teammates & names' },
-  { command: '!grid', description: "Each online teammate's grid (compact)" },
+  { command: '!team', description: 'Online teammates with each grid, on one line' },
   // ── World events ──
-  { command: '!cargo', description: 'Cargo ship grid' },
-  { command: '!heli', description: 'Patrol heli (+ Chinook) grid' },
+  { command: '!cargo', description: 'Cargo ship grid — shows last-seen if not active' },
+  { command: '!heli', description: 'Patrol heli (+ Chinook) grid — shows last-seen if not active' },
   { command: '!chinook', description: 'Chinook grid' },
-  { command: '!vendor', description: 'Travelling vendor grid' },
+  { command: '!vendor', description: 'Travelling vendor grid — shows last-seen if not active' },
   { command: '!events', description: 'Active world events summary' },
+  { command: '!deepsea', description: 'Deep sea shops / event status' },
   { command: '!crates', description: 'Active crate timers / live locked crates' },
+  { command: '!oilrig', description: 'Small Oil Rig crate: time left, or last-opened age' },
+  { command: '!largeoilrig', description: 'Large Oil Rig crate: time left, or last-opened age' },
   // ── Crate timers (app) ──
-  { command: '!crate add', args: '<monument> <mm:ss>', description: 'Start a crate unlock timer at a monument' },
-  { command: '!crate del', args: '<name>', description: 'Remove a crate timer by name' },
-  { command: '!crate edit', args: '<name> <mm:ss>', description: 'Re-set a crate timer' },
+  { command: '!crate', args: 'add|del|edit <monument> [mm:ss]', description: 'Add / remove / re-set a crate unlock timer' },
+  // ── Shops ──
+  { command: '!vend', args: '<item>', description: 'Find shops selling an item (grid + price)' },
   // ── Devices & base ──
   { command: '!devices', description: 'List paired smart devices & on/off state' },
   { command: '!switch', args: '<name>', description: 'Toggle a Smart Switch by name' },

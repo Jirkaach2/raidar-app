@@ -5,7 +5,7 @@ import { useConnectionStore } from '@/stores/connection-store';
 import { isCurrentServer, getCurrentServerId } from '@/utils/server';
 import { getItemIconUrl, getItemName } from '@/utils/items';
 import { isNpcShop } from '@/utils/shops';
-import { TrendingUp, BarChart3, Search, Trash2, Flame, ArrowDown, ArrowUp, Minus, Bot, Check, Copy } from 'lucide-react';
+import { TrendingUp, BarChart3, Search, Trash2, Flame, ArrowDown, ArrowUp, Minus, Bot } from 'lucide-react';
 import './MarketIndex.css';
 
 function fmt(n: number): string {
@@ -50,7 +50,6 @@ export function MarketIndexTool() {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<SortKey>('listings');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Click a column header to sort by it; clicking the active column flips the
   // direction. Price columns default to ascending (cheapest first) since that's
@@ -80,17 +79,6 @@ export function MarketIndexTool() {
 
   const maxUnits = mostSold[0]?.units || 1;
   const hasData = prices.length > 0 || mostSold.length > 0;
-
-  // Quick-share: copy a one-line price summary so users can paste it into chat.
-  const copyRow = (p: ItemPrice) => {
-    const key = `${p.itemId}:${p.currencyId}`;
-    const avg = p.sum / p.count;
-    const text = `${p.itemName} — low ${price(p.min)} / avg ${price(avg)} / high ${price(p.max)} ${p.currencyName}`;
-    navigator.clipboard?.writeText(text).then(
-      () => { setCopiedKey(key); setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1200); },
-      () => { /* clipboard unavailable — non-fatal */ },
-    );
-  };
 
   // Header cell with a sort affordance + active-direction arrow.
   const sortArrow = (key: SortKey) => (sort === key ? (dir === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />) : null);
@@ -152,13 +140,11 @@ export function MarketIndexTool() {
             {prices.slice(0, 40).map((p) => {
               const avg = p.sum / p.count;
               const rowKey = `${p.itemId}:${p.currencyId}`;
-              const copied = copiedKey === rowKey;
               return (
-                <div className="mkt-row" key={rowKey} onClick={() => copyRow(p)} style={{ cursor: 'pointer' }} title="Click to copy price summary">
+                <div className="mkt-row" key={rowKey}>
                   <span className="mkt-item">
                     {getItemIconUrl(p.itemId) && <img src={getItemIconUrl(p.itemId)!} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />}
                     <span className="mkt-item-name">{p.itemName}<small>{p.currencyName}</small></span>
-                    {copied ? <Check size={11} style={{ color: 'var(--color-success, #6fcf73)', flexShrink: 0 }} /> : <Copy size={10} style={{ color: 'var(--color-text-dim)', opacity: 0.5, flexShrink: 0 }} />}
                   </span>
                   <span className="mkt-low">{price(p.min)}</span>
                   <span className="mkt-avg">{price(avg)}</span>

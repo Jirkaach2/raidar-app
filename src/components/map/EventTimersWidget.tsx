@@ -47,6 +47,9 @@ interface Row {
   key: string;
   icon: React.ReactNode;
   label: string;
+  /** Optional grid/location (e.g. "D7"), rendered as a non-shrinking badge so
+   * it is never eaten by the label's ellipsis when the row is cramped. */
+  grid?: string;
   value: string;
   accent: string;
 }
@@ -79,7 +82,8 @@ const EventTimersWidget = React.memo(function EventTimersWidget() {
       rows.push({
         key: e.id,
         icon: <CargoIcon />,
-        label: e.grid ? `Cargo Docked · ${e.grid}` : 'Cargo Docked',
+        label: 'Cargo Docked',
+        grid: e.grid,
         value: remaining > 0 ? `leaves ${fmt(remaining)}` : 'leaving',
         accent: remaining > 0 && remaining < 90_000 ? '#f5c451' : '#58c6e8',
       });
@@ -99,7 +103,8 @@ const EventTimersWidget = React.memo(function EventTimersWidget() {
         rows.push({
           key: e.id,
           icon: <CrashIcon />,
-          label: e.grid ? `Heli Crate · ${e.grid}` : e.label,
+          label: 'Heli Crate',
+          grid: e.grid,
           value: open ? 'OPEN' : `unlocks ${fmt(remaining)}`,
           accent: open ? '#6fcf73' : remaining < 60_000 ? '#f5c451' : '#ff7043',
         });
@@ -114,14 +119,19 @@ const EventTimersWidget = React.memo(function EventTimersWidget() {
     const remaining = c.unlocksAt - now;
     const open = remaining <= 0;
     const isHeliCrash = c.target.startsWith('heli_crash_');
+    // Prefer the explicit grid field; fall back to whatever trails the label.
+    const heliGrid = isHeliCrash
+      ? (c.grid || c.label.replace('Heli Crash ', '').trim() || undefined)
+      : undefined;
     rows.push({
       key: c.id,
       icon: isHeliCrash ? <CrashIcon /> : <CrateIcon />,
       label: isHeliCrash
-        ? `Heli Crash ${c.label.replace('Heli Crash ', '')}`
+        ? 'Heli Crash'
         : (c.target === 'cargo' && c.cargoPos
           ? `Cargo ${c.cargoPos.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}`
           : c.label),
+      grid: heliGrid,
       value: open ? 'OPEN' : `unlocks ${fmt(remaining)}`,
       accent: open ? '#6fcf73' : remaining < 60_000 ? '#f5c451' : '#ff9100',
     });
@@ -152,14 +162,33 @@ const EventTimersWidget = React.memo(function EventTimersWidget() {
         ACTIVE EVENTS
       </div>
       {rows.map((r) => (
-        <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: r.accent, fontSize: 11, fontWeight: 700, overflow: 'hidden' }}>
+        <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: r.accent, fontSize: 11, fontWeight: 700, flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
             <span style={{ display: 'flex', flexShrink: 0 }}>{r.icon}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e8e2d9' }}>{r.label}</span>
           </span>
-          {r.value && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: r.accent, flexShrink: 0 }}>{r.value}</span>
-          )}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {r.grid && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  padding: '2px 5px',
+                  borderRadius: 4,
+                  whiteSpace: 'nowrap',
+                  color: r.accent,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: `1px solid ${r.accent}40`,
+                }}
+              >
+                {r.grid}
+              </span>
+            )}
+            {r.value && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: r.accent, whiteSpace: 'nowrap' }}>{r.value}</span>
+            )}
+          </span>
         </div>
       ))}
     </div>

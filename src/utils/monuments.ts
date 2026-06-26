@@ -610,7 +610,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
         resetTime: '~30m',
       },
     ],
-    notes: ['Red card only. Very high radiation (peaks 81) — strong hazmat required. Diesel barrels on the flatbed truck.'],
+    notes: ['Red card only. Very high radiation (peaks 81) — high radiation protection recommended. Diesel barrels on the flatbed truck.'],
   },
   underwater_lab: {
     key: 'underwater_lab', name: 'UNDERWATER LAB', imageSlug: 'underwater-lab',
@@ -784,7 +784,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   deep_sea: {
     key: 'deep_sea', name: 'DEEP SEA', imageSlug: 'deep-sea',
-    type: 'Ocean Safe Zone', tier: '0', safezone: true, radiation: 'none',
+    type: 'Ocean', tier: '2', safezone: false, radiation: 'none',
     recyclers: 0, crateCount: 6,
     crates: [
       { loot: 'basic', label: 'Dive Site Crate', count: 'several' },
@@ -797,7 +797,7 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
     notes: [
       'Sits OUTSIDE the normal map grid — a far-offshore deep-ocean region beyond the playable water, reachable only by boat or submarine.',
       'A deep-sea ISLAND spawns far offshore with loot crates to grab and buried treasure to dig up with a Metal Detector (the Dive Master\'s "Beep in the Deep" treasure-hunt).',
-      'The Deep Sea vendor/Dive Master runs a floating SAFE ZONE settlement — no PvP, no turrets — selling diving gear, boats, and supplies.',
+      'The open deep sea itself is dangerous PvP water (NOT a safe zone), but the Deep Sea vendor/Dive Master runs a floating SAFE-ZONE settlement around the vendor — no PvP, no turrets — selling diving gear, boats, and supplies.',
       'RHIB scientists patrol the surrounding waters on boats; expect resistance when approaching dive sites and the island.',
       'Sharks lurk at the dive sites — they will attack while you loot underwater, so clear them before opening crates.',
       'Underwater crates at dive sites are tied/anchored down — untie them first, then surface to claim the loot safely.',
