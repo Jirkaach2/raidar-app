@@ -963,6 +963,21 @@ export function monumentHas3dModel(key: string): boolean {
   return MONUMENTS_WITH_3D.has(key);
 }
 
+/**
+ * RustMaps 3D-page slugs that DON'T match our derived slug
+ * (`imageSlug` with dashes → underscores). Verified against the live
+ * rustmaps.com/monuments list — a wrong slug infinite-loads into a blue screen.
+ */
+const RUSTMAPS_SLUG_OVERRIDES: Record<string, string> = {
+  military_tunnel: 'military_tunnels', // we derive the singular "military_tunnel"
+  water_treatment: 'water_treatment',  // we derive "water_treatment_plant"
+};
+
+/** The RustMaps 3D-viewer slug for a monument (handles the few that differ). */
+export function getRustMaps3dSlug(info: MonumentInfo): string {
+  return RUSTMAPS_SLUG_OVERRIDES[info.key] ?? info.imageSlug.replace(/-/g, '_');
+}
+
 /** True if the given monument token provides the given monument-feature resource. */
 export function monumentHasFeature(token: string, feature: string): boolean {
   // Resolve to the canonical DB key via alias matching so tokens like

@@ -5,6 +5,7 @@ import {
   getMonumentImageUrl,
   getItemIcon,
   monumentHas3dModel,
+  getRustMaps3dSlug,
   MonumentInfo,
   PuzzleItem,
   CardType,
@@ -365,8 +366,9 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   const [show3d, setShow3d] = useState(false);
 
   // RustMaps and RustHelp share monument slugs; our imageSlug is the RustHelp
-  // (dash-separated) slug, so the RustMaps slug uses underscores.
-  const rmSlug = info.imageSlug.replace(/-/g, '_');
+  // (dash-separated) slug, so the RustMaps slug uses underscores — with a few
+  // explicit overrides where RustMaps differs (e.g. military_tunnels).
+  const rmSlug = getRustMaps3dSlug(info);
   const rm3dUrl = `${RUSTMAPS_3D_BASE}/${rmSlug}`;
   // Only monuments RustMaps actually models get the interactive 3D viewer.
   const has3d = monumentHas3dModel(info.key);
