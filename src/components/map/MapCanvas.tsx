@@ -678,137 +678,48 @@ function RustMapsExtras() {
   const imageWidth = useMapStore((s) => s.mapImageWidth || 0);
   const imageHeight = useMapStore((s) => s.mapImageHeight || 0);
   const oceanMargin = useMapStore((s) => s.oceanMargin || 0);
-  const liveMonuments = useMapStore((s) => s.monuments);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // ── One-time diagnostic: dump RustMaps + live monument coordinates ──
+  // The RustMaps↔Rust+ coordinate convention isn't documented; this logs the
+  // real numbers ONCE so the exact transform can be derived. Open DevTools
+  // console (Ctrl+Shift+I) and copy the [RM-DIAG] lines.
+  const liveMonumentsDiag = useMapStore((s) => s.monuments);
+  useEffect(() => {
+    if (!raw.length || !liveMonumentsDiag.length) return;
+    if ((window as { __rmDiag?: boolean }).__rmDiag) return;
+    (window as { __rmDiag?: boolean }).__rmDiag = true;
+    /* eslint-disable no-console */
+    console.log('[RM-DIAG] mapSize =', mapSize);
+    console.log('[RM-DIAG] rustmaps monuments:', JSON.stringify(
+      raw.map((m) => ({ t: m.type, x: Math.round(m.wx), y: Math.round(m.wy) })),
+    ));
+    console.log('[RM-DIAG] live monuments:', JSON.stringify(
+      liveMonumentsDiag.map((m: { token?: string; x: number; y: number }) => ({
+        t: m.token, x: Math.round(m.x), y: Math.round(m.y),
+      })),
+    ));
+    /* eslint-enable no-console */
+  }, [raw, liveMonumentsDiag, mapSize]);
 
   const extras = useMemo(() => {
     type Ex = { kind: 'cave' | 'water_well'; label: string; x: number; y: number };
     const out: Ex[] = [];
     if (raw.length === 0) return out;
 
-    const isExtraType = (t: string) => {
-      const lo = t.toLowerCase();
-      return lo.includes('cave') || lo.includes('sinkhole') || lo.includes('water well') || lo.includes('waterwell');
-    };
-
-    // ── Auto-calibrate the RustMaps coordinate frame onto the LIVE Rust+ frame ──
-    // RustMaps and Rust+ disagree on coordinate origin, scale AND axis direction,
-    // which is why caves / the water well were placed wrong. Rather than guess the
-    // convention, we recover it empirically. The STANDARD monuments (Launch Site,
-    // Harbor, …) appear in BOTH feeds at the same physical spots, so the two point
-    // clouds are related by an axis-aligned affine:  live = s·rm + o  (per axis,
-    // where s may be NEGATIVE if RustMaps flips that axis). We:
-    //   1. derive |s| and o per axis from the clouds' mean & std (correspondence-
-    //      free, so it doesn't matter which feed lists which monuments), then
-    //   2. sign-test all 4 axis-flip combos and keep whichever best overlays the
-    //      RustMaps standard monuments onto the live monuments (nearest-neighbour
-    //      distance). This auto-detects any X/Y inversion.
-    // Caves/wells are then pushed through that same transform.
-    const rmStd: { x: number; y: number }[] = [];
-    for (const m of raw) {
-      if (isExtraType(m.type)) continue;
-      rmStd.push({ x: m.wx, y: m.wy });
-    }
-    const live: { x: number; y: number }[] = [];
-    for (const m of liveMonuments) {
-      if (m.x == null || m.y == null) continue;
-      live.push({ x: m.x, y: m.y });
-    }
-
-    const moments = (arr: { x: number; y: number }[], key: 'x' | 'y') => {
-      const n = arr.length;
-      let sum = 0;
-      for (const p of arr) sum += p[key];
-      const mean = sum / n;
-      let v = 0;
-      for (const p of arr) { const d = p[key] - mean; v += d * d; }
-      return { mean, std: Math.sqrt(v / n) };
-    };
-
-    type Affine = { sx: number; ox: number; sy: number; oy: number };
-    let transform: Affine | null = null;
-
-    if (rmStd.length >= 4 && live.length >= 4) {
-      const rmX = moments(rmStd, 'x'), rmY = moments(rmStd, 'y');
-      const lvX = moments(live, 'x'), lvY = moments(live, 'y');
-      if (rmX.std > 1 && rmY.std > 1 && lvX.std > 1 && lvY.std > 1) {
-        const magX = lvX.std / rmX.std;
-        const magY = lvY.std / rmY.std;
-        let bestErr = Infinity;
-        for (const sgnX of [1, -1]) {
-          for (const sgnY of [1, -1]) {
-            const sx = sgnX * magX;
-            const sy = sgnY * magY;
-            const ox = lvX.mean - sx * rmX.mean;
-            const oy = lvY.mean - sy * rmY.mean;
-            // Total nearest-neighbour error of the transformed standard monuments.
-            let err = 0;
-            for (const p of rmStd) {
-              const tx = sx * p.x + ox;
-              const ty = sy * p.y + oy;
-              let md = Infinity;
-              for (const q of live) {
-                const dx = tx - q.x, dy = ty - q.y;
-                const d = dx * dx + dy * dy;
-                if (d < md) md = d;
-              }
-              err += md;
-            }
-            if (err < bestErr) { bestErr = err; transform = { sx, ox, sy, oy }; }
-          }
-        }
-
-        // Refine the chosen orientation with two ICP iterations: match each
-        // RustMaps standard monument to its nearest live monument, then re-fit
-        // scale+offset per axis by least squares. This corrects any residual
-        // from the two feeds not listing exactly the same monument set.
-        if (transform) {
-          for (let iter = 0; iter < 2; iter++) {
-            const rxs: number[] = [], rys: number[] = [], lxs: number[] = [], lys: number[] = [];
-            for (const p of rmStd) {
-              const tx = transform.sx * p.x + transform.ox;
-              const ty = transform.sy * p.y + transform.oy;
-              let md = Infinity, bx = 0, by = 0;
-              for (const q of live) {
-                const dx = tx - q.x, dy = ty - q.y;
-                const d = dx * dx + dy * dy;
-                if (d < md) { md = d; bx = q.x; by = q.y; }
-              }
-              rxs.push(p.x); rys.push(p.y); lxs.push(bx); lys.push(by);
-            }
-            const fit = (rs: number[], ls: number[]) => {
-              const n = rs.length;
-              let mr = 0, ml = 0;
-              for (let i = 0; i < n; i++) { mr += rs[i]; ml += ls[i]; }
-              mr /= n; ml /= n;
-              let num = 0, den = 0;
-              for (let i = 0; i < n; i++) { const dr = rs[i] - mr; num += dr * (ls[i] - ml); den += dr * dr; }
-              const s = Math.abs(den) > 1e-6 ? num / den : 1;
-              return { s, o: ml - s * mr };
-            };
-            const fx = fit(rxs, lxs), fy = fit(rys, lys);
-            if (isFinite(fx.s) && isFinite(fy.s) && fx.s !== 0 && fy.s !== 0) {
-              transform = { sx: fx.s, ox: fx.o, sy: fy.s, oy: fy.o };
-            } else break;
-          }
-        }
-      }
-    }
+    // RustMaps world coordinates may be EITHER centre-origin (−size/2 … +size/2)
+    // or already corner-origin (0 … size). Detect from the data: any negative
+    // coordinate means centre-origin, so shift by +size/2 into the 0 … size space
+    // getNormalizedCoordinates expects (it then applies the ocean-margin + Y-flip
+    // exactly like the live Rust+ monuments). Corner-origin data needs no shift.
+    let anyNeg = false;
+    for (const m of raw) { if (m.wx < 0 || m.wy < 0) { anyNeg = true; break; } }
+    const shift = anyNeg ? mapSize / 2 : 0;
 
     /** RustMaps world coord → Rust+ world coord that getNormalizedCoordinates expects. */
     const toRustWorld = (wx: number, wy: number): { x: number; y: number } => {
-      if (transform) {
-        return { x: transform.sx * wx + transform.ox, y: transform.sy * wy + transform.oy };
-      }
-      // Fallback (no live monuments yet): assume centre-origin if any negative.
-      let anyNeg = false;
-      for (const m of raw) { if (m.wx < 0 || m.wy < 0) { anyNeg = true; break; } }
-      const shift = anyNeg ? mapSize / 2 : 0;
       return { x: wx + shift, y: wy + shift };
-
     };
-
-    if (raw.length === 0) return out;
 
     /** "Cave Small Easy" → "Small Cave". */
     const caveLabel = (t: string) => {
@@ -829,7 +740,7 @@ function RustMapsExtras() {
       out.push({ kind, label, x, y });
     }
     return out;
-  }, [raw, liveMonuments, mapSize, imageWidth, imageHeight, oceanMargin]);
+  }, [raw, mapSize, imageWidth, imageHeight, oceanMargin]);
 
   if (!show || extras.length === 0) return null;
 
