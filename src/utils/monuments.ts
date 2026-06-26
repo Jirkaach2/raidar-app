@@ -206,7 +206,7 @@ const LOCAL_MONUMENT_IMAGES: Record<string, string> = {
   swamp: '/images/monuments/swamp.jfif',
   ferry_terminal: '/images/monuments/ferry_terminal.jpg',
   harbor: '/images/monuments/harbor.jpg',
-  deep_sea: '/images/monuments/deep_sea.jpg',
+  deep_sea: '/images/monuments/deep_sea.png',
 };
 
 export function getMonumentImageUrl(token: string): string | null {
