@@ -666,17 +666,6 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   );
 }
 
-/** Controls documented for the embedded 3D viewer (cosmetic hint overlay). */
-const MON_3D_CONTROLS: { keys: string; action: string }[] = [
-  { keys: 'WASD', action: 'move' },
-  { keys: 'Mouse', action: 'look' },
-  { keys: 'Space / Q', action: 'up' },
-  { keys: 'E / C', action: 'down' },
-  { keys: 'Shift', action: 'fast' },
-  { keys: 'Scroll', action: 'speed' },
-  { keys: 'Esc', action: 'unlock' },
-];
-
 /**
  * Large modal overlay that mounts the RustMaps 3D model iframe on demand.
  *
@@ -684,9 +673,9 @@ const MON_3D_CONTROLS: { keys: string; action: string }[] = [
  * RustMaps top navbar AND bottom footer are clipped fully out of view,
  * leaving only the clean 3D viewport. Because the embed is cross-origin we
  * cannot restyle RustMaps' own in-iframe controls/panels — instead we crop
- * their chrome and layer our own themed controls hint + loading overlay on
- * top. Closable via the ✕ button (kept above the iframe with a high
- * z-index), a backdrop click, or Escape.
+ * their chrome and layer our own loading overlay on top. Closable via the ✕
+ * button (kept above the iframe with a high z-index), a backdrop click, or
+ * Escape.
  */
 function Monument3dModal({
   name,
@@ -755,20 +744,6 @@ function Monument3dModal({
             title={`RustMaps 3D model — ${name}`}
             onLoad={() => setFrameLoaded(true)}
           />
-          {/* Our own themed controls hint. The cross-origin RustMaps embed
-              renders its own controls panel which our crop hides, so we
-              re-surface the same controls in our dark theme. */}
-          <div className="mon-3d-controls" aria-hidden="true">
-            <span className="mon-3d-controls-title">Controls</span>
-            <ul className="mon-3d-controls-list">
-              {MON_3D_CONTROLS.map((c) => (
-                <li key={c.keys} className="mon-3d-controls-row">
-                  <span className="mon-3d-controls-keys">{c.keys}</span>
-                  <span className="mon-3d-controls-action">{c.action}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
           {/* Our own loading overlay covers the body until the iframe fires
               onLoad, then fades out. */}
           <div className={`mon-3d-loading ${loaded ? 'mon-3d-loading--done' : ''}`}>

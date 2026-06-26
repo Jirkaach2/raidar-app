@@ -124,6 +124,7 @@ const MapMarkers = React.memo(function MapMarkers() {
   const oceanMargin = useMapStore(s => s.oceanMargin || 0);
   const imageWidth = useMapStore(s => s.mapImageWidth || 0);
   const imageHeight = useMapStore(s => s.mapImageHeight || 0);
+  const mapSize = useMapStore(s => s.mapSize || 0);
 
   const crashEvent = useEventsStore(s => s.events['crash']);
   const hasServerExplosion = markers.some(m => m.type === 'explosion');
@@ -176,14 +177,33 @@ const MapMarkers = React.memo(function MapMarkers() {
         // image bounds [0,1] so they can't vanish entirely past the map edge.
         const marginX = imageWidth > 0 ? oceanMargin / imageWidth : 0;
         const marginY = imageHeight > 0 ? oceanMargin / imageHeight : 0;
+        // Deep-sea shops sit OUT IN THE OCEAN beyond the playable grid. The
+        // generic coordinate normalizer clamps everything to [0,1], which
+        // collapses every offshore stall onto the exact image edge (and stacks
+        // them in a corner where they're easy to miss / get clipped). For these
+        // shops we re-project from the RAW world coords WITHOUT the [0,1] clamp
+        // so they land in the ocean band on their true side of the map, then we
+        // clamp only to a small visible inset so they're always on-screen and
+        // clearly outside the grid border.
+        const deepPos = (() => {
+          const rawX = marker.raw?.x;
+          const rawY = marker.raw?.y;
+          if (!isDeepSea || mapSize <= 0 || rawX == null || rawY == null || imageWidth <= 0 || imageHeight <= 0) {
+            return null;
+          }
+          const px = rawX * ((imageWidth - 2 * oceanMargin) / mapSize) + oceanMargin;
+          const py = imageHeight - (rawY * ((imageHeight - 2 * oceanMargin) / mapSize) + oceanMargin);
+          const clamp = (v: number) => Math.min(0.985, Math.max(0.015, v));
+          return { x: clamp(px / imageWidth), y: clamp(py / imageHeight) };
+        })();
         const renderX = isVending
           ? (isDeepSea
-              ? Math.min(1, Math.max(0, marker.x))
+              ? (deepPos ? deepPos.x : Math.min(0.985, Math.max(0.015, marker.x)))
               : Math.min(1 - marginX, Math.max(marginX, marker.x)))
           : marker.x;
         const renderY = isVending
           ? (isDeepSea
-              ? Math.min(1, Math.max(0, marker.y))
+              ? (deepPos ? deepPos.y : Math.min(0.985, Math.max(0.015, marker.y)))
               : Math.min(1 - marginY, Math.max(marginY, marker.y)))
           : marker.y;
         const color = isDeepSea ? DEEP_SEA_COLOR : (marker.color || MARKER_COLORS[marker.type] || '#fff');

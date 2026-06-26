@@ -41,7 +41,14 @@ export function isNpcShop(label: string, _nx: number, _ny: number): boolean {
  * monument, NOT the deep-sea vendor, so monument-proximity is intentionally not
  * used here.
  */
-const DEEP_SEA_NAMES = ['deep sea', 'deepsea', 'deep-sea'];
+const DEEP_SEA_NAMES = [
+  'deep sea', 'deepsea', 'deep-sea',
+  // Deep Sea event merchant stalls carry these exact names (the " shop" suffix
+  // distinguishes them from the Outpost/Bandit NPC vendors named just
+  // "Components" / "Weapons" with no suffix).
+  'medical shop', 'components shop', 'resources shop',
+  'weapons shop', 'explosives shop',
+];
 
 /** Fallback band width (fraction of the image) when map metadata is missing. */
 const DEFAULT_OCEAN_MARGIN_FRACTION = 0.06;
