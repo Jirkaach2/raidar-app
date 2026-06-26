@@ -926,9 +926,11 @@ export const MONUMENT_FEATURES: Record<string, Set<string>> = {
   sam_sites: new Set([
     'launch_site',
   ]),
-  // Auto turrets guard Outpost, Bandit Camp and Ranch (safe-zone defenses).
+  // Auto turrets guard Outpost, Bandit Camp, Ranch and the Fishing Villages
+  // (safe-zone defenses that shoot hostiles inside the zone).
   turrets: new Set([
-    'outpost', 'bandit_camp', 'ranch',
+    'outpost', 'bandit_camp', 'ranch', 'fishing_village', 'large_fishing_village',
+    'fishing_village_a', 'fishing_village_b', 'fishing_village_c',
   ]),
   // Diesel is obtainable on the oil rigs (diesel barrels) in addition to the
   // puzzle monuments detected from their reward tables below.

@@ -158,6 +158,14 @@ const MapMarkers = React.memo(function MapMarkers() {
     });
   }
 
+  // Render the "DEEP SEA" label only ONCE for the whole offshore cluster — the
+  // shops stack on top of each other, so tagging every marker produced a pile
+  // of overlapping badges. We anchor the single label to the first deep-sea
+  // shop in the list.
+  const firstDeepSeaId = filteredMarkers.find(
+    (m) => m.type === 'vending_machine' && isDeepSeaShop(m.label, m.x, m.y),
+  )?.id;
+
   return (
     <div className="map-markers" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 4 }}>
       {/* ── Server Markers ── */}
@@ -340,28 +348,24 @@ const MapMarkers = React.memo(function MapMarkers() {
               )}
             </div>
             
-            {/* Deep-sea vendor badge — a small always-on tag so offshore vendor
-                shops (rendered at their true position outside the grid border)
-                are instantly recognisable. */}
-            {isDeepSea && (
+            {/* Deep-sea vendor label — shown ONCE for the cluster as plain
+                text (no background / border) so a stack of offshore shops isn't
+                buried under a pile of overlapping tags. */}
+            {isDeepSea && marker.id === firstDeepSeaId && (
               <div
                 style={{
                   position: 'absolute',
-                  top: 9,
+                  top: 10,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  padding: '1px 4px',
-                  borderRadius: 3,
-                  background: 'rgba(8,12,18,0.82)',
-                  border: `1px solid ${DEEP_SEA_COLOR}`,
                   color: DEEP_SEA_COLOR,
                   fontFamily: 'var(--font-mono)',
-                  fontSize: 5.5,
+                  fontSize: 6,
                   fontWeight: 800,
-                  letterSpacing: '0.5px',
+                  letterSpacing: '0.8px',
                   lineHeight: 1,
                   whiteSpace: 'nowrap',
-                  textShadow: '0 1px 2px rgba(0,0,0,1)',
+                  textShadow: '0 1px 2px rgba(0,0,0,1), 0 0 3px rgba(0,0,0,1)',
                   pointerEvents: 'none',
                 }}
               >

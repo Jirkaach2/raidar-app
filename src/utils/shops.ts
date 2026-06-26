@@ -80,10 +80,29 @@ export function isDeepSeaShop(label: string, nx: number, ny: number): boolean {
 export const MAX_ORDER_QUANTITY = 10_000;
 /** A single order slot holding more than this in stock is bad/overflow data. */
 export const MAX_ORDER_STOCK = 100_000;
+/**
+ * Sane upper bound on the price of ONE item in a single currency. Real stores
+ * top out in the low thousands (a high-end gun, a stack of explosives); a
+ * listing demanding tens of thousands for one item is spoofed/troll data.
+ */
+export const MAX_ORDER_PRICE = 20_000;
 /** Total currency a single shop could plausibly have earned (anti-overflow cap). */
 export const MAX_SHOP_EARNED = 100_000_000;
 /** Total units of a single item a shop could plausibly have sold. */
 export const MAX_SHOP_ITEM_UNITS = 1_000_000;
+/**
+ * A shop earning more than this in ONE currency per observed sale event is
+ * almost always spoofed/troll pricing (e.g. a listing of "1 wood for 50k
+ * scrap" that logs an absurd value whenever its stock cycles). Real stores
+ * sell at sane prices, so their per-sale revenue stays well under this.
+ */
+export const MAX_EARNED_PER_SALE = 4_000;
+/**
+ * Legit shops price their goods in a small handful of currencies. Taking in
+ * money across more than this many DISTINCT currencies is a hallmark of the
+ * bulk fake / relisted data we want to keep off the leaderboard.
+ */
+export const MAX_DISTINCT_CURRENCIES = 6;
 
 /** Minimal shape needed to realism-check a sell order. */
 export interface RealismOrderLike {
@@ -102,24 +121,40 @@ export function isRealisticOrder(o: RealismOrderLike): boolean {
   const cost = o.cost_per_item ?? 0;
   const stock = o.amount_in_stock ?? 0;
   if (qty <= 0 || qty > MAX_ORDER_QUANTITY) return false;
-  if (cost <= 0) return false;
+  if (cost <= 0 || cost > MAX_ORDER_PRICE) return false;
   if (stock > MAX_ORDER_STOCK) return false;
   return true;
 }
 
 /**
  * True when a shop's accumulated totals look realistic. Used to keep fake/bulk
- * shops out of the Best Shops leaderboard. Flags shops whose total earned
- * currency, or any single item's sold-unit count, blows past the sane caps.
+ * shops out of the Best Shops leaderboard. Flags shops whose:
+ *   • total earned currency, or any single item's sold-unit count, blows past
+ *     the sane anti-overflow caps;
+ *   • revenue-per-sale in any single currency is implausibly high (spoofed
+ *     pricing); or
+ *   • money is taken across an unrealistic number of distinct currencies.
+ * `saleEvents` is the number of observed purchases (0 = unknown, ratio check
+ * skipped).
  */
 export function areShopTotalsRealistic(
   earned: Record<number, number>,
   soldUnits: Record<number, number>,
+  saleEvents = 0,
 ): boolean {
-  const totalEarned = Object.values(earned).reduce((a, b) => a + b, 0);
+  const earnedVals = Object.values(earned);
+  const totalEarned = earnedVals.reduce((a, b) => a + b, 0);
   if (totalEarned > MAX_SHOP_EARNED) return false;
   for (const units of Object.values(soldUnits)) {
     if (units > MAX_SHOP_ITEM_UNITS) return false;
+  }
+  // Earning across too many distinct currencies → bulk fake / relisted data.
+  if (earnedVals.length > MAX_DISTINCT_CURRENCIES) return false;
+  // Implausible revenue-per-sale in any single currency → spoofed pricing.
+  if (saleEvents > 0) {
+    for (const amt of earnedVals) {
+      if (amt / saleEvents > MAX_EARNED_PER_SALE) return false;
+    }
   }
   return true;
 }

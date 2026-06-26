@@ -55,7 +55,6 @@ const CHAT_COMMANDS: ChatCommand[] = [
   { command: '!status', description: 'Population + in-game time at a glance' },
   { command: '!server', description: 'Server name, population & map size' },
   { command: '!map', description: 'Map size & seed' },
-  { command: '!seed', description: 'Map size & seed (alias of !map)' },
   { command: '!wipe', description: 'Last wipe age' },
   // ── Time ──
   { command: '!time', description: 'In-game time (day/night)' },

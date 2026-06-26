@@ -35,7 +35,7 @@ import { useShopSalesStore } from './stores/shop-sales-store';
 import { usePriceHistoryStore } from './stores/price-history-store';
 import { getGridCoordinate, getNormalizedCoordinates } from './utils/grid';
 import { isCurrentServer, getCurrentServer } from './utils/server';
-import { isNpcShop } from './utils/shops';
+import { isNpcShop, isRealisticOrder } from './utils/shops';
 import { getMonumentInfo, normalizeMonumentKey } from './utils/monuments';
 import { getItemName } from './utils/items';
 import './App.css';
@@ -1151,7 +1151,11 @@ function App() {
             const srv = getCurrentServer();
             mappedMarkers.forEach((mk: any) => {
               if (mk.type !== 'vending_machine') return;
-              const orders = mk.raw?.sell_orders || [];
+              const allOrders = mk.raw?.sell_orders || [];
+              if (allOrders.length === 0) return;
+              // Drop spoofed/bulk listings (absurd price, quantity or stock) so
+              // fake data never reaches the sales tracker or the price index.
+              const orders = allOrders.filter(isRealisticOrder);
               if (orders.length === 0) return;
               const rawX = mk.raw?.x ?? 0;
               const rawY = mk.raw?.y ?? 0;

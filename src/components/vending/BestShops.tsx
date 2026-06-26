@@ -121,9 +121,10 @@ export function BestShops() {
       })
       .filter((s) => s.saleEvents > 0 && s.saleEvents >= minSales)
       // Realism filter: drop shops reporting fake/bulk data (absurd earned
-      // totals or impossible per-item unit counts) so they can't pollute the
-      // leaderboard. Thresholds live in utils/shops.ts.
-      .filter((s) => areShopTotalsRealistic(s.earned, s.soldUnits));
+      // totals, implausible revenue-per-sale, or money across too many
+      // currencies) so they can't pollute the leaderboard. Thresholds live in
+      // utils/shops.ts.
+      .filter((s) => areShopTotalsRealistic(s.earned, s.soldUnits, s.saleEvents));
 
     return list.sort((a, b) => {
       if (sortBy === 'sales') return b.saleEvents - a.saleEvents;

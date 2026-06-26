@@ -413,8 +413,7 @@ export function handleTeamCommand(text: string): boolean {
       return true;
     }
 
-    case 'map':
-    case 'seed': {
+    case 'map': {
       const info = useConnectionStore.getState().serverInfo;
       if (!info) { reply(['[BOT] Server info unavailable.']); return true; }
       reply([`[BOT] ${info.map || 'Map'} · ${info.map_size}m · seed ${info.seed}`]);

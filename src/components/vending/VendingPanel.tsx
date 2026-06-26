@@ -3,7 +3,7 @@ import { useMapStore } from '@/stores/map-store';
 import { useTeamStore } from '@/stores/team-store';
 import { getGridCoordinate } from '@/utils/grid';
 import { getItemShortname } from '@/utils/items';
-import { isNpcShop, isDeepSeaShop } from '@/utils/shops';
+import { isNpcShop, isDeepSeaShop, isRealisticOrder } from '@/utils/shops';
 import { Avatar } from '../common/Avatar';
 import { MapPin, Info, ArrowUpDown } from 'lucide-react';
 import { BestShops } from './BestShops';
@@ -72,6 +72,9 @@ export function VendingPanel() {
 
       // Filter individual orders by search term and stock
       const filteredOrders = vm.raw.sell_orders.filter((order: any) => {
+        // Drop spoofed/bulk listings (absurd price/qty/stock) so fake data
+        // never shows up in market search.
+        if (!isRealisticOrder(order)) return false;
         // Stock filter
         if (inStockOnly && order.amount_in_stock === 0) return false;
 
