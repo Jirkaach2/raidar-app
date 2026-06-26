@@ -183,23 +183,29 @@ const MapMarkers = React.memo(function MapMarkers() {
       y: Math.min(0.985, Math.max(0.015, first.y)),
     };
     const n = deepSeaList.length;
-    const cols = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(n))));
+    // Aspect correction so vertical spacing matches horizontal spacing on screen.
+    const aspect = imageHeight > 0 ? imageWidth / imageHeight : 1;
+    // Compact, centred grid. Every row (including the last, partial one) is
+    // centred under the block so it reads as a tidy, balanced cluster rather
+    // than a ragged left-aligned grid or a scattered spiral.
+    const cols = Math.min(6, Math.max(1, Math.ceil(Math.sqrt(n))));
     const rows = Math.ceil(n / cols);
-    const GAP = 0.026;
+    const GAP = 0.02;
     const halfW = ((cols - 1) / 2) * GAP;
-    const halfH = ((rows - 1) / 2) * GAP;
+    const halfH = ((rows - 1) / 2) * GAP * aspect;
     // Keep the whole block on-image (shift the centre inward if needed).
     const cx = Math.min(0.985 - halfW, Math.max(0.015 + halfW, anchor.x));
-    const cy = Math.min(0.985 - halfH, Math.max(0.015 + halfH, anchor.y));
+    const cy = Math.min(0.985 - halfH, Math.max(0.05 + halfH, anchor.y));
     deepSeaList.forEach((m, i) => {
-      const col = i % cols;
       const row = Math.floor(i / cols);
+      const colInRow = i - row * cols;
+      const itemsInRow = Math.min(cols, n - row * cols);
       deepLayout.set(m.id, {
-        x: cx + (col - (cols - 1) / 2) * GAP,
-        y: cy + (row - (rows - 1) / 2) * GAP,
+        x: cx + (colInRow - (itemsInRow - 1) / 2) * GAP,
+        y: cy + (row - (rows - 1) / 2) * GAP * aspect,
       });
     });
-    deepLabelPos = { x: cx, y: Math.max(0.012, cy - halfH - 0.03) };
+    deepLabelPos = { x: cx, y: Math.max(0.012, cy - halfH - 0.035) };
   }
 
   return (
