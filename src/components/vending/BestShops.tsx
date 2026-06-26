@@ -4,7 +4,8 @@ import { useMapStore } from '@/stores/map-store';
 import { useUiStore } from '@/stores/ui-store';
 import { isCurrentServer } from '@/utils/server';
 import { getItemShortname } from '@/utils/items';
-import { Trophy, MapPin, Trash2, TrendingUp, X } from 'lucide-react';
+import { isNpcShop, isDeepSeaShop, areShopTotalsRealistic } from '@/utils/shops';
+import { Trophy, MapPin, Trash2, TrendingUp, X, Search, Anchor, Bot } from 'lucide-react';
 import './BestShops.css';
 
 function icon(itemId: number): string | null {
@@ -33,6 +34,7 @@ export function BestShops() {
   const [sortBy, setSortBy] = useState<'revenue' | 'sales' | 'recent'>('revenue');
   const [sliderVal, setSliderVal] = useState<number>(8); // Default to 8 (All Time)
   const [includeNpc, setIncludeNpc] = useState<boolean>(false); // NPC/safe-zone shops hidden by default
+  const [query, setQuery] = useState<string>(''); // search by shop name OR grid (e.g. "K18")
 
   const FILTER_OPTIONS = useMemo(() => [
     { label: 'Last 15m', dur: 15 * 60 * 1000 },
@@ -46,13 +48,28 @@ export function BestShops() {
     { label: 'All Time', dur: 0 },
   ], []);
 
+  /** Live NPC/deep-sea classification via the canonical detectors in shops.ts. */
+  const classify = (s: ShopSales) => ({
+    npc: isNpcShop(s.shopName, s.x, s.y),
+    deep: isDeepSeaShop(s.shopName, s.x, s.y),
+  });
+
+  /** Search match against shop name AND grid location (e.g. "K18"). */
+  const matchesQuery = (s: ShopSales): boolean => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (s.shopName || '').toLowerCase().includes(q) || (s.grid || '').toLowerCase().includes(q);
+  };
+
   const ranked = useMemo(() => {
     const activeOption = FILTER_OPTIONS[sliderVal] || FILTER_OPTIONS[8];
     const cutoff = activeOption.dur > 0 ? Date.now() - activeOption.dur : 0;
 
     const list = Object.values(shops)
       .filter((s) => isCurrentServer(s.serverId))
-      .filter((s) => includeNpc || !s.isNpc)
+      // NPC shops hidden unless opted in; deep-sea shops are NOT NPC and always pass.
+      .filter((s) => includeNpc || !isNpcShop(s.shopName, s.x, s.y))
+      .filter((s) => matchesQuery(s))
       .map((s) => {
         // If "All Time", or no transactions array is present, return as-is.
         // Also if transactions is empty but pre-aggregated sales exist, fall back to as-is for compatibility.
@@ -89,14 +106,18 @@ export function BestShops() {
           lastSale
         };
       })
-      .filter((s) => s.saleEvents > 0);
+      .filter((s) => s.saleEvents > 0)
+      // Realism filter: drop shops reporting fake/bulk data (absurd earned
+      // totals or impossible per-item unit counts) so they can't pollute the
+      // leaderboard. Thresholds live in utils/shops.ts.
+      .filter((s) => areShopTotalsRealistic(s.earned, s.soldUnits));
 
     return list.sort((a, b) => {
       if (sortBy === 'sales') return b.saleEvents - a.saleEvents;
       if (sortBy === 'recent') return b.lastSale - a.lastSale;
       return totalRevenue(b) - totalRevenue(a);
     });
-  }, [shops, sortBy, sliderVal, includeNpc, FILTER_OPTIONS]);
+  }, [shops, sortBy, sliderVal, includeNpc, query, FILTER_OPTIONS]);
 
   const locate = (s: ShopSales) => {
     // Switch to the Map page first so the user actually sees the shop — setting
@@ -112,6 +133,12 @@ export function BestShops() {
     );
     useMapStore.getState().selectMarker(marker ? marker.id : null);
   };
+
+  // Anything tracked at all on this server (respecting the NPC toggle)? Drives
+  // the "no data yet" empty-state independently of the active search/window.
+  const hasTrackedShops = Object.values(shops).some(
+    (s) => isCurrentServer(s.serverId) && s.saleEvents > 0 && (includeNpc || !isNpcShop(s.shopName, s.x, s.y)),
+  );
 
   return (
     <div className="bs">
@@ -135,13 +162,26 @@ export function BestShops() {
         Live-tracked while you're connected. Each shop's stock drop = a sale; we tally what every store has sold and earned.
       </p>
 
-      {Object.values(shops).filter((s) => isCurrentServer(s.serverId) && s.saleEvents > 0 && (includeNpc || !s.isNpc)).length === 0 ? (
+      {!hasTrackedShops ? (
         <div className="bs-empty">
           <TrendingUp size={20} />
           <p>No sales tracked yet. Keep the app connected — when a shop's stock drops, its sales show up here ranked by revenue.</p>
         </div>
       ) : (
         <>
+          <div className="bs-search">
+            <Search size={13} />
+            <input
+              type="text"
+              placeholder="Search by shop name or grid (e.g. K18)…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button className="bs-search-clear" onClick={() => setQuery('')} title="Clear search"><X size={12} /></button>
+            )}
+          </div>
+
           <div className="bs-sort">
             <button className={sortBy === 'revenue' ? 'active' : ''} onClick={() => setSortBy('revenue')}>Top earners</button>
             <button className={sortBy === 'sales' ? 'active' : ''} onClick={() => setSortBy('sales')}>Most sales</button>
@@ -174,11 +214,16 @@ export function BestShops() {
           {ranked.length === 0 ? (
             <div className="bs-empty" style={{ borderStyle: 'solid', background: 'transparent', padding: '16px' }}>
               <TrendingUp size={16} />
-              <p>No sales recorded in the selected time window ({FILTER_OPTIONS[sliderVal]?.label}). Slide to view a wider window.</p>
+              <p>
+                {query.trim()
+                  ? `No shops match "${query.trim()}" in the selected window.`
+                  : `No sales recorded in the selected time window (${FILTER_OPTIONS[sliderVal]?.label}). Slide to view a wider window.`}
+              </p>
             </div>
           ) : (
             <div className="bs-list">
             {ranked.map((s, i) => {
+              const { npc, deep } = classify(s);
               const soldItems = Object.entries(s.soldUnits)
                 .map(([id, qty]) => ({ id: Number(id), qty, name: s.names[Number(id)] || `Item ${id}` }))
                 .sort((a, b) => b.qty - a.qty);
@@ -190,7 +235,11 @@ export function BestShops() {
                   <div className="bs-card-head">
                     <span className={`bs-rank ${i < 3 ? `r${i + 1}` : ''}`}>{i + 1}</span>
                     <div className="bs-card-id">
-                      <span className="bs-name">{s.shopName}</span>
+                      <span className="bs-name">
+                        {s.shopName}
+                        {deep && <span className="bs-badge bs-badge-deep" title="Deep-sea vendor shop"><Anchor size={9} /> DEEP SEA</span>}
+                        {npc && !deep && <span className="bs-badge bs-badge-npc" title="NPC / safe-zone vendor shop"><Bot size={9} /> NPC</span>}
+                      </span>
                       <span className="bs-meta">
                         <span className="bs-grid">{s.grid}</span>
                         <span className="bs-dot">·</span>

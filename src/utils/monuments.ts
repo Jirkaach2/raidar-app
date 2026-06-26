@@ -206,6 +206,7 @@ const LOCAL_MONUMENT_IMAGES: Record<string, string> = {
   swamp: '/images/monuments/swamp.jfif',
   ferry_terminal: '/images/monuments/ferry_terminal.jpg',
   harbor: '/images/monuments/harbor.jpg',
+  deep_sea: '/images/markers/deep_sea.png',
 };
 
 export function getMonumentImageUrl(token: string): string | null {
@@ -781,6 +782,25 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
     puzzles: [],
     notes: ['Larger safe-zone fishing village — boats, fishing gear & a recycler.'],
   },
+  deep_sea: {
+    key: 'deep_sea', name: 'DEEP SEA', imageSlug: 'deep-sea',
+    type: 'Ocean', tier: '2', safezone: false, radiation: 'none',
+    recyclers: 0, crates: [], scientists: [],
+    hasTunnelEntrance: false, hasChinookDropZone: false, allowsHeliCrash: false,
+    requiresCards: [], givesCards: [],
+    puzzles: [],
+    notes: [
+      'Far-offshore deep-ocean region beyond the normal map water — only reachable by boat or submarine.',
+      'Floating Deep Sea settlement has a vendor (Dive Master) selling diving gear, boats, and supplies.',
+      "Treasure hunting: the Dive Master's \"Beep in the Deep\" mission — take a Metal Detector to the deep-sea islands and dig up buried treasure.",
+      'RHIB scientists patrol the area on boats — the target of the "Gone Killing" bandit mission.',
+      'Sharks lurk at the dive sites; expect to fight them while looting underwater.',
+      'Underwater "Bounty" crates are tied down at dive sites — untie them to claim the loot.',
+      'Sits offshore near the Oil Rigs, so deep-sea trips pair well with a rig run.',
+      'Best boat: the Tugboat is the top deep-sea base/vehicle — sleeping bag + storage + respawn, tanky, and can park right at an Oil Rig.',
+      'The RHIB is the fast crew option for rig runs and RHIB-scientist hunts; the Kayak/Rowboat is the cheap solo choice. Bring a Diving Tank + flippers + spear gun for the dive sites.',
+    ],
+  },
 };
 
 export function getMonumentInfo(token: string): MonumentInfo | null {
@@ -841,6 +861,9 @@ export function getMonumentInfo(token: string): MonumentInfo | null {
     ['ranch', 'ranch'],
     ['large_fishing', 'large_fishing_village'],
     ['fishing', 'fishing_village'],
+    ['deep_sea', 'deep_sea'],
+    ['deepsea', 'deep_sea'],
+    ['deep sea', 'deep_sea'],
   ];
   for (const [needle, dbKey] of aliases) {
     if (key.includes(needle) && MONUMENT_DB[dbKey]) return MONUMENT_DB[dbKey];

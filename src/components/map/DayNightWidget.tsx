@@ -71,13 +71,20 @@ const DayNightWidget = React.memo(function DayNightWidget() {
 
   if (!timeInfo) return null;
 
-  const { sunrise, sunset, dayLengthMinutes, timeScale = 1.0, receivedAt } = timeInfo;
+  const { sunrise, sunset, dayLengthMinutes, receivedAt } = timeInfo;
 
   // ------------------------------------------------------------------
-  // Base rate: how many game-hours pass per real minute (ignoring
-  // the dynamic timeScale).  This is used ONLY for the smooth
-  // interpolated clock display between poll snapshots.
+  // ONE consistent constant for all duration math: how many real-world
+  // seconds correspond to a single in-game hour.  Derived purely from
+  // dayLengthMinutes (graceful fallback to 60 real-min/day), with NO
+  // dependency on the transient timeScale multiplier.  Both the
+  // transition countdown and the day/night length summary use this so
+  // they can never disagree (the countdown is always <= the phase length).
   // ------------------------------------------------------------------
+  const realSecondsPerGameHour = (dayLengthMinutes > 0 ? dayLengthMinutes : 60) * 60 / 24;
+
+  // Base rate: how many game-hours pass per real minute.  Used ONLY for
+  // the smooth interpolated clock display between poll snapshots.
   const baseGameHoursPerRealMin = dayLengthMinutes > 0 ? 24 / dayLengthMinutes : 0;
 
   // Interpolate the displayed clock smoothly from the last snapshot.
@@ -123,11 +130,9 @@ const DayNightWidget = React.memo(function DayNightWidget() {
         : 24 - timeInfo.time + sunrise;
     }
 
-    // Effective speed at this moment (base rate × timeScale).
-    const effectiveGameHoursPerRealMin = baseGameHoursPerRealMin * timeScale;
-    const realMsRemaining = effectiveGameHoursPerRealMin > 0
-      ? (gameHoursRemaining / effectiveGameHoursPerRealMin) * 60000
-      : 0;
+    // Convert remaining in-game hours to real time using the single
+    // consistent constant (no timeScale).
+    const realMsRemaining = gameHoursRemaining * realSecondsPerGameHour * 1000;
 
     deadlineRef.current = {
       receivedAt,
@@ -141,16 +146,11 @@ const DayNightWidget = React.memo(function DayNightWidget() {
 
   // ------------------------------------------------------------------
   // Day / Night length summary (total durations, not countdown).
-  // Use the base rate (no timeScale) for the "off" phase, and effective
-  // rate for the current phase.
+  // Both phases use the SAME realSecondsPerGameHour constant, so the
+  // "Sunrise/Sunset in …" countdown is always <= the phase length.
   // ------------------------------------------------------------------
-  const baseMinPerGameHour = baseGameHoursPerRealMin > 0 ? 1 / baseGameHoursPerRealMin : 0;
-  const effectiveMinPerGameHour = (baseGameHoursPerRealMin * timeScale) > 0
-    ? 1 / (baseGameHoursPerRealMin * timeScale)
-    : 0;
-
-  const dayRealSeconds = dayHours * (isDay ? effectiveMinPerGameHour : baseMinPerGameHour) * 60;
-  const nightRealSeconds = nightHours * (!isDay ? effectiveMinPerGameHour : baseMinPerGameHour) * 60;
+  const dayRealSeconds = dayHours * realSecondsPerGameHour;
+  const nightRealSeconds = nightHours * realSecondsPerGameHour;
 
   const accent = isDay ? '#f5c451' : '#7aa2e8';
 

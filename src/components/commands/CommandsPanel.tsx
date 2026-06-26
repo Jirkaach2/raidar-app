@@ -25,17 +25,22 @@ const SLASH_COMMANDS: SlashCommand[] = [
   // ── Info ──
   { command: '/status', description: 'Server population, map & wipe', access: 'everyone' },
   { command: '/pop', description: 'Current population', access: 'everyone' },
+  { command: '/online', description: 'Count of online teammates', access: 'everyone' },
   { command: '/time', description: 'In-game time (day/night)', access: 'everyone' },
   { command: '/sun', description: 'Time until next sunrise/sunset', access: 'everyone' },
   { command: '/wipe', description: 'Last wipe time & age', access: 'everyone' },
   { command: '/cargo', description: 'Cargo ship status & grid', access: 'everyone' },
   { command: '/heli', description: 'Patrol Heli & Chinook locations', access: 'everyone' },
   { command: '/vendor', description: 'Travelling vendor location', access: 'everyone' },
-  { command: '/events', description: 'Live map events (cargo, heli, crates, chinook)', access: 'everyone' },
-  { command: '/help', description: 'Show all commands', access: 'everyone' },
+  { command: '/events', description: 'Live map events', access: 'everyone' },
+  { command: '/help', description: 'List all commands', access: 'everyone' },
+  // ── Reference ──
+  { command: '/loot', args: '<crate>', description: 'Loot-table summary (military/elite/basic/locked/scientist)', access: 'everyone' },
+  { command: '/monument', args: '<name>', description: 'Tier, keycards & notes for a monument', access: 'everyone' },
   // ── Player & Team ──
   { command: '/check', args: '<steamid>', description: 'Look up a player (hours, bans, K/D, cheat risk)', access: 'everyone' },
   { command: '/team', description: 'Team members, status & grid', access: 'everyone' },
+  { command: '/grid', description: 'Grid of each online teammate', access: 'everyone' },
   { command: '/devices', description: 'List paired smart devices & state', access: 'everyone' },
   // ── Control ──
   { command: '/control', description: 'Button panel to toggle Smart Switches', access: 'restricted' },
@@ -47,13 +52,17 @@ const SLASH_COMMANDS: SlashCommand[] = [
 const CHAT_COMMANDS: ChatCommand[] = [
   { command: '!check', args: '<steamid>', description: 'Player lookup (public hours, K/D, VAC bans)' },
   { command: '!pop', description: 'Current server population' },
+  { command: '!online', description: 'Online teammate count' },
   { command: '!time', description: 'In-game time (day/night)' },
   { command: '!sun', description: 'Time until next day/night' },
   { command: '!wipe', description: 'Last wipe age' },
   { command: '!team', description: 'Online teammates & names' },
+  { command: '!grid', description: "Your team's grids (compact)" },
   { command: '!cargo', description: 'Cargo ship grid' },
   { command: '!heli', description: 'Patrol heli grid' },
+  { command: '!vendor', description: 'Travelling vendor grid' },
   { command: '!events', description: 'Active world events summary' },
+  { command: '!loot', args: '<crate>', description: 'Top items for a crate type' },
   { command: '!status', description: 'Population + time at a glance' },
   { command: '!help', description: 'List all in-game commands' },
 ];

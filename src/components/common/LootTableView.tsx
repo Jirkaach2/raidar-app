@@ -15,14 +15,18 @@ function rarityFor(chance: string): { tier: Rarity; pct: number } {
   return { tier: 'legendary', pct };
 }
 
-/** A reusable, modern loot-table renderer shared across every loot popup. */
+/** A reusable, modern loot-table renderer shared across every loot popup.
+ *  Built to stay clean and readable in tight popups (~300px) and wide panels:
+ *  fixed icon, a name cell that truncates with an ellipsis, an amount chip and
+ *  a right-aligned chance badge of consistent width. The optional chance bar is
+ *  painted as a subtle background fill so it never collides with the text. */
 export function LootTableView({ table, className }: { table: LootTable; className?: string }) {
   const count = table.entries.length;
   return (
     <div className={`ltv${className ? ' ' + className : ''}`}>
       <div className="ltv-head">
         <div className="ltv-head__top">
-          <h3 className="ltv-title">{table.name}</h3>
+          <h3 className="ltv-title" title={table.name}>{table.name}</h3>
           <span className="ltv-count">{count} item{count === 1 ? '' : 's'}</span>
         </div>
         {table.note && <div className="ltv-note">{table.note}</div>}
@@ -35,8 +39,12 @@ export function LootTableView({ table, className }: { table: LootTable; classNam
           const barWidth = Math.max(0, Math.min(100, pct));
           return (
             <div key={i} className="ltv-row" data-rarity={tier}>
-              <span className="ltv-row__bar" style={{ width: `${barWidth}%` }} />
-              <span className="ltv-row__icon">
+              <span
+                className="ltv-row__bar"
+                style={{ width: `${barWidth}%` }}
+                aria-hidden="true"
+              />
+              <span className="ltv-row__icon" aria-hidden="true">
                 {icon ? (
                   <img
                     src={icon}
@@ -54,8 +62,8 @@ export function LootTableView({ table, className }: { table: LootTable; classNam
                 ) : null}
                 <span className="ltv-row__ph" style={icon ? { display: 'none' } : undefined} />
               </span>
-              <span className="ltv-row__name">{e.item}</span>
-              {e.amount && <span className="ltv-row__amount">{e.amount}</span>}
+              <span className="ltv-row__name" title={e.item}>{e.item}</span>
+              {e.amount ? <span className="ltv-row__amount">{e.amount}</span> : null}
               <span className="ltv-row__chance" data-rarity={tier}>{e.chance}</span>
             </div>
           );

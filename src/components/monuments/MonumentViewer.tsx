@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useEffect, useMemo, useState } from 'react';
 import {
   listMonuments,
   getMonumentInfo,
@@ -384,14 +383,6 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
       return next;
     });
 
-  const open3dExternal = async () => {
-    try {
-      await invoke('open_external_url', { url: rm3dUrl });
-    } catch (err) {
-      console.error('Failed to open RustMaps 3D viewer:', err);
-    }
-  };
-
   return (
     <div className="mon-detail-inner">
       <div className="mon-hero">
@@ -423,51 +414,31 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
         </div>
       )}
 
-      {/* 3D model viewer (collapsible, loads iframe on demand) */}
+      {/* 3D model viewer — compact trigger opens a large modal overlay */}
       <div className="mon-section mon-3d-section">
         <button
-          className={`mon-3d-toggle ${show3d ? 'mon-3d-toggle--open' : ''}`}
-          onClick={() => setShow3d((v) => !v)}
-          aria-expanded={show3d}
+          className="mon-3d-trigger"
+          onClick={() => setShow3d(true)}
+          aria-haspopup="dialog"
         >
-          <svg className="mon-3d-chevron" viewBox="0 0 24 24" aria-hidden="true">
-            <polyline points="9 6 15 12 9 18" />
-          </svg>
-          <span className="mon-3d-toggle-label">{show3d ? 'Hide 3D model' : 'Show 3D model'}</span>
-          <span className="mon-3d-toggle-tag">3D MODEL</span>
+          <span className="mon-3d-trigger-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2 3 7v10l9 5 9-5V7z" />
+              <path d="M3 7l9 5 9-5" />
+              <path d="M12 12v10" />
+            </svg>
+          </span>
+          <span className="mon-3d-trigger-text">
+            <span className="mon-3d-trigger-label">View in 3D</span>
+            <span className="mon-3d-trigger-sub">Explore an interactive model of {info.name}</span>
+          </span>
+          <span className="mon-3d-trigger-tag">3D MODEL</span>
         </button>
-
-        {show3d && (
-          <div className="mon-3d-body">
-            <div className="mon-3d-frame-card">
-              <div className="mon-3d-frame-bar">
-                <span className="mon-3d-frame-bar-dot" />
-                <span className="mon-3d-frame-bar-title">Interactive 3D · {info.name}</span>
-                <button className="mon-3d-frame-bar-open" onClick={open3dExternal}>
-                  Open ↗
-                </button>
-              </div>
-              <div className="mon-3d-frame-wrap">
-                <iframe
-                  className="mon-3d-frame"
-                  src={rm3dUrl}
-                  title={`RustMaps 3D model — ${info.name}`}
-                  loading="lazy"
-                />
-              </div>
-            </div>
-            <div className="mon-3d-note-row">
-              <p className="mon-3d-note">
-                Loads the live 3D model for this monument from RustMaps. The first load may show a
-                one-time cookie prompt — if it doesn't appear, open it in your browser.
-              </p>
-              <button className="mon-3d-open" onClick={open3dExternal}>
-                Open 3D viewer on RustMaps ↗
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {show3d && (
+        <Monument3dModal name={info.name} src={rm3dUrl} onClose={() => setShow3d(false)} />
+      )}
 
       {/* Stats */}
       <div className="mon-stats">
@@ -681,8 +652,82 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   );
 }
 
-function Stat({ label, value, children }: { label: string; value: string; children?: React.ReactNode }) {
+/**
+ * Large modal overlay that mounts the RustMaps 3D model iframe on demand.
+ * The iframe is rendered taller than its container and shifted up so the
+ * RustMaps top navbar is clipped out of view. Closable via the ✕ button
+ * (kept above the iframe with a high z-index), a backdrop click, or Escape.
+ */
+function Monument3dModal({
+  name,
+  src,
+  onClose,
+}: {
+  name: string;
+  src: string;
+  onClose: () => void;
+}) {
+  // Close on Escape — listener lives on window so it works even after the
+  // iframe has captured mouse/keyboard focus.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
+    <div
+      className="mon-3d-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`3D model — ${name}`}
+      onClick={onClose}
+    >
+      <div className="mon-3d-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="mon-3d-modal-bar">
+          <span className="mon-3d-modal-tag">3D MODEL</span>
+          <span className="mon-3d-modal-title">{name}</span>
+          <span className="mon-3d-modal-credit">Live 3D model by RustMaps</span>
+          <button
+            className="mon-3d-modal-close"
+            onClick={onClose}
+            aria-label="Close 3D model"
+            title="Close (Esc)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div className="mon-3d-modal-body">
+          {/* Floating close affordance that always stays above the iframe so
+              the modal can be dismissed even once the iframe grabs input. */}
+          <button
+            className="mon-3d-modal-close mon-3d-modal-close--float"
+            onClick={onClose}
+            aria-label="Close 3D model"
+            title="Close (Esc)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+          <iframe
+            className="mon-3d-modal-frame"
+            src={src}
+            title={`RustMaps 3D model — ${name}`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, children }: { label: string; value: string; children?: React.ReactNode }) {  return (
     <div className="mon-stat">
       <span className="mon-stat-label">{label}</span>
       <span className="mon-stat-value">

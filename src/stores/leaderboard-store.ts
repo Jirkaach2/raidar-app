@@ -3,7 +3,7 @@ import type { TeamMember } from './team-store';
 import type { RustMonument } from './map-store';
 import { useMarkerStore } from './marker-store';
 import { isCurrentServer } from '@/utils/server';
-import { getMonumentName } from '@/utils/monuments';
+import { getMonumentName, normalizeMonumentKey } from '@/utils/monuments';
 
 /**
  * Team Leaderboard store — ranks teammates by REAL playtime (total online time
@@ -118,12 +118,56 @@ function worldPos(m: TeamMember, mapSize: number): { x: number; y: number } | nu
   return null;
 }
 
+/**
+ * Monument tokens we must NOT attribute time to based on 2D (x,y) proximity.
+ *
+ * WHY: Rust+ team member positions only carry world X/Y — there is NO
+ * altitude/Z component. Several monuments live *underground* (the train-tunnel
+ * rail network, tunnel stations / dwellings) or vertically overlap the surface
+ * (caves, sinkholes). A player standing on the surface directly above one of
+ * these reads as "at" it in pure 2D, producing false "at <monument>"
+ * attribution (e.g. Train Yard / Train Tunnels). Because we have no Z value we
+ * cannot tell above-ground from underground, so anyone whose nearest monument
+ * resolves to one of these is treated as "roaming" instead.
+ */
+const UNRELIABLE_MONUMENT_SUBSTRINGS = [
+  'train_tunnel',   // train-tunnel rail network (incl. train_tunnel_link)
+  'trainstation',
+  'train_station',
+  'tunnel_station',
+  'tunnel-dweller',
+  'dwelling',
+  'cave',
+  'sinkhole',
+  'tunnel',         // catch-all for any remaining tunnel-network tokens
+];
+
+/**
+ * Surface monuments whose normalized key contains an "unreliable" substring
+ * above but ARE reliably attributable from 2D proximity. Military Tunnel is an
+ * above-ground monument, so the broad 'tunnel' guard must not drop it.
+ */
+const RELIABLE_MONUMENT_ALLOWLIST = ['military_tunnel'];
+
+/**
+ * True when a monument can't be reliably attributed from 2D proximity alone
+ * (underground / vertically-overlapping). See UNRELIABLE_MONUMENT_SUBSTRINGS.
+ */
+function isUnreliableMonument(token: string): boolean {
+  const key = normalizeMonumentKey(token);
+  if (RELIABLE_MONUMENT_ALLOWLIST.includes(key)) return false;
+  return UNRELIABLE_MONUMENT_SUBSTRINGS.some((s) => key.includes(s));
+}
+
 /** Nearest monument within range; returns its display name or null. */
 function nearestMonument(m: TeamMember, monuments: RustMonument[]): string | null {
   if (typeof m.rawX !== 'number' || typeof m.rawY !== 'number') return null;
   let bestName: string | null = null;
   let bestDist = MONUMENT_RADIUS_WORLD;
   for (const mon of monuments) {
+    // Skip underground / vertically-overlapping monuments: with no Z coordinate
+    // from Rust+ we can't tell if the member is actually down there vs above it.
+    if (isUnreliableMonument(mon.token)) continue;
     const dx = mon.x - m.rawX;
     const dy = mon.y - m.rawY;
     const dist = Math.hypot(dx, dy);

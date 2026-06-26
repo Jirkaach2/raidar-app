@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import './CombatLogTool.css';
 
-type EventType = 'dealt' | 'taken' | 'invalid' | 'kill' | 'death' | 'generic';
+type EventType = 'dealt' | 'taken' | 'invalid' | 'kill' | 'death' | 'generic' | 'entity';
 type Zone = 'head' | 'chest' | 'stomach' | 'arms' | 'legs' | 'other';
 type View = 'overview' | 'timeline';
 
@@ -158,11 +158,68 @@ function resolveAmmo(raw: string): string {
   return titleCase(s.replace(/^ammo\./, ''));
 }
 
+// Keywords that mark a token as a world entity / deployable / NPC / animal — never a player.
+// Used only as a fallback when no SteamID64 is present (the strongest player signal).
+const ENTITY_KEYWORDS = [
+  // loot & deployables
+  'barrel', 'lootbarrel', 'wall', 'door', 'window', 'box', 'crate', 'barricade',
+  'furnace', 'campfire', 'building', 'foundation', 'floor', 'roof', 'wallframe',
+  'shelf', 'locker', 'sleepingbag', 'workbench', 'cupboard', 'toolcupboard',
+  'hatch', 'gate', 'embrasure', 'ladder', 'sign', 'lantern', 'planter',
+  'shutter', 'fridge', 'shopfront', 'turret', 'samsite', 'beartrap',
+  'landmine', 'spikes', 'flameturret', 'deployable', 'prefab',
+  // NPCs & animals
+  'scientist', 'tunneldweller', 'dweller', 'scarecrow', 'murderer', 'zombie',
+  'npc', 'bear', 'wolf', 'boar', 'stag', 'deer', 'chicken', 'shark', 'horse',
+  'bradley', 'helicopter', 'patrolheli', 'animal',
+];
+
+/**
+ * Decide whether a single name token denotes a real player (vs prefab / NPC / entity / placeholder).
+ * A real player is: the literal `you`, a 17-digit SteamID64, or a plain gamertag that is neither a
+ * prefab path, a `player_<n>` placeholder, nor an entity/NPC keyword.
+ */
+function isPlayerToken(raw: string): boolean {
+  const v = (raw || '').trim();
+  if (!v) return false;
+  if (v.toLowerCase() === 'you') return true;
+  if (/^\d{17}$/.test(v)) return true;             // SteamID64
+  if (v.includes('/')) return false;               // prefab path (e.g. assets/prefabs/...)
+  if (/^player_?\d+$/i.test(v)) return false;      // placeholder, not a usable gamertag
+  if (/\.(prefab|entity|deployed)\b/i.test(v)) return false;
+  const n = v.toLowerCase().replace(/[._\-\s]/g, '');
+  if (ENTITY_KEYWORDS.some((k) => n.includes(k))) return false;
+  return true;                                     // plain gamertag
+}
+
+/**
+ * Whether one side of a combat line (its name column + optional id column) resolves to an actual
+ * player. A valid 17-digit SteamID64 is the strongest signal; otherwise fall back to the name token.
+ */
+function isPlayerSide(nameRaw: string, idRaw: string): boolean {
+  if (/^\d{17}$/.test((idRaw || '').trim())) return true; // real Steam account ⇒ player
+  return isPlayerToken(nameRaw);
+}
+
+/**
+ * Resolve an actor (attacker/victim) for display using both its name and id columns.
+ * `player_<n>` placeholders are cleaned to the short SteamID (when available) or "Unknown".
+ */
+function resolveActor(nameRaw: string, idRaw: string): string {
+  const name = (nameRaw || '').trim();
+  const id = (idRaw || '').trim();
+  if (/^player_?\d+$/i.test(name)) {
+    return /^\d{17}$/.test(id) ? `Steam …${id.slice(-5)}` : 'Unknown';
+  }
+  return resolveName(name);
+}
+
 /** Turn an attacker/target column (name, steamID64, or prefab path) into a clean label. */
 function resolveName(raw: string): string {
   if (!raw) return 'Unknown';
   const v = raw.trim();
   if (v.toLowerCase() === 'you') return 'You';
+  if (/^player_?\d+$/i.test(v)) return 'Unknown';  // Rust placeholder when display name is missing
   if (/^\d{17}$/.test(v)) return `Steam …${v.slice(-5)}`;
 
   if (v.includes('/')) {
@@ -272,14 +329,18 @@ export function CombatLogTool() {
       middle.forEach((tok, i) => { if (/^\d+$/.test(tok)) idIdx.push(i); });
 
       let attackerRaw = '', victimRaw = '', weaponRaw = '';
+      let attackerIdRaw = '', victimIdRaw = '';
       if (idIdx.length >= 2) {
         const a = idIdx[0], b = idIdx[1];
         attackerRaw = middle.slice(0, a).join(' ');
+        attackerIdRaw = middle[a];
         victimRaw = middle.slice(a + 1, b).join(' ');
+        victimIdRaw = middle[b];
         weaponRaw = middle.slice(b + 1).join(' ');
       } else if (idIdx.length === 1) {
         const a = idIdx[0];
         attackerRaw = middle.slice(0, a).join(' ');
+        attackerIdRaw = middle[a];
         const rest = middle.slice(a + 1);
         victimRaw = rest[0] || '';
         weaponRaw = rest.slice(1).join(' ');
@@ -289,8 +350,8 @@ export function CombatLogTool() {
         weaponRaw = middle.slice(2).join(' ');
       }
 
-      const attacker = resolveName(attackerRaw);
-      const victim = resolveName(victimRaw);
+      const attacker = resolveActor(attackerRaw, attackerIdRaw);
+      const victim = resolveActor(victimRaw, victimIdRaw);
       const weapon = resolveWeapon(weaponRaw);
       const ammo = resolveAmmo(ammoRaw);
 
@@ -304,13 +365,24 @@ export function CombatLogTool() {
 
       const isAtkYou = attacker === 'You';
       const isVicYou = victim === 'You';
-      const isKill = /killed|death/i.test(info) || newHp === 0;
+      // Only real players count toward kills/deaths — barrels, deployables and NPCs do not.
+      const atkPlayer = isPlayerSide(attackerRaw, attackerIdRaw);
+      const vicPlayer = isPlayerSide(victimRaw, victimIdRaw);
+      const isKillEvent = !isInvalid && (/killed|death/i.test(info) || newHp === 0);
 
       let type: EventType = 'generic';
-      if (isInvalid) type = 'invalid';
-      else if (isKill) type = isAtkYou ? 'kill' : (isVicYou ? 'death' : 'generic');
-      else if (isAtkYou) type = 'dealt';
-      else if (isVicYou) type = 'taken';
+      if (isInvalid) {
+        type = 'invalid';
+      } else if (isAtkYou) {
+        // You as attacker: a finishing blow on a non-player is an entity kill, not a player kill.
+        if (isKillEvent) type = vicPlayer ? 'kill' : 'entity';
+        else type = 'dealt';
+      } else if (isVicYou) {
+        // You as victim: only a player finishing you counts as a death.
+        type = (isKillEvent && atkPlayer) ? 'death' : 'taken';
+      } else {
+        type = 'generic';
+      }
 
       parsedEvents.push({
         time, attacker, victim, weapon, ammo, area: area || '', zone,
@@ -335,7 +407,7 @@ export function CombatLogTool() {
         }
 
         if (isInvalid) { invalids++; op.invalids++; }
-        else if (type === 'dealt' || type === 'kill') {
+        else if (type === 'dealt' || type === 'kill' || type === 'entity') {
           hits++; op.hitsDealt++;
           if (damage !== null) { dmgDealt += damage; op.damageDealt += damage; }
           if (weapon && !op.weapons.includes(weapon)) op.weapons.push(weapon);
@@ -421,6 +493,7 @@ export function CombatLogTool() {
     if (ev.type === 'invalid') return 'cl-row--invalid';
     if (ev.type === 'kill') return 'cl-row--kill';
     if (ev.type === 'death') return 'cl-row--death';
+    if (ev.type === 'entity') return 'cl-row--entity';
     if (ev.type === 'dealt') return 'cl-row--out';
     if (ev.type === 'taken') return 'cl-row--in';
     return 'cl-row--generic';
@@ -430,6 +503,7 @@ export function CombatLogTool() {
     switch (ev.type) {
       case 'kill': return 'KILL';
       case 'death': return 'DEATH';
+      case 'entity': return 'DESTROYED';
       case 'invalid': return 'INVALID';
       case 'dealt': return 'HIT';
       case 'taken': return 'TOOK';
@@ -732,7 +806,7 @@ export function CombatLogTool() {
                     </thead>
                     <tbody>
                       {events.map((ev, i) => {
-                        const out = ev.type === 'dealt' || ev.type === 'kill';
+                        const out = ev.type === 'dealt' || ev.type === 'kill' || ev.type === 'entity';
                         const inc = ev.type === 'taken' || ev.type === 'death';
                         const isHead = ev.zone === 'head' && ev.type !== 'invalid';
                         return (

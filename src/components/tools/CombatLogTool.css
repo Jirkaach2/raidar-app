@@ -294,6 +294,7 @@
 .cl-row--invalid { box-shadow: inset 3px 0 0 var(--color-warning); opacity: .82; }
 .cl-row--invalid td { color: var(--color-text-muted); }
 .cl-row--generic { box-shadow: inset 3px 0 0 rgba(255,255,255,.06); }
+.cl-row--entity  { box-shadow: inset 3px 0 0 var(--color-info); background: rgba(120,160,210,.05); }
 
 .cl-res { font-family: var(--font-display); font-size: 9.5px; font-weight: 700; letter-spacing: .05em; padding: 2px 7px; border-radius: 3px; }
 .cl-res--dealt   { background: var(--color-success-dim); color: var(--color-success); }
@@ -302,3 +303,4 @@
 .cl-res--kill    { background: rgba(111,207,115,.25); color: #9ef0a8; }
 .cl-res--death   { background: rgba(107,58,58,.4); color: #d98b8b; }
 .cl-res--generic { background: rgba(255,255,255,.05); color: var(--color-text-muted); }
+.cl-res--entity  { background: var(--color-info-dim, rgba(120,160,210,.18)); color: var(--color-info, #8fb6e0); }

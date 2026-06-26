@@ -2,16 +2,19 @@
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
   font-family: var(--font-mono);
   color: var(--color-text);
+  /* Never let a long row spill out sideways in a constrained popup. */
+  overflow-x: hidden;
 }
 
 /* ── Header ─────────────────────────────────────────────── */
 .ltv-head {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   padding: 13px 16px;
   background: rgba(14, 16, 21, 0.99);
   border-bottom: 1px solid var(--color-border);
@@ -22,18 +25,26 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .ltv-title {
   margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.2px;
   color: var(--color-text);
+  /* Keep the header tidy: truncate rather than wrap or overlap the count. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ltv-count {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -59,14 +70,19 @@
   gap: 3px;
   padding: 10px 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  min-width: 0;
 }
 
+/* Row: fixed icon · flexible name (truncates) · amount chip · chance badge.
+   Grid keeps the columns aligned across every row regardless of name length. */
 .ltv-row {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 9px;
+  column-gap: 9px;
   font-size: 11px;
   padding: 5px 9px;
   border-radius: var(--radius-md);
@@ -75,21 +91,23 @@
   overflow: hidden;
 }
 
-/* Thin chance bar tucked behind the row content. */
+/* Chance bar painted as a subtle background fill behind the content — it sits
+   under everything (z-index 0) so it can never push or overlap the text. */
 .ltv-row__bar {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
+  z-index: 0;
   background: var(--rarity, var(--color-text-muted));
   opacity: 0.08;
   pointer-events: none;
+  border-radius: inherit;
 }
 
 .ltv-row__icon {
   position: relative;
   z-index: 1;
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
   display: flex;
@@ -114,26 +132,37 @@
 .ltv-row__name {
   position: relative;
   z-index: 1;
-  flex: 1;
   min-width: 0;
   color: var(--color-text);
   line-height: 1.35;
+  /* The min-width:0 above lets this truncate inside the grid track. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ltv-row__amount {
   position: relative;
   z-index: 1;
-  flex-shrink: 0;
+  justify-self: end;
+  white-space: nowrap;
   font-size: 10px;
+  font-weight: 700;
   color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1px 6px;
 }
 
 .ltv-row__chance {
   position: relative;
   z-index: 1;
-  flex-shrink: 0;
-  min-width: 52px;
+  justify-self: end;
+  width: 54px;
+  box-sizing: border-box;
   text-align: center;
+  white-space: nowrap;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;
