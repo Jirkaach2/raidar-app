@@ -4,6 +4,7 @@ import { useDeviceStore, SmartDevice } from '@/stores/device-store';
 import { useConnectionStore } from '@/stores/connection-store';
 import { useMapStore } from '@/stores/map-store';
 import { useUiStore } from '@/stores/ui-store';
+import { useSettingsStore, broadcastToTeam } from '@/stores/settings-store';
 import { getCurrentServerId, isCurrentServer } from '@/utils/server';
 import { ToggleLeft, ToggleRight, BellRing, Database, Trash2, Edit2 } from 'lucide-react';
 import { AutomationPanel } from './AutomationPanel';
@@ -64,11 +65,38 @@ export function DevicePanel() {
           const misses = (prev?.missCount || 0) + 1;
           if (misses >= 2 && !prev?.destroyed) {
             updateDevice(dev.entityId, { missCount: misses, destroyed: true });
+            const name = dev.customName || dev.entityName || 'Smart Device';
             useMapStore.getState().addToast(
-              dev.customName || dev.entityName || 'Smart Device',
-              'No longer exists on the server (destroyed). Remove it from the list?',
+              name,
+              'No longer exists on the server (destroyed). Removing from the list.',
               'warning',
             );
+
+            // Confirmed destruction → fire the configured raid alerts, then
+            // drop the device so it doesn't linger as "destroyed".
+            const settings = useSettingsStore.getState();
+
+            if (settings.deviceDestroyedNotifyChat) {
+              broadcastToTeam(`⚠️ Smart device "${name}" was destroyed — possible raid!`)
+                .catch((err) => console.error('Device-destroyed team chat alert failed:', err));
+            }
+
+            if (settings.deviceDestroyedNotifyDiscord) {
+              try {
+                const grid = (dev as any).grid as string | undefined;
+                const content = `🧨 **Device Destroyed** — ${name}${grid ? ` (${grid})` : ''}`;
+                invoke('notify_discord_bot', {
+                  feature: 'device_destroyed',
+                  content,
+                  fields: null,
+                }).catch((err) => console.error('Device-destroyed Discord alert failed:', err));
+              } catch (err) {
+                console.error('Device-destroyed Discord alert failed:', err);
+              }
+            }
+
+            // Auto-remove the destroyed device from the list.
+            removeDevice(dev.entityId);
           } else {
             updateDevice(dev.entityId, { missCount: misses });
           }

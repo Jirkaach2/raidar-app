@@ -881,6 +881,9 @@ function CustomMapMarkers() {
         // shrink every custom marker (down to really small) at once.
         const sc = Math.max(0.1, (m.scale || 1) * (globalScale || 1));
         const pinSize = 22 * sc;
+        // Below this effective size the label chip is dropped so the marker
+        // collapses to a clean pin/dot that stays legible at 0.1×.
+        const showLabel = sc >= 0.5 && !!m.label;
         return (
           <div
             key={m.id}
@@ -941,9 +944,10 @@ function CustomMapMarkers() {
               padding: `${Math.max(1, 1.5 * sc)}px ${Math.max(4, 5 * sc)}px`, borderRadius: 5,
               background: 'rgba(10,12,16,0.82)', border: `1px solid ${style.color}55`,
               backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
-              fontFamily: 'var(--font-mono)', fontSize: Math.max(5, 6.2 * sc), fontWeight: 700, letterSpacing: 0.2,
+              fontFamily: 'var(--font-mono)', fontSize: 7 * sc, fontWeight: 700, letterSpacing: 0.2,
               color: style.color, textShadow: '0 1px 2px rgba(0,0,0,0.9)', whiteSpace: 'nowrap',
               pointerEvents: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+              display: showLabel ? 'block' : 'none',
             }}>{m.label}</span>
 
             {/* Editor popup — attached directly (no gap) so it stays hoverable/clickable. */}
@@ -982,11 +986,11 @@ function CustomMapMarkers() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 0.5, color: '#8b857c' }}>SIZE</span>
                   <input
-                    type="range" min={0.3} max={2} step={0.1} value={m.scale || 1}
+                    type="range" min={0.1} max={2} step={0.05} value={m.scale || 1}
                     onChange={(e) => updateMarker(m.id, { scale: parseFloat(e.target.value) })}
                     style={{ flex: 1, accentColor: style.color, cursor: 'pointer' }}
                   />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#c4bdb1', width: 26, textAlign: 'right' }}>{(m.scale || 1).toFixed(1)}×</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#c4bdb1', width: 30, textAlign: 'right' }}>{(m.scale || 1).toFixed(2)}×</span>
                 </div>
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 6 }}>

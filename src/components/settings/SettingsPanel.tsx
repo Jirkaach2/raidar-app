@@ -801,6 +801,14 @@ export function SettingsPanel() {
                     { caption: 'Chat', checked: settings.broadcastAlarms, onChange: settings.setBroadcastAlarms },
                   ]}
                 />
+                <MultiToggleRow
+                  title="Smart device destroyed"
+                  description="Alert when a paired smart device no longer exists on the server (destroyed → possible raid)."
+                  targets={[
+                    { caption: 'Chat', checked: settings.deviceDestroyedNotifyChat, onChange: settings.setDeviceDestroyedNotifyChat },
+                    { caption: 'Discord', checked: settings.deviceDestroyedNotifyDiscord, onChange: settings.setDeviceDestroyedNotifyDiscord },
+                  ]}
+                />
                 <SettingRow
                   title="Cross-server alarms"
                   description="Show smart alarms from other paired Rust servers (e.g. while on a different server)."

@@ -3,6 +3,7 @@ import { useMapStore, DeathLogEntry } from '../../stores/map-store';
 import { useTeamStore } from '../../stores/team-store';
 import { useSettingsStore } from '../../stores/settings-store';
 import { useEventsStore } from '../../stores/events-store';
+import { isDeepSeaShop } from '../../utils/shops';
 
 
 const MARKER_COLORS: Record<string, string> = {
@@ -16,6 +17,10 @@ const MARKER_COLORS: Record<string, string> = {
   vendor: '#9c7dff',
   death: '#ef4444',
 };
+
+/** Distinct accent for deep-sea vendor shops so they stand out from safe-zone
+ *  vending machines. */
+const DEEP_SEA_COLOR = '#2f8fd6';
 
 function getMarkerIcon(type: string) {
   switch (type) {
@@ -114,6 +119,11 @@ const MapMarkers = React.memo(function MapMarkers() {
   const showDeathMarkers = useMapStore(s => s.showDeathMarkers);
   const showVendingShops = useMapStore(s => s.showVendingShops);
   const deathLog = useMapStore(s => s.deathLog);
+  // Image geometry — used to keep vending shops projected inside the playable
+  // grid (the map image carries an ocean-margin border in pixels).
+  const oceanMargin = useMapStore(s => s.oceanMargin || 0);
+  const imageWidth = useMapStore(s => s.mapImageWidth || 0);
+  const imageHeight = useMapStore(s => s.mapImageHeight || 0);
 
   const crashEvent = useEventsStore(s => s.events['crash']);
   const hasServerExplosion = markers.some(m => m.type === 'explosion');
@@ -153,17 +163,31 @@ const MapMarkers = React.memo(function MapMarkers() {
       {filteredMarkers.map((marker) => {
         const isSelected = marker.id === selectedMarkerId;
         const isMovingEvent = marker.type === 'cargo_ship' || marker.type === 'patrol_heli' || marker.type === 'chinook' || marker.type === 'vendor';
-        const color = marker.color || MARKER_COLORS[marker.type] || '#fff';
+        const isVending = marker.type === 'vending_machine';
+        // Deep-sea vendor shops get their own accent + badge so they stand out
+        // from safe-zone vending machines (detection by name / monument zone).
+        const isDeepSea = isVending && isDeepSeaShop(marker.label, marker.x, marker.y);
+        // Some shops report coordinates out in the ocean margin (or fully
+        // offshore), which painted them as random pins outside the playable
+        // area. Clamp vending shops into the in-grid band — the image carries an
+        // ocean-margin border of `oceanMargin` px on every side. Offshore
+        // deep-sea shops therefore pin to the nearest map edge AND keep the
+        // deep-sea badge instead of floating off the grid.
+        const marginX = imageWidth > 0 ? oceanMargin / imageWidth : 0;
+        const marginY = imageHeight > 0 ? oceanMargin / imageHeight : 0;
+        const renderX = isVending ? Math.min(1 - marginX, Math.max(marginX, marker.x)) : marker.x;
+        const renderY = isVending ? Math.min(1 - marginY, Math.max(marginY, marker.y)) : marker.y;
+        const color = isDeepSea ? DEEP_SEA_COLOR : (marker.color || MARKER_COLORS[marker.type] || '#fff');
         const hasIcon = marker.type !== 'player';
         
         return (
           <div
             key={marker.id}
-            className={`map-marker map-marker--${marker.type} ${isSelected ? 'is-selected' : ''}`}
+            className={`map-marker map-marker--${marker.type} ${isSelected ? 'is-selected' : ''} ${isDeepSea ? 'is-deep-sea' : ''}`}
             style={{
               position: 'absolute',
-              left: `${marker.x * 100}%`,
-              top: marker.type === 'crate' ? `calc(${marker.y * 100}% - 24px)` : `${marker.y * 100}%`,
+              left: `${renderX * 100}%`,
+              top: marker.type === 'crate' ? `calc(${renderY * 100}% - 24px)` : `${renderY * 100}%`,
               width: 0, height: 0,
               zIndex: isSelected ? 40 : 20,
               pointerEvents: 'auto',
@@ -224,7 +248,7 @@ const MapMarkers = React.memo(function MapMarkers() {
                   backgroundColor: marker.type === 'explosion' ? 'transparent' : (isMovingEvent ? 'transparent' : color), 
                   borderRadius: marker.type === 'player' ? '50%' : (marker.type === 'explosion' ? '0' : '5px'),
                   border: marker.type === 'explosion' ? 'none' : (isMovingEvent ? 'none' : (marker.type === 'player' ? '1.5px solid rgba(0,0,0,0.85)' : '1.5px solid rgba(0,0,0,0.85)')),
-                  boxShadow: marker.type === 'explosion' ? 'none' : (isMovingEvent ? 'none' : (isSelected ? `0 0 12px ${color}` : '0 2px 4px rgba(0,0,0,0.5)')),
+                  boxShadow: marker.type === 'explosion' ? 'none' : (isMovingEvent ? 'none' : (isSelected ? `0 0 12px ${color}` : (isDeepSea ? '0 0 0 1.5px rgba(47,143,214,0.9), 0 0 8px rgba(47,143,214,0.55)' : '0 2px 4px rgba(0,0,0,0.5)'))),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -267,6 +291,34 @@ const MapMarkers = React.memo(function MapMarkers() {
               )}
             </div>
             
+            {/* Deep-sea vendor badge — a small always-on tag so offshore vendor
+                shops (clamped to the map edge) are instantly recognisable. */}
+            {isDeepSea && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 9,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  padding: '1px 4px',
+                  borderRadius: 3,
+                  background: 'rgba(8,12,18,0.82)',
+                  border: `1px solid ${DEEP_SEA_COLOR}`,
+                  color: DEEP_SEA_COLOR,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 5.5,
+                  fontWeight: 800,
+                  letterSpacing: '0.5px',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  textShadow: '0 1px 2px rgba(0,0,0,1)',
+                  pointerEvents: 'none',
+                }}
+              >
+                DEEP SEA
+              </div>
+            )}
+
             {/* Label / Tooltip */}
             {(((isSelected && marker.type !== 'vending_machine') || marker.type === 'player' || marker.type === 'death')) && (
               <div 

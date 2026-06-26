@@ -4,7 +4,7 @@ import { isCurrentServer } from '@/utils/server';
 import {
   MapPin, Home, Skull, Package, Pickaxe, Boxes, AlertTriangle, X,
   DoorOpen, Moon, Footprints, Plane, Flag, Trash2, Pencil, List, Plus, Check,
-  Search,
+  Search, Maximize2,
 } from 'lucide-react';
 import './MarkerToolbar.css';
 
@@ -275,29 +275,48 @@ export function MarkerToolbar() {
                       {visible.map((m) => {
                         const style = MARKER_KINDS[m.kind] || MARKER_KINDS.pin;
                         const Icon = KIND_ICON[m.kind] || MapPin;
+                        const size = m.scale ?? 1;
                         return (
                           <div key={m.id} className="mtb-row">
-                            <span className="mtb-row-dot" style={{ background: style.color }} title={style.label}>
-                              <Icon size={11} color="#0c0e12" strokeWidth={2.6} />
-                            </span>
-                            <span className="mtb-row-edit">
-                              <Pencil size={10} className="mtb-row-pencil" />
+                            <div className="mtb-row-main">
+                              <span className="mtb-row-dot" style={{ background: style.color }} title={style.label}>
+                                <Icon size={11} color="#0c0e12" strokeWidth={2.6} />
+                              </span>
+                              <span className="mtb-row-edit">
+                                <Pencil size={10} className="mtb-row-pencil" />
+                                <input
+                                  className="mtb-row-input"
+                                  value={m.label}
+                                  onChange={(e) => updateMarker(m.id, { label: e.target.value })}
+                                  placeholder={style.label}
+                                  aria-label="Marker label"
+                                />
+                              </span>
+                              <button
+                                className="mtb-row-del"
+                                onClick={() => removeMarker(m.id)}
+                                title="Delete marker"
+                                aria-label={`Delete ${m.label || style.label}`}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <div className="mtb-row-size">
+                              <Maximize2 size={10} className="mtb-row-size-icon" />
                               <input
-                                className="mtb-row-input"
-                                value={m.label}
-                                onChange={(e) => updateMarker(m.id, { label: e.target.value })}
-                                placeholder={style.label}
-                                aria-label="Marker label"
+                                type="range"
+                                className="mtb-row-range"
+                                min={0.1}
+                                max={2}
+                                step={0.05}
+                                value={size}
+                                onChange={(e) => updateMarker(m.id, { scale: parseFloat(e.target.value) })}
+                                style={{ ['--kind-color' as string]: style.color }}
+                                aria-label={`Size for ${m.label || style.label}`}
+                                title="Marker size (0.1 – 2.0)"
                               />
-                            </span>
-                            <button
-                              className="mtb-row-del"
-                              onClick={() => removeMarker(m.id)}
-                              title="Delete marker"
-                              aria-label={`Delete ${m.label || style.label}`}
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                              <span className="mtb-row-size-val">{size.toFixed(2)}×</span>
+                            </div>
                           </div>
                         );
                       })}

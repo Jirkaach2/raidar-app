@@ -204,22 +204,23 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
   }
 
   // ── Oil Rig locked-crate auto-trigger via Chinook proximity or direct Crate marker ──
+  //
+  // Two very different CH47 Chinooks exist in Rust and we must NOT confuse them:
+  //   1. OIL RIG CH47 — spawned when a player swipes the card on a rig. It flies
+  //      to that rig and drops the rig's own locked crate, which always has the
+  //      full ~15-minute hack timer. THIS is what we auto-detect & auto-time,
+  //      and the timer must always start at the full defaultCrateSeconds from
+  //      the moment of detection (reads 15:00, not 14:xx).
+  //   2. NORMAL MAP CHINOOK — the CH47 that crosses the whole map and drops a
+  //      hackable crate at a random land monument. We deliberately do NOT
+  //      auto-create a timer for it: it is not rig-bound, and trying to time it
+  //      from the map-crossing chinook produced bogus 1–13 minute timers (the
+  //      chinook had been airborne for minutes before passing a rig). Detection
+  //      below is therefore gated strictly to oil-rig proximity.
   if (settings.autoOilRigCrates) {
     const chinook = markers.find((m) => m.type === 'chinook');
     const crates = markers.filter((m) => m.type === 'crate');
     persisted.chinookRigPolls = persisted.chinookRigPolls || {};
-
-    // Record the moment a Chinook (CH47) first appears on the map. The CH47 is
-    // what flies in and spawns/hacks the oil-rig locked crate, so the gap
-    // between its spawn (which we detect here) and the crate auto-detection
-    // firing is "dead time" already counting against the real unlock. We stash
-    // the spawn timestamp so we can deduct that elapsed delay below. Cleared
-    // when no CH47 is present so a stale time can't bleed into a later event.
-    if (chinook) {
-      if (!persisted.chinookSpawnAt) persisted.chinookSpawnAt = Date.now();
-    } else {
-      persisted.chinookSpawnAt = undefined;
-    }
 
     for (const rigKey of ['oil_rig_small', 'oil_rig_large']) {
       const rig = monPos(rigKey);
@@ -244,31 +245,23 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
       const alreadyFired = persisted[firedKey] && Date.now() - persisted[firedKey] < 20 * 60_000;
 
       if (triggered && !alreadyFired) {
+        const cs = useCrateStore.getState();
+        // De-dupe: never re-add a rig that already has a running timer. Checked
+        // BEFORE marking fired / firing automation so a still-running timer is
+        // never disturbed or double-counted.
+        if (cs.markers.some((c) => c.target === rigKey)) continue;
         persisted[firedKey] = Date.now();
         fireAutomationEvent('oil_crate_triggered');
-        const cs = useCrateStore.getState();
-        // Don't duplicate if a timer is already running on this rig.
-        if (cs.markers.some((c) => c.target === rigKey)) continue;
         const now = Date.now();
         const name = getMonumentInfo(rigKey)?.name || 'Oil Rig';
         const srv = getCurrentServer();
-        const defaultDur = (useSettingsStore.getState().defaultCrateSeconds || 900) * 1000;
-        // Deduct the Chinook (CH47) delay: the CH47 that triggered this crate
-        // spawned earlier than this auto-detection fired (it has to fly in and
-        // hover for a couple of polls first), so the crate's real countdown is
-        // already partway through. Subtract the elapsed time since the CH47 was
-        // first detected to make the unlock timer more accurate. Clamp so we
-        // never drop below ~30s or exceed the full duration. Falls back to the
-        // full duration when no CH47 spawn time is known. Only the AUTO path
-        // reaches here — manually-added crates always get the full duration.
-        let dur = defaultDur;
-        const chinookSpawnAt = persisted.chinookSpawnAt as number | undefined;
-        if (chinookSpawnAt) {
-          const elapsed = now - chinookSpawnAt;
-          if (elapsed > 0) {
-            dur = Math.max(30_000, Math.min(defaultDur, defaultDur - elapsed));
-          }
-        }
+        // Oil-rig locked crate ALWAYS uses the full hack timer. Start the
+        // countdown at the configured default (defaultCrateSeconds, ~15m) from
+        // the exact moment of detection so the timer reads 15:00. The baseline
+        // is fixed here as `now + dur`; the per-second tick only reads this
+        // fixed `unlocksAt` and never re-derives it (which previously caused the
+        // timer to jump around).
+        const dur = (useSettingsStore.getState().defaultCrateSeconds || 900) * 1000;
 
         const triggerX = crateNearRig ? crateNearRig.x : rig.x;
         const triggerY = crateNearRig ? crateNearRig.y : rig.y;

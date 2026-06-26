@@ -75,6 +75,9 @@ interface SettingsState {
   tcDecayNotifyApp: boolean;
   tcDecayNotifyChat: boolean;
   tcDecayNotifyDiscord: boolean;
+  /** Smart device destroyed (no longer exists on server → possible raid). */
+  deviceDestroyedNotifyChat: boolean;     // device destroyed → team chat
+  deviceDestroyedNotifyDiscord: boolean;  // device destroyed → discord
   /** Optional per-feature webhook overrides (feature key → URL). */
   discordWebhooks: Record<string, string>;
 
@@ -128,6 +131,8 @@ interface SettingsState {
   setTcDecayNotifyApp: (v: boolean) => void;
   setTcDecayNotifyChat: (v: boolean) => void;
   setTcDecayNotifyDiscord: (v: boolean) => void;
+  setDeviceDestroyedNotifyChat: (v: boolean) => void;
+  setDeviceDestroyedNotifyDiscord: (v: boolean) => void;
   setDiscordWebhookFor: (feature: string, url: string) => void;
 
   setSoundEnabled: (v: boolean) => void;
@@ -183,6 +188,8 @@ export const useSettingsStore = create<SettingsState>()(
       tcDecayNotifyApp: true,
       tcDecayNotifyChat: true,
       tcDecayNotifyDiscord: false,
+      deviceDestroyedNotifyChat: true,
+      deviceDestroyedNotifyDiscord: true,
       discordWebhooks: {},
 
       soundEnabled: false,
@@ -233,6 +240,8 @@ export const useSettingsStore = create<SettingsState>()(
       setTcDecayNotifyApp: (v) => set({ tcDecayNotifyApp: v }),
       setTcDecayNotifyChat: (v) => set({ tcDecayNotifyChat: v }),
       setTcDecayNotifyDiscord: (v) => set({ tcDecayNotifyDiscord: v }),
+      setDeviceDestroyedNotifyChat: (v) => set({ deviceDestroyedNotifyChat: v }),
+      setDeviceDestroyedNotifyDiscord: (v) => set({ deviceDestroyedNotifyDiscord: v }),
       setDiscordWebhookFor: (feature, url) => set((s) => ({
         discordWebhooks: { ...s.discordWebhooks, [feature]: url },
       })),

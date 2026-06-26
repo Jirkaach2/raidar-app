@@ -142,10 +142,11 @@
 /* ── Manage list ── */
 .mtb-list { display: flex; flex-direction: column; gap: var(--space-xs); }
 .mtb-row {
-  display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 5px; padding: 6px; border-radius: var(--radius-lg);
   background: rgba(255,255,255,0.02); border: 1px solid transparent; transition: all var(--transition-fast);
 }
 .mtb-row:hover { background: rgba(255,255,255,0.05); border-color: var(--color-border); }
+.mtb-row-main { display: flex; align-items: center; gap: 7px; }
 .mtb-row-dot {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 20px; height: 20px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
@@ -173,6 +174,18 @@
   background: transparent; border: 1px solid transparent; transition: all var(--transition-fast);
 }
 .mtb-row-del:hover { color: #ef6b6b; background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.4); }
+
+/* ── Manage list: per-marker size slider ── */
+.mtb-row-size { display: flex; align-items: center; gap: 7px; padding: 0 2px 0 1px; }
+.mtb-row-size-icon { flex-shrink: 0; color: var(--color-text-muted); }
+.mtb-row-range {
+  flex: 1; height: 3px; cursor: pointer; accent-color: var(--kind-color, var(--color-accent));
+  background: transparent; min-width: 0;
+}
+.mtb-row-size-val {
+  flex-shrink: 0; width: 38px; text-align: right;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--color-text-dim);
+}
 
 .mtb-clear {
   display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 9px;

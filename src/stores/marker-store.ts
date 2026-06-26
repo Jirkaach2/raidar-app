@@ -40,7 +40,11 @@ export interface CustomMarker {
   note?: string;
   x: number;             // normalized 0-1
   y: number;
-  /** Display scale multiplier (0.6 – 2.0). */
+  /**
+   * Display size multiplier. Drives BOTH the on-map pin px and its label font
+   * px from one factor. Allowed range is 0.1 (really small) … 2.0 (large);
+   * defaults to 1. Persisted with the rest of the marker.
+   */
   scale?: number;
   createdAt: number;
   serverId?: string;     // `ip:port`
@@ -111,7 +115,13 @@ export const useMarkerStore = create<MarkerState>((set, get) => ({
   },
 
   updateMarker: (id, data) => {
-    const markers = get().markers.map((m) => (m.id === id ? { ...m, ...data } : m));
+    // Keep `scale` inside the supported 0.1 (really small) … 2.0 (large) band so
+    // persisted values never drift outside what the sliders allow.
+    const clamped: Partial<CustomMarker> =
+      data.scale !== undefined
+        ? { ...data, scale: Math.max(0.1, Math.min(2, data.scale)) }
+        : data;
+    const markers = get().markers.map((m) => (m.id === id ? { ...m, ...clamped } : m));
     save(markers);
     set({ markers });
   },
