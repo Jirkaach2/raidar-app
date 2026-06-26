@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useMapStore } from '@/stores/map-store';
 import { useTeamStore } from '@/stores/team-store';
-import { getGridCoordinate, getNormalizedCoordinates } from '@/utils/grid';
+import { getGridCoordinate } from '@/utils/grid';
 import { getItemShortname } from '@/utils/items';
+import { isNpcShop, isDeepSeaShop } from '@/utils/shops';
 import { Avatar } from '../common/Avatar';
 import { MapPin, Info, ArrowUpDown } from 'lucide-react';
 import { BestShops } from './BestShops';
@@ -18,11 +19,7 @@ export function VendingPanel() {
   const [sortBy, setSortBy] = useState<'cheapest' | 'stock' | 'closest'>('cheapest');
   
   const markers = useMapStore(s => s.markers);
-  const monuments = useMapStore(s => s.monuments);
   const mapSize = useMapStore(s => s.mapSize);
-  const oceanMargin = useMapStore(s => s.oceanMargin || 0);
-  const mapImageWidth = useMapStore(s => s.mapImageWidth || 0);
-  const mapImageHeight = useMapStore(s => s.mapImageHeight || 0);
   
   const { chatMessages, sendMessage, members } = useTeamStore();
   const [chatInput, setChatInput] = useState('');
@@ -43,29 +40,8 @@ export function VendingPanel() {
     return markers.filter(m => m.type === 'vending_machine' && m.raw && m.raw.sell_orders);
   }, [markers]);
 
-  // Helper to identify NPC shops
-  const isNpcShop = (label: string, nx: number, ny: number): boolean => {
-    const lname = (label || '').toLowerCase();
-    const npcNames = [
-      'outpost', 'bandit', 'deep sea', 'medical shop', 'components shop',
-      'resources shop', 'weapons shop', 'explosives shop', 'travelling vendor',
-      'traveling vendor', 'wandering trader', 'air wolf', 'airwolf',
-      'ranch', 'barn', 'stable', 'fishing', 'village', 'shopkeeper'
-    ];
-    if (npcNames.some(n => lname.includes(n))) return true;
-
-    for (const m of monuments) {
-      const key = (m.token || '').toLowerCase();
-      if (
-        key.includes('outpost') || key.includes('bandit') || key.includes('fishing') ||
-        key.includes('barn') || key.includes('stable') || key.includes('ranch')
-      ) {
-        const p = getNormalizedCoordinates(m.x, m.y, mapSize, mapImageWidth, mapImageHeight, oceanMargin);
-        if (Math.hypot(nx - p.x, ny - p.y) < 0.05) return true;
-      }
-    }
-    return false;
-  };
+  // Helper to identify NPC shops — uses the canonical detectors in utils/shops
+  // so Market Search classifies shops identically to Best Shops / map markers.
 
   const quickChips = ["Wood", "Stone", "Metal", "Sulfur", "Scrap", "Rifle", "Ammo", "Keycard"];
 
@@ -75,6 +51,7 @@ export function VendingPanel() {
     
     // 1. First map and filter individual vending machines & orders
     const mapped = vendingMachines.map(vm => {
+      const isDeep = isDeepSeaShop(vm.label || '', vm.x, vm.y);
       const isNpc = isNpcShop(vm.label || '', vm.x, vm.y);
       const grid = vm.raw ? getGridCoordinate(vm.raw.x, vm.raw.y, mapSize) : '?';
       
@@ -89,8 +66,8 @@ export function VendingPanel() {
         distanceGrids = distUnits / 146.25;
       }
 
-      // Filter by Shop Type (NPC vs Player)
-      if (shopType === 'player' && isNpc) return null;
+      // Filter by Shop Type. Deep-sea shops count as neither player nor NPC.
+      if (shopType === 'player' && (isNpc || isDeep)) return null;
       if (shopType === 'npc' && !isNpc) return null;
 
       // Filter individual orders by search term and stock
@@ -119,6 +96,7 @@ export function VendingPanel() {
           x: vm.x,
           y: vm.y,
           isNpc,
+          isDeep,
           distanceKm,
           distanceGrids
         };
@@ -151,7 +129,7 @@ export function VendingPanel() {
 
       return 0;
     });
-  }, [search, activeTab, shopType, inStockOnly, sortBy, vendingMachines, mapSize, selfMember, monuments, mapImageWidth, mapImageHeight, oceanMargin]);
+  }, [search, activeTab, shopType, inStockOnly, sortBy, vendingMachines, mapSize, selfMember]);
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,7 +282,7 @@ export function VendingPanel() {
               <div key={idx} className={`vending-machine-card ${vm.isNpc ? 'npc-shop-card' : 'player-shop-card'}`}>
                 <div className="vending-machine-card-header">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <h3 className="vending-machine-name" style={{ color: vm.isNpc ? '#3cc04c' : 'var(--color-text)' }}>
+                    <h3 className="vending-machine-name" style={{ color: vm.isNpc ? '#3cc04c' : (vm.isDeep ? '#5aaef0' : 'var(--color-text)') }}>
                       {vm.machineName}
                     </h3>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -316,7 +294,7 @@ export function VendingPanel() {
                         </span>
                       )}
                       <span className="shop-owner-badge" style={{ fontSize: 9, opacity: 0.6 }}>
-                        {vm.isNpc ? 'NPC Shop' : 'Player Shop'}
+                        {vm.isDeep ? 'Deep Sea Shop' : (vm.isNpc ? 'NPC Shop' : 'Player Shop')}
                       </span>
                     </div>
                   </div>

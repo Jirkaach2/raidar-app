@@ -50,20 +50,39 @@ const SLASH_COMMANDS: SlashCommand[] = [
 ];
 
 const CHAT_COMMANDS: ChatCommand[] = [
-  { command: '!check', args: '<steamid>', description: 'Player lookup (public hours, K/D, VAC bans)' },
+  // ── Server & status ──
   { command: '!pop', description: 'Current server population' },
-  { command: '!online', description: 'Online teammate count' },
+  { command: '!queue', description: 'Players waiting in the join queue' },
+  { command: '!status', description: 'Population + in-game time at a glance' },
+  { command: '!server', description: 'Server name, population & map size' },
+  { command: '!map', description: 'Map size & seed' },
+  { command: '!seed', description: 'Map size & seed (alias of !map)' },
+  { command: '!wipe', description: 'Last wipe age' },
+  // ── Time ──
   { command: '!time', description: 'In-game time (day/night)' },
   { command: '!sun', description: 'Time until next day/night' },
-  { command: '!wipe', description: 'Last wipe age' },
+  // ── Team ──
+  { command: '!online', description: 'Online teammate count' },
   { command: '!team', description: 'Online teammates & names' },
-  { command: '!grid', description: "Your team's grids (compact)" },
+  { command: '!grid', description: "Each online teammate's grid (compact)" },
+  // ── World events ──
   { command: '!cargo', description: 'Cargo ship grid' },
-  { command: '!heli', description: 'Patrol heli grid' },
+  { command: '!heli', description: 'Patrol heli (+ Chinook) grid' },
+  { command: '!chinook', description: 'Chinook grid' },
   { command: '!vendor', description: 'Travelling vendor grid' },
   { command: '!events', description: 'Active world events summary' },
+  { command: '!crates', description: 'Active crate timers / live locked crates' },
+  // ── Crate timers (app) ──
+  { command: '!crate add', args: '<monument> <mm:ss>', description: 'Start a crate unlock timer at a monument' },
+  { command: '!crate del', args: '<name>', description: 'Remove a crate timer by name' },
+  { command: '!crate edit', args: '<name> <mm:ss>', description: 'Re-set a crate timer' },
+  // ── Devices & base ──
+  { command: '!devices', description: 'List paired smart devices & on/off state' },
+  { command: '!switch', args: '<name>', description: 'Toggle a Smart Switch by name' },
+  { command: '!upkeep', description: 'Tool Cupboard upkeep time remaining' },
+  // ── Player & reference ──
+  { command: '!check', args: '<steamid>', description: 'Player lookup (public hours, K/D, VAC bans)' },
   { command: '!loot', args: '<crate>', description: 'Top items for a crate type' },
-  { command: '!status', description: 'Population + time at a glance' },
   { command: '!help', description: 'List all in-game commands' },
 ];
 
@@ -157,7 +176,9 @@ export function CommandsPanel() {
           </div>
           <p className="cmd-section-note">
             Type these directly into Rust in-game team chat — the bot reads them and replies in
-            chat.
+            chat. Crate timers (<code className="cmd-code">!crate add/del/edit</code>),
+            <code className="cmd-code">!upkeep</code> and device control respond while the desktop
+            app is connected; the bot covers the rest when the app is closed.
           </p>
 
           <div className="cmd-table" role="table">

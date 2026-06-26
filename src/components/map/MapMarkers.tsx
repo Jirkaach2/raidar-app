@@ -167,16 +167,25 @@ const MapMarkers = React.memo(function MapMarkers() {
         // Deep-sea vendor shops get their own accent + badge so they stand out
         // from safe-zone vending machines (detection by name / monument zone).
         const isDeepSea = isVending && isDeepSeaShop(marker.label, marker.x, marker.y);
-        // Some shops report coordinates out in the ocean margin (or fully
-        // offshore), which painted them as random pins outside the playable
-        // area. Clamp vending shops into the in-grid band — the image carries an
-        // ocean-margin border of `oceanMargin` px on every side. Offshore
-        // deep-sea shops therefore pin to the nearest map edge AND keep the
-        // deep-sea badge instead of floating off the grid.
+        // Normal (non-deep-sea) shops occasionally report coordinates a touch
+        // into the ocean margin; gently clamp THOSE into the in-grid band so
+        // they don't float off as stray pins. Deep-sea shops are intentionally
+        // offshore — they must render at their TRUE position OUTSIDE the grid
+        // border (in the deep-ocean area beyond the playable band), so they are
+        // never clamped into the grid. We only keep them within the rendered
+        // image bounds [0,1] so they can't vanish entirely past the map edge.
         const marginX = imageWidth > 0 ? oceanMargin / imageWidth : 0;
         const marginY = imageHeight > 0 ? oceanMargin / imageHeight : 0;
-        const renderX = isVending ? Math.min(1 - marginX, Math.max(marginX, marker.x)) : marker.x;
-        const renderY = isVending ? Math.min(1 - marginY, Math.max(marginY, marker.y)) : marker.y;
+        const renderX = isVending
+          ? (isDeepSea
+              ? Math.min(1, Math.max(0, marker.x))
+              : Math.min(1 - marginX, Math.max(marginX, marker.x)))
+          : marker.x;
+        const renderY = isVending
+          ? (isDeepSea
+              ? Math.min(1, Math.max(0, marker.y))
+              : Math.min(1 - marginY, Math.max(marginY, marker.y)))
+          : marker.y;
         const color = isDeepSea ? DEEP_SEA_COLOR : (marker.color || MARKER_COLORS[marker.type] || '#fff');
         const hasIcon = marker.type !== 'player';
         
@@ -189,7 +198,7 @@ const MapMarkers = React.memo(function MapMarkers() {
               left: `${renderX * 100}%`,
               top: marker.type === 'crate' ? `calc(${renderY * 100}% - 24px)` : `${renderY * 100}%`,
               width: 0, height: 0,
-              zIndex: isSelected ? 40 : 20,
+              zIndex: isSelected ? 40 : (isDeepSea ? 22 : 20),
               pointerEvents: 'auto',
               cursor: 'pointer',
               // Glide moving events smoothly between polls. The poll lands ~1.2-1.5s
@@ -238,6 +247,26 @@ const MapMarkers = React.memo(function MapMarkers() {
           >
             {/* Tactical pulse rings */}
             {marker.type === 'player' && <div className="player-pulse-ring" />}
+
+            {/* Deep-sea shops are small and tend to cluster offshore; a larger
+                transparent hit-area makes them comfortably clickable so a click
+                reliably opens the shop's orders (same selectMarker flow as any
+                vending shop). */}
+            {isDeepSea && (
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: '50%', top: '50%',
+                  width: 22, height: 22,
+                  transform: 'translate(-50%, -50%)',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  pointerEvents: 'auto',
+                  cursor: 'pointer',
+                }}
+              />
+            )}
 
             {/* Distinct custom marker representation */}
               <div 
@@ -292,7 +321,8 @@ const MapMarkers = React.memo(function MapMarkers() {
             </div>
             
             {/* Deep-sea vendor badge — a small always-on tag so offshore vendor
-                shops (clamped to the map edge) are instantly recognisable. */}
+                shops (rendered at their true position outside the grid border)
+                are instantly recognisable. */}
             {isDeepSea && (
               <div
                 style={{

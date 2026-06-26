@@ -233,3 +233,106 @@
 .mtb-body::-webkit-scrollbar { width: 8px; }
 .mtb-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
 .mtb-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); background-clip: padding-box; }
+
+/* ───────────────────── Custom marker editor popup ─────────────────────
+ * Rendered inside MapCanvas's CustomMapMarkers (inline JSX) but styled here so
+ * it stays consistent with the rest of the marker UI. `--mk-color` is set
+ * inline per-marker to tint accents with that marker's kind colour. */
+.cmark-pop {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: 214px; z-index: 70; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: rgba(14, 16, 21, 0.99);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  animation: mtb-pop var(--transition-fast) ease-out;
+}
+
+/* Header */
+.cmark-pop-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 9px 9px 11px;
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+}
+.cmark-pop-head-dot {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--mk-color, var(--color-accent));
+  border: 1.5px solid rgba(8, 10, 13, 0.88); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.cmark-pop-head-dot svg { transform: rotate(45deg); }
+.cmark-pop-head-title {
+  flex: 1; font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.8px; text-transform: uppercase; color: var(--color-text);
+}
+.cmark-pop-close {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: var(--radius-md); cursor: pointer;
+  color: var(--color-text-muted); background: transparent; border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+.cmark-pop-close:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.06); border-color: var(--color-border); }
+
+/* Body */
+.cmark-pop-body { display: flex; flex-direction: column; gap: 9px; padding: 11px; }
+.cmark-pop-field { display: flex; flex-direction: column; gap: 4px; }
+.cmark-pop-label {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--color-text-muted);
+}
+.cmark-pop-input,
+.cmark-pop-textarea {
+  width: 100%; padding: 7px 9px; border-radius: var(--radius-md);
+  font-size: 11.5px; font-weight: 600; color: var(--color-text);
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+.cmark-pop-input::placeholder,
+.cmark-pop-textarea::placeholder { color: var(--color-text-muted); font-weight: 500; }
+.cmark-pop-input:hover,
+.cmark-pop-textarea:hover { border-color: var(--color-border-strong); }
+.cmark-pop-input:focus,
+.cmark-pop-textarea:focus {
+  border-color: var(--mk-color, var(--color-accent)); background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mk-color, var(--color-accent)) 22%, transparent);
+}
+.cmark-pop-textarea { resize: none; font-family: inherit; line-height: 1.4; font-size: 10.5px; }
+
+/* Size slider row */
+.cmark-pop-size { display: flex; align-items: center; gap: 9px; }
+.cmark-pop-range {
+  flex: 1; height: 3px; min-width: 0; cursor: pointer;
+  accent-color: var(--mk-color, var(--color-accent)); background: transparent;
+}
+.cmark-pop-size-val {
+  flex-shrink: 0; width: 38px; text-align: right;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-text-dim);
+}
+
+/* Actions */
+.cmark-pop-actions {
+  display: flex; gap: 7px; padding: 0 11px 11px;
+}
+.cmark-pop-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px 6px; border-radius: var(--radius-md); cursor: pointer;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px;
+  border: 1px solid var(--color-border); transition: all var(--transition-fast);
+}
+.cmark-pop-btn--move {
+  color: #fff;
+  background: color-mix(in srgb, var(--mk-color, var(--color-accent)) 18%, transparent);
+  border-color: color-mix(in srgb, var(--mk-color, var(--color-accent)) 55%, transparent);
+}
+.cmark-pop-btn--move:hover {
+  background: color-mix(in srgb, var(--mk-color, var(--color-accent)) 30%, transparent);
+  transform: translateY(-1px);
+}
+.cmark-pop-btn--del {
+  color: #ef6b6b; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);
+}
+.cmark-pop-btn--del:hover { color: #fff; background: rgba(239, 68, 68, 0.8); border-color: #ef4444; transform: translateY(-1px); }
+.cmark-pop-btn:active { transform: translateY(0); }

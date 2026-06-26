@@ -658,80 +658,41 @@
   -webkit-backdrop-filter: blur(2px);
   animation: mip-fade 0.14s ease;
 }
+/* Bounded flex column so the embedded LootTableView scrolls INTERNALLY (its
+   own .ltv-list) and the sticky loot header stays pinned. overflow:hidden +
+   the fixed max-height give the child list a real height to scroll within. */
 .mip-popup__card {
-  width: 322px;
-  max-width: 88%;
-  max-height: 80%;
-  overflow-y: auto;
-  background: rgba(16, 18, 24, 0.99);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-  font-family: var(--font-mono);
-}
-.mip-popup__head {
-  position: sticky;
-  top: 0;
-  background: rgba(16, 18, 24, 0.99);
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.mip-popup__title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.mip-popup__title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--color-warning);
-  letter-spacing: 0.5px;
-}
-.mip-popup__close {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 5px;
-  color: #fff;
-  cursor: pointer;
-}
-.mip-popup__close:hover { background: var(--color-accent); border-color: var(--color-accent); }
-.mip-popup__note {
-  font-size: 9px;
-  color: var(--color-text-muted);
-  margin-top: 4px;
-}
-.mip-popup__list {
-  padding: 12px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  width: 340px;
+  max-width: 90%;
+  max-height: 78%;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(20, 23, 30, 0.99), rgba(13, 15, 20, 0.99));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
+  font-family: var(--font-mono);
+  animation: mip-rise 0.16s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
-.mip-loot-entry {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 10.5px;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-}
-.mip-loot-entry--alt { background: rgba(255, 255, 255, 0.03); }
-.mip-loot-entry__icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
+
+/* Single clean close button, floating over the sticky header. */
+.mip-popup__close {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 4;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-md);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
-.mip-loot-entry__icon img { object-fit: contain; }
-.mip-loot-entry__name { color: var(--color-text); flex: 1; }
-.mip-loot-entry__amount { color: var(--color-text-muted); }
-.mip-loot-entry__chance { color: var(--color-success); font-weight: 700; flex-shrink: 0; }
+.mip-popup__close:hover { background: var(--color-accent); border-color: var(--color-accent); }

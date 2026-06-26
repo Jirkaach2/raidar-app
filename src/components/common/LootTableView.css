@@ -1,22 +1,38 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LOOT TABLE VIEW  ·  shared loot renderer (popups, crate view, Monuments tab)
+   Dark theme · CSS vars · `ltv-` prefix · robust at any container size.
+
+   Layout contract that prevents the row-overlap bug:
+     • .ltv is a bounded flex column (min-height:0 so it can shrink to scroll).
+     • .ltv-head is flex:0 0 auto so the sticky header never collapses.
+     • .ltv-list is the ONLY scroll area (flex:1 1 auto + overflow-y:auto).
+     • .ltv-row is flex:0 0 auto with an explicit min-height so rows NEVER
+       shrink below their content — without this, a height-constrained flex
+       column squeezes rows together and their text/icons overlap.
+   ══════════════════════════════════════════════════════════════════════════ */
+
 .ltv {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
+  /* Allow the column to shrink inside a bounded parent so the list can scroll
+     instead of forcing the whole component to overflow. */
   min-height: 0;
   font-family: var(--font-mono);
   color: var(--color-text);
-  /* Never let a long row spill out sideways in a constrained popup. */
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
-/* ── Header ─────────────────────────────────────────────── */
+/* ── Sticky header ─────────────────────────────────────── */
 .ltv-head {
+  flex: 0 0 auto;
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 13px 16px;
-  background: rgba(14, 16, 21, 0.99);
+  padding: 12px 15px;
+  background:
+    linear-gradient(180deg, rgba(22, 25, 32, 0.99), rgba(15, 17, 22, 0.99));
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -34,9 +50,8 @@
   flex: 1 1 auto;
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.2px;
-  color: var(--color-text);
-  /* Keep the header tidy: truncate rather than wrap or overlap the count. */
+  letter-spacing: 0.3px;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -46,53 +61,72 @@
   flex: 0 0 auto;
   white-space: nowrap;
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--color-text-muted);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 2px 7px;
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .ltv-note {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 9.5px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--color-text-dim);
 }
 
-/* ── List ───────────────────────────────────────────────── */
+/* ── Scrollable list ───────────────────────────────────── */
 .ltv-list {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   gap: 3px;
-  padding: 10px 12px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 9px 10px;
+  /* The single bounded scroll region. min-height:0 lets it actually scroll
+     inside a flex parent rather than expanding past the popup. */
   min-height: 0;
   min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* Row: fixed icon · flexible name (truncates) · amount chip · chance badge.
-   Grid keeps the columns aligned across every row regardless of name length. */
+/* Row · aligned columns: icon · name (truncates) · amount chip · chance badge.
+   `flex: 0 0 auto` + min-height is the core overlap fix — rows hold their
+   height and the list scrolls instead of squashing them on top of each other. */
 .ltv-row {
+  flex: 0 0 auto;
   position: relative;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
   align-items: center;
-  column-gap: 9px;
+  column-gap: 10px;
+  min-height: 32px;
+  box-sizing: border-box;
+  padding: 5px 10px;
   font-size: 11px;
-  padding: 5px 9px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid transparent;
   border-left: 2px solid var(--rarity, var(--color-text-muted));
   overflow: hidden;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
-/* Chance bar painted as a subtle background fill behind the content — it sits
-   under everything (z-index 0) so it can never push or overlap the text. */
+/* Subtle zebra striping for scannability. */
+.ltv-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.ltv-row:hover {
+  background: color-mix(in srgb, var(--rarity, #fff) 12%, rgba(255, 255, 255, 0.04));
+  border-color: color-mix(in srgb, var(--rarity, transparent) 30%, transparent);
+}
+
+/* Chance bar · a soft fill confined to THIS row (absolute within the
+   position:relative + overflow:hidden row) so it can never bleed across rows. */
 .ltv-row__bar {
   position: absolute;
   left: 0;
@@ -100,7 +134,7 @@
   bottom: 0;
   z-index: 0;
   background: var(--rarity, var(--color-text-muted));
-  opacity: 0.08;
+  opacity: 0.1;
   pointer-events: none;
   border-radius: inherit;
 }
@@ -108,8 +142,8 @@
 .ltv-row__icon {
   position: relative;
   z-index: 1;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +169,6 @@
   min-width: 0;
   color: var(--color-text);
   line-height: 1.35;
-  /* The min-width:0 above lets this truncate inside the grid track. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,25 +184,26 @@
   color: var(--color-text-muted);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1px 6px;
+  border-radius: 999px;
+  padding: 1px 7px;
 }
 
 .ltv-row__chance {
   position: relative;
   z-index: 1;
   justify-self: end;
-  width: 54px;
+  min-width: 56px;
   box-sizing: border-box;
   text-align: center;
   white-space: nowrap;
   font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: var(--radius-md);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  padding: 2px 7px;
+  border-radius: 999px;
   color: var(--rarity, var(--color-text-muted));
-  background: color-mix(in srgb, var(--rarity, transparent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--rarity, transparent) 35%, transparent);
+  background: color-mix(in srgb, var(--rarity, transparent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rarity, transparent) 38%, transparent);
 }
 
 /* ── Rarity tiers ───────────────────────────────────────── */
@@ -201,4 +235,11 @@
 .ltv-row[data-rarity='neutral'],
 .ltv-row__chance[data-rarity='neutral'] {
   --rarity: var(--color-text-muted);
+}
+
+/* ── Popup modifier ─────────────────────────────────────── */
+/* When embedded in the map loot popup, reserve room in the sticky header for
+   the floating close button so the title/count never sit under it. */
+.ltv--popup .ltv-head {
+  padding-right: 46px;
 }

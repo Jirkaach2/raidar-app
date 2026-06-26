@@ -55,9 +55,9 @@ export function handleTeamCommand(text: string): boolean {
     case 'help':
     case 'commands':
       reply([
-        '[BOT] !devices !crates !events !cargo !time !pop !team !server',
-        '[BOT] !crate add <monument> <mm:ss> · !crate del <name> · !crate edit <name> <mm:ss>',
-        '[BOT] !switch <name> (toggles it) · !upkeep',
+        '[BOT] !pop !online !team !grid !status !time !sun !wipe !server !map',
+        '[BOT] !cargo !heli !vendor !events !crates !devices !upkeep',
+        '[BOT] !crate add <mon> <mm:ss> · !crate del/edit <name> · !switch <name>',
       ]);
       return true;
 
@@ -251,6 +251,85 @@ export function handleTeamCommand(text: string): boolean {
     case 'wipe': {
       const info = useConnectionStore.getState().serverInfo;
       reply([info ? `[BOT] ${info.name} — ${info.players}/${info.max_players} — ${info.map_size}m` : '[BOT] Not connected.']);
+      return true;
+    }
+
+    case 'heli':
+    case 'chinook': {
+      // Patrol heli + Chinook locations (grid stored in marker.detail).
+      const markers = useMapStore.getState().markers;
+      const heli = markers.find((m) => m.type === 'patrol_heli');
+      const chinook = markers.find((m) => m.type === 'chinook');
+      if (!heli && !chinook) { reply(['[BOT] No Patrol Heli or Chinook on the map.']); return true; }
+      const parts: string[] = [];
+      if (heli) parts.push(`Patrol Heli${heli.detail ? ` @ ${heli.detail}` : ''}`);
+      if (chinook) parts.push(`Chinook${chinook.detail ? ` @ ${chinook.detail}` : ''}`);
+      reply([`[BOT] ${parts.join(' · ')}`]);
+      return true;
+    }
+
+    case 'vendor': {
+      const vendor = useMapStore.getState().markers.find((m) => m.type === 'vendor');
+      reply([vendor
+        ? `[BOT] Travelling Vendor${vendor.detail ? ` @ ${vendor.detail}` : ''}`
+        : '[BOT] No travelling vendor on the map.']);
+      return true;
+    }
+
+    case 'sun': {
+      const t = useMapStore.getState().timeInfo;
+      if (!t) { reply(['[BOT] Time data unavailable.']); return true; }
+      const isDay = t.time >= t.sunrise && t.time < t.sunset;
+      const realMinPerHour = t.dayLengthMinutes > 0 ? t.dayLengthMinutes / 24 : 0;
+      let hoursUntil: number;
+      if (isDay) hoursUntil = t.sunset - t.time;
+      else hoursUntil = t.time < t.sunrise ? t.sunrise - t.time : 24 - t.time + t.sunrise;
+      const mins = Math.round(hoursUntil * realMinPerHour);
+      reply([`[BOT] ${isDay ? 'Nightfall' : 'Sunrise'} in ~${mins}m`]);
+      return true;
+    }
+
+    case 'online': {
+      const members = useTeamStore.getState().members;
+      if (members.length === 0) { reply(['[BOT] No team data.']); return true; }
+      const online = members.filter((m) => m.status === 'online').length;
+      reply([`[BOT] ${online}/${members.length} teammates online`]);
+      return true;
+    }
+
+    case 'status': {
+      const info = useConnectionStore.getState().serverInfo;
+      const t = useMapStore.getState().timeInfo;
+      const parts: string[] = [];
+      if (info) {
+        const q = info.queued_players > 0 ? ` (+${info.queued_players}q)` : '';
+        parts.push(`${info.players}/${info.max_players}${q}`);
+      }
+      if (t) {
+        const isDay = t.time >= t.sunrise && t.time < t.sunset;
+        const hh = Math.floor(t.time);
+        const mm = Math.floor((t.time - hh) * 60);
+        parts.push(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${isDay ? 'day' : 'night'}`);
+      }
+      reply([parts.length ? `[BOT] ${parts.join(' · ')}` : '[BOT] Status unavailable.']);
+      return true;
+    }
+
+    case 'grid': {
+      const members = useTeamStore.getState().members;
+      const online = members.filter((m) => m.status === 'online');
+      if (online.length === 0) { reply(['[BOT] No teammates online.']); return true; }
+      let line = online.map((m) => `${m.name}@${m.grid || '?'}`).join(', ');
+      if (line.length > 110) line = line.slice(0, 109) + '…';
+      reply([`[BOT] ${line}`]);
+      return true;
+    }
+
+    case 'map':
+    case 'seed': {
+      const info = useConnectionStore.getState().serverInfo;
+      if (!info) { reply(['[BOT] Server info unavailable.']); return true; }
+      reply([`[BOT] ${info.map || 'Map'} · ${info.map_size}m · seed ${info.seed}`]);
       return true;
     }
 

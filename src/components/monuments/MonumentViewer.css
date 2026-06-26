@@ -844,6 +844,45 @@
   padding: 3px 8px;
 }
 
+/* ── 3D model unavailable note (e.g. Deep Sea) ── */
+.mon-3d-unavailable {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--color-text-dim);
+}
+.mon-3d-unavailable-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 0.6;
+}
+.mon-3d-unavailable-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--color-text-dim);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mon-3d-unavailable-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 /* ── 3D model modal overlay ── */
 .mon-3d-overlay {
   position: fixed;
@@ -967,10 +1006,10 @@
 }
 .mon-3d-modal-frame {
   position: absolute;
-  top: -64px;
+  top: -80px;
   left: 0;
   width: 100%;
-  height: calc(100% + 64px);
+  height: calc(100% + 160px);
   border: 0;
   display: block;
 }

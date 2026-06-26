@@ -33,7 +33,11 @@ export function BestShops() {
   const removeShop = useShopSalesStore((s) => s.removeShop);
   const [sortBy, setSortBy] = useState<'revenue' | 'sales' | 'recent'>('revenue');
   const [sliderVal, setSliderVal] = useState<number>(8); // Default to 8 (All Time)
-  const [includeNpc, setIncludeNpc] = useState<boolean>(false); // NPC/safe-zone shops hidden by default
+  // Shop-type filter. 'player' is the default so the leaderboard focuses on
+  // real player stores; NPC/deep-sea can be inspected explicitly.
+  const [shopType, setShopType] = useState<'all' | 'player' | 'npc' | 'deep'>('player');
+  // Hide shops with fewer than this many observed sale events. 0 = no minimum.
+  const [minSales, setMinSales] = useState<number>(0);
   const [query, setQuery] = useState<string>(''); // search by shop name OR grid (e.g. "K18")
 
   const FILTER_OPTIONS = useMemo(() => [
@@ -54,6 +58,16 @@ export function BestShops() {
     deep: isDeepSeaShop(s.shopName, s.x, s.y),
   });
 
+  /** Shop-type filter match (All / Player / NPC / Deep Sea). */
+  const matchesType = (s: ShopSales): boolean => {
+    if (shopType === 'all') return true;
+    const { npc, deep } = classify(s);
+    if (shopType === 'deep') return deep;
+    if (shopType === 'npc') return npc;
+    // 'player' — anything that isn't an NPC or deep-sea vendor.
+    return !npc && !deep;
+  };
+
   /** Search match against shop name AND grid location (e.g. "K18"). */
   const matchesQuery = (s: ShopSales): boolean => {
     const q = query.trim().toLowerCase();
@@ -67,8 +81,7 @@ export function BestShops() {
 
     const list = Object.values(shops)
       .filter((s) => isCurrentServer(s.serverId))
-      // NPC shops hidden unless opted in; deep-sea shops are NOT NPC and always pass.
-      .filter((s) => includeNpc || !isNpcShop(s.shopName, s.x, s.y))
+      .filter((s) => matchesType(s))
       .filter((s) => matchesQuery(s))
       .map((s) => {
         // If "All Time", or no transactions array is present, return as-is.
@@ -106,7 +119,7 @@ export function BestShops() {
           lastSale
         };
       })
-      .filter((s) => s.saleEvents > 0)
+      .filter((s) => s.saleEvents > 0 && s.saleEvents >= minSales)
       // Realism filter: drop shops reporting fake/bulk data (absurd earned
       // totals or impossible per-item unit counts) so they can't pollute the
       // leaderboard. Thresholds live in utils/shops.ts.
@@ -117,7 +130,7 @@ export function BestShops() {
       if (sortBy === 'recent') return b.lastSale - a.lastSale;
       return totalRevenue(b) - totalRevenue(a);
     });
-  }, [shops, sortBy, sliderVal, includeNpc, query, FILTER_OPTIONS]);
+  }, [shops, sortBy, sliderVal, shopType, minSales, query, FILTER_OPTIONS]);
 
   const locate = (s: ShopSales) => {
     // Switch to the Map page first so the user actually sees the shop — setting
@@ -134,10 +147,10 @@ export function BestShops() {
     useMapStore.getState().selectMarker(marker ? marker.id : null);
   };
 
-  // Anything tracked at all on this server (respecting the NPC toggle)? Drives
-  // the "no data yet" empty-state independently of the active search/window.
+  // Anything tracked at all on this server (respecting the active type filter)?
+  // Drives the "no data yet" empty-state independently of the search/window.
   const hasTrackedShops = Object.values(shops).some(
-    (s) => isCurrentServer(s.serverId) && s.saleEvents > 0 && (includeNpc || !isNpcShop(s.shopName, s.x, s.y)),
+    (s) => isCurrentServer(s.serverId) && s.saleEvents > 0 && matchesType(s),
   );
 
   return (
@@ -145,14 +158,6 @@ export function BestShops() {
       <div className="bs-head">
         <h3><Trophy size={14} /> BEST SELLING SHOPS</h3>
         <div className="bs-head-actions">
-          <label className="bs-npc-toggle" title="Include NPC / safe-zone vendor shops in the leaderboard">
-            <input
-              type="checkbox"
-              checked={includeNpc}
-              onChange={(e) => setIncludeNpc(e.target.checked)}
-            />
-            <span>Include NPC shops</span>
-          </label>
           {ranked.length > 0 && (
             <button className="bs-clear" onClick={clear} title="Reset all tracked sales"><Trash2 size={11} /> Reset</button>
           )}
@@ -186,6 +191,25 @@ export function BestShops() {
             <button className={sortBy === 'revenue' ? 'active' : ''} onClick={() => setSortBy('revenue')}>Top earners</button>
             <button className={sortBy === 'sales' ? 'active' : ''} onClick={() => setSortBy('sales')}>Most sales</button>
             <button className={sortBy === 'recent' ? 'active' : ''} onClick={() => setSortBy('recent')}>Most recent</button>
+          </div>
+
+          <div className="bs-filters">
+            <div className="bs-type" role="group" aria-label="Shop type filter">
+              <button className={shopType === 'all' ? 'active' : ''} onClick={() => setShopType('all')}>All</button>
+              <button className={shopType === 'player' ? 'active' : ''} onClick={() => setShopType('player')}>Player</button>
+              <button className={shopType === 'npc' ? 'active' : ''} onClick={() => setShopType('npc')}>NPC</button>
+              <button className={shopType === 'deep' ? 'active' : ''} onClick={() => setShopType('deep')}>Deep Sea</button>
+            </div>
+            <label className="bs-minsales" title="Hide shops with fewer than this many observed sales">
+              <span>Min sales</span>
+              <select value={minSales} onChange={(e) => setMinSales(parseInt(e.target.value, 10))}>
+                <option value={0}>Any</option>
+                <option value={5}>5+</option>
+                <option value={10}>10+</option>
+                <option value={25}>25+</option>
+                <option value={50}>50+</option>
+              </select>
+            </label>
           </div>
 
           <div className="bs-time-slider">

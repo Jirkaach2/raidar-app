@@ -206,7 +206,7 @@ const LOCAL_MONUMENT_IMAGES: Record<string, string> = {
   swamp: '/images/monuments/swamp.jfif',
   ferry_terminal: '/images/monuments/ferry_terminal.jpg',
   harbor: '/images/monuments/harbor.jpg',
-  deep_sea: '/images/markers/deep_sea.png',
+  deep_sea: '/images/monuments/deep_sea.jpg',
 };
 
 export function getMonumentImageUrl(token: string): string | null {
@@ -784,21 +784,27 @@ const MONUMENT_DB: Record<string, MonumentInfo> = {
   },
   deep_sea: {
     key: 'deep_sea', name: 'DEEP SEA', imageSlug: 'deep-sea',
-    type: 'Ocean', tier: '2', safezone: false, radiation: 'none',
-    recyclers: 0, crates: [], scientists: [],
+    type: 'Ocean Safe Zone', tier: '0', safezone: true, radiation: 'none',
+    recyclers: 0, crateCount: 6,
+    crates: [
+      { loot: 'basic', label: 'Dive Site Crate', count: 'several' },
+      { loot: 'basic', label: 'Deep Sea Island Crate', count: '1-2' },
+    ],
+    scientists: [],
     hasTunnelEntrance: false, hasChinookDropZone: false, allowsHeliCrash: false,
     requiresCards: [], givesCards: [],
     puzzles: [],
     notes: [
-      'Far-offshore deep-ocean region beyond the normal map water — only reachable by boat or submarine.',
-      'Floating Deep Sea settlement has a vendor (Dive Master) selling diving gear, boats, and supplies.',
-      "Treasure hunting: the Dive Master's \"Beep in the Deep\" mission — take a Metal Detector to the deep-sea islands and dig up buried treasure.",
-      'RHIB scientists patrol the area on boats — the target of the "Gone Killing" bandit mission.',
-      'Sharks lurk at the dive sites; expect to fight them while looting underwater.',
-      'Underwater "Bounty" crates are tied down at dive sites — untie them to claim the loot.',
-      'Sits offshore near the Oil Rigs, so deep-sea trips pair well with a rig run.',
-      'Best boat: the Tugboat is the top deep-sea base/vehicle — sleeping bag + storage + respawn, tanky, and can park right at an Oil Rig.',
-      'The RHIB is the fast crew option for rig runs and RHIB-scientist hunts; the Kayak/Rowboat is the cheap solo choice. Bring a Diving Tank + flippers + spear gun for the dive sites.',
+      'Sits OUTSIDE the normal map grid — a far-offshore deep-ocean region beyond the playable water, reachable only by boat or submarine.',
+      'A deep-sea ISLAND spawns far offshore with loot crates to grab and buried treasure to dig up with a Metal Detector (the Dive Master\'s "Beep in the Deep" treasure-hunt).',
+      'The Deep Sea vendor/Dive Master runs a floating SAFE ZONE settlement — no PvP, no turrets — selling diving gear, boats, and supplies.',
+      'RHIB scientists patrol the surrounding waters on boats; expect resistance when approaching dive sites and the island.',
+      'Sharks lurk at the dive sites — they will attack while you loot underwater, so clear them before opening crates.',
+      'Underwater crates at dive sites are tied/anchored down — untie them first, then surface to claim the loot safely.',
+      'Pairs well with an Oil Rig run: the deep-sea area sits close to the Small and Large Oil Rigs offshore.',
+      'Best base/vehicle: the Tugboat — sleeping bag + storage + respawn point, tanky, and can park right at an Oil Rig for staging.',
+      'The RHIB is the fast crew option for rig runs and RHIB-scientist hunts; the Kayak is the cheap solo choice.',
+      'Gear up before diving: bring a Diving Tank + flippers + a spear gun for the dive sites and underwater fights.',
     ],
   },
 };

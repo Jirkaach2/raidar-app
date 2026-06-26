@@ -414,29 +414,43 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
         </div>
       )}
 
-      {/* 3D model viewer — compact trigger opens a large modal overlay */}
+      {/* 3D model viewer — compact trigger opens a large modal overlay.
+          Deep Sea has no RustMaps 3D model, so we show a disabled note. */}
       <div className="mon-section mon-3d-section">
-        <button
-          className="mon-3d-trigger"
-          onClick={() => setShow3d(true)}
-          aria-haspopup="dialog"
-        >
-          <span className="mon-3d-trigger-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 2 3 7v10l9 5 9-5V7z" />
-              <path d="M3 7l9 5 9-5" />
-              <path d="M12 12v10" />
-            </svg>
-          </span>
-          <span className="mon-3d-trigger-text">
-            <span className="mon-3d-trigger-label">View in 3D</span>
-            <span className="mon-3d-trigger-sub">Explore an interactive model of {info.name}</span>
-          </span>
-          <span className="mon-3d-trigger-tag">3D MODEL</span>
-        </button>
+        {info.key === 'deep_sea' ? (
+          <div className="mon-3d-unavailable" role="note">
+            <span className="mon-3d-unavailable-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2 3 7v10l9 5 9-5V7z" />
+                <path d="M3 7l9 5 9-5" />
+                <path d="M12 12v10" />
+              </svg>
+            </span>
+            <span className="mon-3d-unavailable-text">3D model not available for Deep Sea.</span>
+          </div>
+        ) : (
+          <button
+            className="mon-3d-trigger"
+            onClick={() => setShow3d(true)}
+            aria-haspopup="dialog"
+          >
+            <span className="mon-3d-trigger-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2 3 7v10l9 5 9-5V7z" />
+                <path d="M3 7l9 5 9-5" />
+                <path d="M12 12v10" />
+              </svg>
+            </span>
+            <span className="mon-3d-trigger-text">
+              <span className="mon-3d-trigger-label">View in 3D</span>
+              <span className="mon-3d-trigger-sub">Explore an interactive model of {info.name}</span>
+            </span>
+            <span className="mon-3d-trigger-tag">3D MODEL</span>
+          </button>
+        )}
       </div>
 
-      {show3d && (
+      {show3d && info.key !== 'deep_sea' && (
         <Monument3dModal name={info.name} src={rm3dUrl} onClose={() => setShow3d(false)} />
       )}
 
@@ -690,17 +704,6 @@ function Monument3dModal({
           <span className="mon-3d-modal-tag">3D MODEL</span>
           <span className="mon-3d-modal-title">{name}</span>
           <span className="mon-3d-modal-credit">Live 3D model by RustMaps</span>
-          <button
-            className="mon-3d-modal-close"
-            onClick={onClose}
-            aria-label="Close 3D model"
-            title="Close (Esc)"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <line x1="6" y1="6" x2="18" y2="18" />
-              <line x1="18" y1="6" x2="6" y2="18" />
-            </svg>
-          </button>
         </div>
         <div className="mon-3d-modal-body">
           {/* Floating close affordance that always stays above the iframe so

@@ -56,11 +56,23 @@ interface MarkerState {
   /** Map is in "drop a marker" mode; next map click places `pendingKind`. */
   placeMode: boolean;
   pendingKind: CustomMarkerKind;
+  /**
+   * Id of the marker currently in "move" mode. When set, the map shows a hint
+   * banner + crosshair cursor and the next map click relocates this marker to
+   * the clicked coordinate (an explicit, self-explanatory alternative to drag).
+   */
+  movingId: string | null;
   setPlaceMode: (on: boolean, kind?: CustomMarkerKind) => void;
   placeAt: (x: number, y: number, serverId?: string, serverName?: string) => void;
   addMarker: (m: Omit<CustomMarker, 'id' | 'createdAt'>) => void;
   updateMarker: (id: string, data: Partial<CustomMarker>) => void;
   removeMarker: (id: string) => void;
+  /** Enter move mode for a marker (cancels any pending placement). */
+  beginMove: (id: string) => void;
+  /** Leave move mode without relocating anything. */
+  cancelMove: () => void;
+  /** Relocate the marker that's currently in move mode, then exit move mode. */
+  moveTo: (x: number, y: number) => void;
   /**
    * Bulk-delete markers. `scope: 'current'` (default) only removes markers on
    * the currently-connected server (matching the map's render filter), while
@@ -87,8 +99,9 @@ export const useMarkerStore = create<MarkerState>((set, get) => ({
   markers: load(),
   placeMode: false,
   pendingKind: 'pin',
+  movingId: null,
 
-  setPlaceMode: (on, kind) => set((s) => ({ placeMode: on, pendingKind: kind ?? s.pendingKind })),
+  setPlaceMode: (on, kind) => set((s) => ({ placeMode: on, pendingKind: kind ?? s.pendingKind, movingId: on ? null : s.movingId })),
 
   placeAt: (x, y, serverId, serverName) => {
     const { pendingKind } = get();
@@ -129,7 +142,21 @@ export const useMarkerStore = create<MarkerState>((set, get) => ({
   removeMarker: (id) => {
     const markers = get().markers.filter((m) => m.id !== id);
     save(markers);
-    set({ markers });
+    set((s) => ({ markers, movingId: s.movingId === id ? null : s.movingId }));
+  },
+
+  beginMove: (id) => set({ movingId: id, placeMode: false }),
+
+  cancelMove: () => set({ movingId: null }),
+
+  moveTo: (x, y) => {
+    const { movingId } = get();
+    if (!movingId) return;
+    const nx = Math.max(0, Math.min(1, x));
+    const ny = Math.max(0, Math.min(1, y));
+    const markers = get().markers.map((m) => (m.id === movingId ? { ...m, x: nx, y: ny } : m));
+    save(markers);
+    set({ markers, movingId: null });
   },
 
   clearMarkers: (scope = 'current') => {

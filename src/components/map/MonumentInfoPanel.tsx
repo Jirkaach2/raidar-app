@@ -214,11 +214,9 @@ function LootTablePopup({ tableId, onClose }: { tableId: string; onClose: () => 
   if (!table) return null;
   return (
     <div className="mip-popup" onClick={onClose}>
-      <div className="mip-popup__card scrollable" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div className="mip-popup__head" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="mip-popup__close" onClick={onClose}><X size={11} /></button>
-        </div>
-        <LootTableView table={table} />
+      <div className="mip-popup__card" onClick={(e) => e.stopPropagation()}>
+        <button className="mip-popup__close" onClick={onClose} title="Close"><X size={14} /></button>
+        <LootTableView table={table} className="ltv--popup" />
       </div>
     </div>
   );

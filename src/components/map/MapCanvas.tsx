@@ -42,26 +42,32 @@ export default function MapCanvas() {
   const pinAtDecay = useDecayStore(s => s.pinAt);
   const markerPlaceMode = useMarkerStore(s => s.placeMode);
   const placeCustomMarker = useMarkerStore(s => s.placeAt);
+  const markerMovingId = useMarkerStore(s => s.movingId);
+  const moveCustomMarker = useMarkerStore(s => s.moveTo);
+  const cancelMarkerMove = useMarkerStore(s => s.cancelMove);
 
   const MAP_SIZE = 800; // rendered px (before zoom)
 
   // While in decay- or custom-marker placement mode, a click on the map pins
-  // the marker at the clicked normalized coordinate.
+  // the marker at the clicked normalized coordinate. While a marker is in
+  // "move" mode, the click relocates that marker instead.
   const handleMapClick = useCallback((e: React.MouseEvent) => {
     if (!mapRef.current) return;
-    if (!decayPlaceMode && !markerPlaceMode) return;
+    if (!decayPlaceMode && !markerPlaceMode && !markerMovingId) return;
     const rect = mapRef.current.getBoundingClientRect();
     const nx = (e.clientX - rect.left) / rect.width;
     const ny = (e.clientY - rect.top) / rect.height;
     if (nx >= 0 && nx <= 1 && ny >= 0 && ny <= 1) {
-      if (markerPlaceMode) {
+      if (markerMovingId) {
+        moveCustomMarker(nx, ny);
+      } else if (markerPlaceMode) {
         const srv = getCurrentServer();
         placeCustomMarker(nx, ny, srv?.id, srv?.name);
       } else if (decayPlaceMode) {
         pinAtDecay(nx, ny);
       }
     }
-  }, [decayPlaceMode, markerPlaceMode, pinAtDecay, placeCustomMarker]);
+  }, [decayPlaceMode, markerPlaceMode, markerMovingId, pinAtDecay, placeCustomMarker, moveCustomMarker]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -174,6 +180,15 @@ export default function MapCanvas() {
     };
   }, []);
 
+  // Escape cancels an in-progress marker move so the user is never stuck in
+  // move mode.
+  useEffect(() => {
+    if (!markerMovingId) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelMarkerMove(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [markerMovingId, cancelMarkerMove]);
+
   // When the app regains focus/visibility (or after first paint), the webview
   // sometimes leaves the composited map layer stuck at a stale, blurry raster.
   // Nudge it to re-rasterize crisp by briefly forcing a repaint of the layer.
@@ -234,7 +249,7 @@ export default function MapCanvas() {
       onWheel={handleWheel}
       onClick={handleMapClick}
     >
-      <div ref={mapRef} style={{ ...transformStyle, cursor: (decayPlaceMode || markerPlaceMode) ? 'crosshair' : undefined }}>
+      <div ref={mapRef} style={{ ...transformStyle, cursor: (decayPlaceMode || markerPlaceMode || markerMovingId) ? 'crosshair' : undefined }}>
         {/* Terrain base (real map or procedural fallback) */}
         {mapImageBase64 ? (
           <img 
@@ -312,6 +327,40 @@ export default function MapCanvas() {
           </>
         )}
       </div>
+
+      {/* Move-marker hint banner — explicit, self-explanatory move mode. */}
+      {markerMovingId && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 10, zIndex: 80,
+            padding: '8px 10px 8px 14px', borderRadius: 10, whiteSpace: 'nowrap',
+            background: 'rgba(14,16,21,0.97)', border: '1px solid var(--color-accent)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          <Move size={14} color="var(--color-accent)" />
+          <span style={{ fontSize: 11.5, color: 'var(--color-text)', fontWeight: 600 }}>
+            Click anywhere on the map to move this marker here
+          </span>
+          <button
+            onClick={() => cancelMarkerMove()}
+            title="Cancel move"
+            aria-label="Cancel move"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '4px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontWeight: 700,
+              background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border)',
+              color: 'var(--color-text-dim)',
+            }}
+          >
+            <X size={12} /> Cancel
+          </button>
+        </div>
+      )}
 
       {/* Monument detail panel (overlay, outside the transformed map) */}
       <MonumentInfoPanel />
@@ -845,28 +894,15 @@ function CustomMapMarkers() {
   const markers = useMarkerStore((s) => s.markers);
   const removeMarker = useMarkerStore((s) => s.removeMarker);
   const updateMarker = useMarkerStore((s) => s.updateMarker);
+  const movingId = useMarkerStore((s) => s.movingId);
+  const beginMove = useMarkerStore((s) => s.beginMove);
   // Global marker-size multiplier (from the Overlays "Marker size" slider).
   const globalScale = useSettingsStore((s) => s.markerScale);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [drag, setDrag] = useState<{ id: string } | null>(null);
 
-  // Drag to reposition: track pointer over the whole map surface.
-  useEffect(() => {
-    if (!drag) return;
-    const onMove = (e: MouseEvent) => {
-      const host = document.querySelector('.map-custom-markers') as HTMLElement | null;
-      const layer = host?.parentElement; // the transformed map node
-      if (!layer) return;
-      const rect = layer.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-      updateMarker(drag.id, { x: nx, y: ny });
-    };
-    const onUp = () => setDrag(null);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [drag, updateMarker]);
+  // Close the editor popup the moment a move begins, so the banner + crosshair
+  // own the screen and nothing overlaps the map click.
+  useEffect(() => { if (movingId) setOpenId(null); }, [movingId]);
 
   const placed = markers.filter((m) => isCurrentServer(m.serverId));
   if (placed.length === 0) return null;
@@ -877,13 +913,18 @@ function CustomMapMarkers() {
         const style = MARKER_KINDS[m.kind] || MARKER_KINDS.pin;
         const Icon = CUSTOM_MARKER_ICON[m.kind] || MapPin;
         const isOpen = openId === m.id;
+        const isMoving = movingId === m.id;
         // Per-marker scale × the global multiplier, so the Overlays slider can
         // shrink every custom marker (down to really small) at once.
         const sc = Math.max(0.1, (m.scale || 1) * (globalScale || 1));
-        const pinSize = 22 * sc;
-        // Below this effective size the label chip is dropped so the marker
-        // collapses to a clean pin/dot that stays legible at 0.1×.
+        const headSize = 22 * sc;             // diameter of the circular pin head
+        const tailH = headSize * 0.62;        // pointer height below the head
+        const wrapH = headSize + tailH;       // full pin height (head + tip)
+        const iconPx = Math.max(7, Math.round(12 * sc));
+        // Below this effective size the label is dropped so the marker collapses
+        // to a clean pin/dot that stays legible at 0.1×.
         const showLabel = sc >= 0.5 && !!m.label;
+        const highlight = isOpen || isMoving;
         return (
           <div
             key={m.id}
@@ -891,127 +932,141 @@ function CustomMapMarkers() {
             style={{
               position: 'absolute', left: `${m.x * 100}%`, top: `${m.y * 100}%`,
               transform: 'translate(-50%, -100%)', pointerEvents: 'auto',
-              zIndex: isOpen ? 60 : 8,
+              zIndex: highlight ? 60 : 8,
+              opacity: movingId && !isMoving ? 0.45 : 1,
+              transition: 'opacity 0.12s ease-out',
             }}
           >
-            {/* Premium teardrop pin — glossy lens head with a kind-color sheen,
-                dark rim, grounding shadow, and a soft glow + halo when selected.
-                The bottom tip is anchored exactly on the coordinate; click opens
-                the editor, drag moves it. */}
+            {/* Map pin: a perfect circular head (icon dead-centered at every
+                size) sitting on a triangular tail whose tip lands exactly on the
+                coordinate. Click opens the editor; the editor's "Move" button
+                starts click-to-place move mode. */}
             <div
               onMouseDown={(e) => { e.stopPropagation(); }}
               onClick={(e) => { e.stopPropagation(); setOpenId((id) => (id === m.id ? null : m.id)); }}
               title={m.label}
               style={{
-                position: 'relative',
-                width: pinSize, height: pinSize, cursor: 'pointer',
-                filter: isOpen
-                  ? `drop-shadow(0 0 7px ${style.color}) drop-shadow(0 3px 4px rgba(0,0,0,0.7))`
+                position: 'relative', width: headSize, height: wrapH, cursor: 'pointer',
+                filter: highlight
+                  ? `drop-shadow(0 0 6px ${style.color}) drop-shadow(0 3px 4px rgba(0,0,0,0.7))`
                   : 'drop-shadow(0 3px 4px rgba(0,0,0,0.7))',
               }}
             >
-              {/* Selected halo ring (pulses subtly via the shared keyframe). */}
-              {isOpen && (
-                <span style={{
-                  position: 'absolute', left: '50%', top: '40%', transform: 'translate(-50%,-50%)',
-                  width: pinSize * 1.55, height: pinSize * 1.55, borderRadius: '50%',
-                  border: `1.5px solid ${style.color}`, opacity: 0.55, pointerEvents: 'none',
-                  animation: 'pulse-dot 1.6s ease-in-out infinite',
-                }} />
-              )}
-              {/* Grounding shadow beneath the tip so the pin reads as standing on the map. */}
+              {/* Triangular tail — colour matches the head so the pin reads as
+                  one shape; its base tucks behind the circle (no seam) and the
+                  tip sits at the bottom-centre, exactly on the coordinate. */}
               <span style={{
-                position: 'absolute', left: '50%', bottom: -1.5 * sc, transform: 'translateX(-50%)',
-                width: pinSize * 0.55, height: pinSize * 0.2, borderRadius: '50%',
-                background: 'rgba(0,0,0,0.5)', filter: 'blur(1.5px)', pointerEvents: 'none',
+                position: 'absolute', left: '50%', bottom: 0, transform: 'translateX(-50%)',
+                width: 0, height: 0,
+                borderLeft: `${headSize * 0.30}px solid transparent`,
+                borderRight: `${headSize * 0.30}px solid transparent`,
+                borderTop: `${tailH + headSize * 0.2}px solid ${style.color}`,
+                pointerEvents: 'none',
               }} />
+              {/* Circular head with a glossy sheen + dark rim. */}
               <div style={{
-                width: '100%', height: '100%', borderRadius: '50% 50% 50% 0',
-                transform: 'rotate(-45deg)',
-                background: `linear-gradient(145deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.06) 38%, rgba(0,0,0,0.24) 100%), ${style.color}`,
+                position: 'absolute', top: 0, left: 0, width: headSize, height: headSize,
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 35% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 42%, rgba(0,0,0,0.22) 100%), ${style.color}`,
                 border: '1.5px solid rgba(8,10,13,0.88)',
-                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.45), inset 0 -2px 3px rgba(0,0,0,0.32)',
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -2px 3px rgba(0,0,0,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxSizing: 'border-box',
               }}>
-                <span style={{ transform: 'rotate(45deg)', display: 'flex' }}>
-                  <Icon size={Math.round(11 * sc)} color="#0c0e12" strokeWidth={2.7} />
-                </span>
+                <Icon size={iconPx} color="#0c0e12" strokeWidth={2.7} />
               </div>
             </div>
-            <span style={{
-              position: 'absolute', top: `calc(100% + ${Math.max(2, 3 * sc)}px)`, left: '50%', transform: 'translateX(-50%)',
-              maxWidth: Math.max(70, 92 * sc), overflow: 'hidden', textOverflow: 'ellipsis',
-              padding: `${Math.max(1, 1.5 * sc)}px ${Math.max(4, 5 * sc)}px`, borderRadius: 5,
-              background: 'rgba(10,12,16,0.82)', border: `1px solid ${style.color}55`,
-              backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
-              fontFamily: 'var(--font-mono)', fontSize: 7 * sc, fontWeight: 700, letterSpacing: 0.2,
-              color: style.color, textShadow: '0 1px 2px rgba(0,0,0,0.9)', whiteSpace: 'nowrap',
-              pointerEvents: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-              display: showLabel ? 'block' : 'none',
-            }}>{m.label}</span>
 
-            {/* Editor popup — attached directly (no gap) so it stays hoverable/clickable. */}
+            {/* Clean text label — no chip/box; a strong text-shadow keeps it
+                legible over any map terrain. Scales with the marker size. */}
+            {showLabel && (
+              <span style={{
+                position: 'absolute', top: `calc(100% + ${Math.max(1, 2 * sc)}px)`, left: '50%',
+                transform: 'translateX(-50%)',
+                maxWidth: Math.max(90, 120 * sc), overflow: 'hidden', textOverflow: 'ellipsis',
+                fontFamily: 'var(--font-mono)', fontSize: Math.max(7, 7.5 * sc), fontWeight: 800,
+                letterSpacing: 0.2, color: style.color, whiteSpace: 'nowrap',
+                textShadow: '0 1px 2px rgba(0,0,0,1), 0 0 3px rgba(0,0,0,0.95), 0 0 1px rgba(0,0,0,1)',
+                pointerEvents: 'none',
+              }}>{m.label}</span>
+            )}
+
+            {/* Editor popup — modern, sectioned, dark-theme card. */}
             {isOpen && (
               <div
+                className="cmark-pop"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
-                  width: 184, background: 'rgba(14,16,21,0.99)', border: `1px solid ${style.color}66`,
-                  borderRadius: 10, padding: 10, boxShadow: '0 12px 30px rgba(0,0,0,0.7)', zIndex: 70,
-                  display: 'flex', flexDirection: 'column', gap: 8,
-                }}
+                style={{ ['--mk-color' as string]: style.color }}
               >
-                <input
-                  value={m.label}
-                  onChange={(e) => updateMarker(m.id, { label: e.target.value })}
-                  placeholder="Label"
-                  style={{
-                    width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 700,
-                    background: 'rgba(0,0,0,0.5)', border: '1px solid var(--color-border)', color: style.color,
-                  }}
-                />
-                <textarea
-                  value={m.note || ''}
-                  onChange={(e) => updateMarker(m.id, { note: e.target.value })}
-                  placeholder="Note (optional)…"
-                  rows={2}
-                  style={{
-                    width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 10.5, resize: 'none',
-                    background: 'rgba(0,0,0,0.5)', border: '1px solid var(--color-border)', color: '#e8e2d9',
-                    fontFamily: 'inherit',
-                  }}
-                />
-                {/* Scale control */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 0.5, color: '#8b857c' }}>SIZE</span>
-                  <input
-                    type="range" min={0.1} max={2} step={0.05} value={m.scale || 1}
-                    onChange={(e) => updateMarker(m.id, { scale: parseFloat(e.target.value) })}
-                    style={{ flex: 1, accentColor: style.color, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#c4bdb1', width: 30, textAlign: 'right' }}>{(m.scale || 1).toFixed(2)}×</span>
+                <header className="cmark-pop-head">
+                  <span className="cmark-pop-head-dot">
+                    <Icon size={11} color="#0c0e12" strokeWidth={2.7} />
+                  </span>
+                  <span className="cmark-pop-head-title">Edit marker</span>
+                  <button
+                    className="cmark-pop-close"
+                    onClick={() => setOpenId(null)}
+                    title="Close" aria-label="Close editor"
+                  >
+                    <X size={13} />
+                  </button>
+                </header>
+
+                <div className="cmark-pop-body">
+                  <label className="cmark-pop-field">
+                    <span className="cmark-pop-label">NAME</span>
+                    <input
+                      className="cmark-pop-input"
+                      value={m.label}
+                      onChange={(e) => updateMarker(m.id, { label: e.target.value })}
+                      placeholder={style.label}
+                      aria-label="Marker name"
+                    />
+                  </label>
+
+                  <label className="cmark-pop-field">
+                    <span className="cmark-pop-label">NOTE</span>
+                    <textarea
+                      className="cmark-pop-textarea"
+                      value={m.note || ''}
+                      onChange={(e) => updateMarker(m.id, { note: e.target.value })}
+                      placeholder="Optional note…"
+                      rows={2}
+                      aria-label="Marker note"
+                    />
+                  </label>
+
+                  <div className="cmark-pop-field">
+                    <span className="cmark-pop-label">SIZE</span>
+                    <div className="cmark-pop-size">
+                      <input
+                        type="range" min={0.1} max={2} step={0.05} value={m.scale || 1}
+                        className="cmark-pop-range"
+                        onChange={(e) => updateMarker(m.id, { scale: parseFloat(e.target.value) })}
+                        aria-label="Marker size"
+                        title="Marker size (0.1 – 2.0)"
+                      />
+                      <span className="cmark-pop-size-val">{(m.scale || 1).toFixed(2)}×</span>
+                    </div>
+                  </div>
                 </div>
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 6 }}>
+
+                <div className="cmark-pop-actions">
                   <button
-                    onMouseDown={(e) => { e.stopPropagation(); setDrag({ id: m.id }); setOpenId(null); }}
-                    title="Drag to move"
-                    style={{
-                      flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      padding: '6px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'grab',
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border)', color: '#e8e2d9',
-                    }}
-                  ><Move size={11} /> Move</button>
+                    className="cmark-pop-btn cmark-pop-btn--move"
+                    onClick={() => beginMove(m.id)}
+                    title="Move this marker — then click anywhere on the map"
+                  >
+                    <Move size={12} /> Move marker
+                  </button>
                   <button
+                    className="cmark-pop-btn cmark-pop-btn--del"
                     onClick={() => { removeMarker(m.id); setOpenId(null); }}
                     title="Delete marker"
-                    style={{
-                      flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      padding: '6px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef6b6b',
-                    }}
-                  ><Trash2 size={11} /> Delete</button>
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
                 </div>
               </div>
             )}

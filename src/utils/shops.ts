@@ -4,35 +4,47 @@ import { getNormalizedCoordinates } from './grid';
 /**
  * Single source of truth for "is this vending machine an NPC / safe-zone shop?".
  *
- * This mirrors EXACTLY the detection the Market search uses (VendingPanel's
- * inline `isNpcShop`), so every surface (Market search, Best Shops, Market
- * Index, sale-tracking, map markers) classifies shops identically. A shop is an
- * NPC shop when either:
- *   1. its name matches a known NPC vendor/safe-zone label, OR
- *   2. it physically sits next to an NPC monument (Outpost / Bandit Camp /
- *      Fishing Village / Ranch-Barn-Stable).
+ * This is the EXACT detection every surface uses (Market search, Best Shops,
+ * Market Index, sale-tracking, map markers), so shops classify identically
+ * everywhere. The detection is deliberately ACCURATE and CONSERVATIVE: a normal
+ * player shop must never be mistaken for an NPC shop just because it happens to
+ * sit near the coast or carry a generic word in its name. A shop is an NPC shop
+ * only when either:
+ *   1. its name matches a genuine NPC vendor / safe-zone label, OR
+ *   2. it sits VERY close to an actual safe-zone monument (Outpost / Bandit
+ *      Camp only).
  *
  * `nx`/`ny` are the shop's NORMALIZED map coordinates (0-1), matching the
  * coordinate space used for markers and monuments elsewhere in the app.
  *
- * NOTE: "deep sea" deliberately lives in its own detector (`isDeepSeaShop`) and
- * is NOT treated as a plain NPC shop — deep-sea vendor shops should stay
- * visible and be marked specially instead of being hidden with safe-zone NPCs.
+ * NOTE: "deep sea" lives in its own detector (`isDeepSeaShop`) and takes
+ * precedence — a deep-sea shop is NEVER also counted as an NPC shop.
  */
 const NPC_SHOP_NAMES = [
-  'outpost', 'bandit', 'medical shop', 'components shop',
-  'resources shop', 'weapons shop', 'explosives shop', 'travelling vendor',
-  'traveling vendor', 'wandering trader', 'air wolf', 'airwolf',
-  'ranch', 'barn', 'stable', 'fishing', 'village', 'shopkeeper',
+  'outpost', 'bandit camp', 'air wolf', 'airwolf', 'dome',
+  'small oil rig', 'large oil rig',
+  // Literal stall names that ONLY the NPC safe-zone shops ever use.
+  'medical supplies', 'components', 'resources shop', 'weapons shop',
 ];
 
-/** Monument tokens whose immediate vicinity hosts NPC/safe-zone vendors. */
-const NPC_MONUMENT_KEYS = ['outpost', 'bandit', 'fishing', 'barn', 'stable', 'ranch'];
+/**
+ * Monument tokens whose immediate vicinity hosts a real safe-zone NPC vendor.
+ * Only the two actual safe-zone monuments qualify — fishing/ranch/barn/stable
+ * are NOT here, since player shops legitimately cluster near them.
+ */
+const NPC_MONUMENT_KEYS = ['outpost', 'bandit'];
 
-/** Proximity (in normalized 0-1 map units) for a shop to count as "at" a monument. */
-const MONUMENT_ZONE_RADIUS = 0.05;
+/**
+ * Proximity (in normalized 0-1 map units) for a shop to count as "at" a
+ * safe-zone monument. Kept very tight so only shops literally inside the
+ * safe-zone are flagged — not nearby player bases.
+ */
+const MONUMENT_ZONE_RADIUS = 0.02;
 
 export function isNpcShop(label: string, nx: number, ny: number): boolean {
+  // Deep-sea shops take precedence and are never treated as NPC shops.
+  if (isDeepSeaShop(label, nx, ny)) return false;
+
   const lname = (label || '').toLowerCase();
   if (NPC_SHOP_NAMES.some((n) => lname.includes(n))) return true;
 
@@ -41,36 +53,41 @@ export function isNpcShop(label: string, nx: number, ny: number): boolean {
     const key = (m.token || '').toLowerCase();
     if (NPC_MONUMENT_KEYS.some((k) => key.includes(k))) {
       const p = getNormalizedCoordinates(m.x, m.y, mapSize, mapImageWidth, mapImageHeight, oceanMargin);
-      if (Math.hypot(nx - p.x, ny - p.y) < MONUMENT_ZONE_RADIUS) return true;
+      if (Math.hypot(nx - p.x, ny - p.y) <= MONUMENT_ZONE_RADIUS) return true;
     }
   }
   return false;
 }
 
 /**
- * Detects a deep-sea vendor shop. These are NOT regular NPC shops (they are no
- * longer in the NPC-exclusion list), so they stay visible everywhere and can be
- * flagged with their own distinct badge / map marker.
+ * Detects a deep-sea vendor shop. These are NOT regular NPC shops, so they stay
+ * visible everywhere and are flagged with their own distinct badge / map marker.
  *
- * Detection is by name first, then by proximity to a deep-sea / underwater-lab
- * monument zone, mirroring the monument-proximity test used by `isNpcShop`.
+ * A deep-sea shop's true signature is that it is physically OUTSIDE the playable
+ * map grid — out in the deep ocean beyond the map border. We detect it by name
+ * ('deep sea'/'deepsea'), OR when the shop's normalized coordinates fall outside
+ * the playable band defined by the ocean margin. The Underwater Lab is a normal
+ * monument, NOT the deep-sea vendor, so monument-proximity is intentionally not
+ * used here.
  */
 const DEEP_SEA_NAMES = ['deep sea', 'deepsea', 'deep-sea'];
-const DEEP_SEA_MONUMENT_KEYS = ['deepsea', 'deep_sea', 'underwater', 'submarine'];
+
+/** Fallback band width (fraction of the image) when map metadata is missing. */
+const DEFAULT_OCEAN_MARGIN_FRACTION = 0.06;
 
 export function isDeepSeaShop(label: string, nx: number, ny: number): boolean {
   const lname = (label || '').toLowerCase();
   if (DEEP_SEA_NAMES.some((n) => lname.includes(n))) return true;
 
-  const { monuments, mapSize, mapImageWidth, mapImageHeight, oceanMargin } = useMapStore.getState();
-  for (const m of monuments) {
-    const key = (m.token || '').toLowerCase();
-    if (DEEP_SEA_MONUMENT_KEYS.some((k) => key.includes(k))) {
-      const p = getNormalizedCoordinates(m.x, m.y, mapSize, mapImageWidth, mapImageHeight, oceanMargin);
-      if (Math.hypot(nx - p.x, ny - p.y) < MONUMENT_ZONE_RADIUS) return true;
-    }
-  }
-  return false;
+  const { oceanMargin, mapImageWidth } = useMapStore.getState();
+  // margin = ocean border thickness as a fraction of the image. Guard against a
+  // missing/zero image width (divide-by-zero) by falling back to ~0.06.
+  const margin = mapImageWidth > 0 && oceanMargin > 0
+    ? oceanMargin / mapImageWidth
+    : DEFAULT_OCEAN_MARGIN_FRACTION;
+
+  // Outside the playable band (in the ocean border / beyond the map) → deep sea.
+  return nx < margin || nx > 1 - margin || ny < margin || ny > 1 - margin;
 }
 
 /* ───────────────────────────── Realism filter ─────────────────────────────
