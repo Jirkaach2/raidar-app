@@ -678,6 +678,7 @@ function RustMapsExtras() {
   const imageWidth = useMapStore((s) => s.mapImageWidth || 0);
   const imageHeight = useMapStore((s) => s.mapImageHeight || 0);
   const oceanMargin = useMapStore((s) => s.oceanMargin || 0);
+  const liveMonuments = useMapStore((s) => s.monuments);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const extras = useMemo(() => {
@@ -685,15 +686,56 @@ function RustMapsExtras() {
     const out: Ex[] = [];
     if (raw.length === 0) return out;
 
-    // RustMaps world coordinates may be EITHER centre-origin (−size/2 … +size/2)
-    // or already corner-origin (0 … size) depending on the map/version. Detect
-    // from the data: any negative coordinate means centre-origin, so shift by
-    // +size/2 into the 0 … size space getNormalizedCoordinates expects (it then
-    // applies the ocean-margin + Y-flip like live markers). Corner-origin data
-    // needs NO shift — an unconditional +size/2 pushed caves/wells half a map off.
-    let minX = Infinity, minY = Infinity;
-    for (const m of raw) { if (m.wx < minX) minX = m.wx; if (m.wy < minY) minY = m.wy; }
-    const shift = (minX < 0 || minY < 0) ? mapSize / 2 : 0;
+    const isExtraType = (t: string) => {
+      const lo = t.toLowerCase();
+      return lo.includes('cave') || lo.includes('sinkhole') || lo.includes('water well') || lo.includes('waterwell');
+    };
+
+    // ── Auto-calibrate the RustMaps coordinate frame onto the LIVE Rust+ frame ──
+    // RustMaps and Rust+ disagree on coordinate origin/scale, which is why caves
+    // & the water well landed in the wrong place. Rather than guess the
+    // convention, we calibrate empirically: the STANDARD monuments (Launch Site,
+    // Harbor, …) appear in BOTH feeds, so the min/max extent of those shared
+    // monuments must describe the same physical span. We map RustMaps' standard-
+    // monument extent onto the live monuments' world extent (which already
+    // projects correctly), then place caves/wells through that same transform.
+    let rmMinX = Infinity, rmMaxX = -Infinity, rmMinY = Infinity, rmMaxY = -Infinity;
+    for (const m of raw) {
+      if (isExtraType(m.type)) continue; // standard monuments only
+      if (m.wx < rmMinX) rmMinX = m.wx;
+      if (m.wx > rmMaxX) rmMaxX = m.wx;
+      if (m.wy < rmMinY) rmMinY = m.wy;
+      if (m.wy > rmMaxY) rmMaxY = m.wy;
+    }
+    let lvMinX = Infinity, lvMaxX = -Infinity, lvMinY = Infinity, lvMaxY = -Infinity;
+    let lvCount = 0;
+    for (const m of liveMonuments) {
+      if (m.x == null || m.y == null) continue;
+      if (m.x < lvMinX) lvMinX = m.x;
+      if (m.x > lvMaxX) lvMaxX = m.x;
+      if (m.y < lvMinY) lvMinY = m.y;
+      if (m.y > lvMaxY) lvMaxY = m.y;
+      lvCount++;
+    }
+    const canCalibrate =
+      lvCount >= 3 &&
+      isFinite(rmMinX) && rmMaxX - rmMinX > 1 && rmMaxY - rmMinY > 1 &&
+      lvMaxX - lvMinX > 1 && lvMaxY - lvMinY > 1;
+
+    /** RustMaps world coord → Rust+ world coord that getNormalizedCoordinates expects. */
+    const toRustWorld = (wx: number, wy: number): { x: number; y: number } => {
+      if (canCalibrate) {
+        return {
+          x: lvMinX + ((wx - rmMinX) / (rmMaxX - rmMinX)) * (lvMaxX - lvMinX),
+          y: lvMinY + ((wy - rmMinY) / (rmMaxY - rmMinY)) * (lvMaxY - lvMinY),
+        };
+      }
+      // Fallback (no live monuments yet): assume centre-origin if any negative.
+      const shift = (rmMinX < 0 || rmMinY < 0) ? mapSize / 2 : 0;
+      return { x: wx + shift, y: wy + shift };
+    };
+
+    if (raw.length === 0) return out;
 
     /** "Cave Small Easy" → "Small Cave". */
     const caveLabel = (t: string) => {
@@ -709,11 +751,12 @@ function RustMapsExtras() {
       if (t.includes('cave') || t.includes('sinkhole')) { kind = 'cave'; label = caveLabel(m.type); }
       else if (t.includes('water well') || t.includes('waterwell')) { kind = 'water_well'; label = 'Water Well'; }
       if (!kind) continue;
-      const { x, y } = getNormalizedCoordinates(m.wx + shift, m.wy + shift, mapSize, imageWidth, imageHeight, oceanMargin);
+      const w = toRustWorld(m.wx, m.wy);
+      const { x, y } = getNormalizedCoordinates(w.x, w.y, mapSize, imageWidth, imageHeight, oceanMargin);
       out.push({ kind, label, x, y });
     }
     return out;
-  }, [raw, mapSize, imageWidth, imageHeight, oceanMargin]);
+  }, [raw, liveMonuments, mapSize, imageWidth, imageHeight, oceanMargin]);
 
   if (!show || extras.length === 0) return null;
 
