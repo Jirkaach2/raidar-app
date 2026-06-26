@@ -4,6 +4,7 @@ import {
   getMonumentInfo,
   getMonumentImageUrl,
   getItemIcon,
+  monumentHas3dModel,
   MonumentInfo,
   PuzzleItem,
   CardType,
@@ -367,6 +368,8 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
   // (dash-separated) slug, so the RustMaps slug uses underscores.
   const rmSlug = info.imageSlug.replace(/-/g, '_');
   const rm3dUrl = `${RUSTMAPS_3D_BASE}/${rmSlug}`;
+  // Only monuments RustMaps actually models get the interactive 3D viewer.
+  const has3d = monumentHas3dModel(info.key);
 
   const missions = getMissionsForMonument(info.key);
 
@@ -415,9 +418,10 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
       )}
 
       {/* 3D model viewer — compact trigger opens a large modal overlay.
-          Deep Sea has no RustMaps 3D model, so we show a disabled note. */}
+          Only the monuments RustMaps actually has a model for get the button;
+          the rest show a disabled "not available" note. */}
       <div className="mon-section mon-3d-section">
-        {info.key === 'deep_sea' ? (
+        {!has3d ? (
           <div className="mon-3d-unavailable" role="note">
             <span className="mon-3d-unavailable-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
@@ -426,7 +430,7 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
                 <path d="M12 12v10" />
               </svg>
             </span>
-            <span className="mon-3d-unavailable-text">3D model not available for Deep Sea.</span>
+            <span className="mon-3d-unavailable-text">No interactive 3D model available for {info.name}.</span>
           </div>
         ) : (
           <button
@@ -450,7 +454,7 @@ function MonumentDetail({ info, grids }: { info: MonumentInfo; grids?: string[] 
         )}
       </div>
 
-      {show3d && info.key !== 'deep_sea' && (
+      {show3d && has3d && (
         <Monument3dModal name={info.name} src={rm3dUrl} onClose={() => setShow3d(false)} />
       )}
 

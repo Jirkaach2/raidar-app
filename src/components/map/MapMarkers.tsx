@@ -158,13 +158,49 @@ const MapMarkers = React.memo(function MapMarkers() {
     });
   }
 
-  // Render the "DEEP SEA" label only ONCE for the whole offshore cluster — the
-  // shops stack on top of each other, so tagging every marker produced a pile
-  // of overlapping badges. We anchor the single label to the first deep-sea
-  // shop in the list.
-  const firstDeepSeaId = filteredMarkers.find(
-    (m) => m.type === 'vending_machine' && isDeepSeaShop(m.label, m.x, m.y),
-  )?.id;
+  // The Deep Sea event spawns many vendor stalls at essentially ONE offshore
+  // point, so projecting each to its true position piles them on a single pixel
+  // (impossible to click, and the label ends up buried under the icons). We
+  // arrange the cluster into a tidy grid around that anchor and show a single
+  // "DEEP SEA" label clear above the block.
+  const projectDeep = (rawX?: number, rawY?: number): { x: number; y: number } | null => {
+    if (rawX == null || rawY == null || mapSize <= 0 || imageWidth <= 0 || imageHeight <= 0) return null;
+    const px = rawX * ((imageWidth - 2 * oceanMargin) / mapSize) + oceanMargin;
+    const py = imageHeight - (rawY * ((imageHeight - 2 * oceanMargin) / mapSize) + oceanMargin);
+    const c = (v: number) => Math.min(0.985, Math.max(0.015, v));
+    return { x: c(px / imageWidth), y: c(py / imageHeight) };
+  };
+  const deepSeaList = filteredMarkers
+    .filter((m) => m.type === 'vending_machine' && isDeepSeaShop(m.label, m.x, m.y))
+    // Stable order so each shop keeps the same grid cell across polls.
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const deepLayout = new Map<string, { x: number; y: number }>();
+  let deepLabelPos: { x: number; y: number } | null = null;
+  if (deepSeaList.length > 0) {
+    const first = deepSeaList[0];
+    const anchor = projectDeep(first.raw?.x, first.raw?.y) ?? {
+      x: Math.min(0.985, Math.max(0.015, first.x)),
+      y: Math.min(0.985, Math.max(0.015, first.y)),
+    };
+    const n = deepSeaList.length;
+    const cols = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(n))));
+    const rows = Math.ceil(n / cols);
+    const GAP = 0.026;
+    const halfW = ((cols - 1) / 2) * GAP;
+    const halfH = ((rows - 1) / 2) * GAP;
+    // Keep the whole block on-image (shift the centre inward if needed).
+    const cx = Math.min(0.985 - halfW, Math.max(0.015 + halfW, anchor.x));
+    const cy = Math.min(0.985 - halfH, Math.max(0.015 + halfH, anchor.y));
+    deepSeaList.forEach((m, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      deepLayout.set(m.id, {
+        x: cx + (col - (cols - 1) / 2) * GAP,
+        y: cy + (row - (rows - 1) / 2) * GAP,
+      });
+    });
+    deepLabelPos = { x: cx, y: Math.max(0.012, cy - halfH - 0.03) };
+  }
 
   return (
     <div className="map-markers" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 4 }}>
@@ -185,25 +221,10 @@ const MapMarkers = React.memo(function MapMarkers() {
         // image bounds [0,1] so they can't vanish entirely past the map edge.
         const marginX = imageWidth > 0 ? oceanMargin / imageWidth : 0;
         const marginY = imageHeight > 0 ? oceanMargin / imageHeight : 0;
-        // Deep-sea shops sit OUT IN THE OCEAN beyond the playable grid. The
-        // generic coordinate normalizer clamps everything to [0,1], which
-        // collapses every offshore stall onto the exact image edge (and stacks
-        // them in a corner where they're easy to miss / get clipped). For these
-        // shops we re-project from the RAW world coords WITHOUT the [0,1] clamp
-        // so they land in the ocean band on their true side of the map, then we
-        // clamp only to a small visible inset so they're always on-screen and
-        // clearly outside the grid border.
-        const deepPos = (() => {
-          const rawX = marker.raw?.x;
-          const rawY = marker.raw?.y;
-          if (!isDeepSea || mapSize <= 0 || rawX == null || rawY == null || imageWidth <= 0 || imageHeight <= 0) {
-            return null;
-          }
-          const px = rawX * ((imageWidth - 2 * oceanMargin) / mapSize) + oceanMargin;
-          const py = imageHeight - (rawY * ((imageHeight - 2 * oceanMargin) / mapSize) + oceanMargin);
-          const clamp = (v: number) => Math.min(0.985, Math.max(0.015, v));
-          return { x: clamp(px / imageWidth), y: clamp(py / imageHeight) };
-        })();
+        // Deep-sea shops use the pre-computed fanned grid layout (above) so the
+        // offshore cluster is spread out and individually clickable instead of
+        // collapsed onto one pixel.
+        const deepPos = isDeepSea ? deepLayout.get(marker.id) : undefined;
         const renderX = isVending
           ? (isDeepSea
               ? (deepPos ? deepPos.x : Math.min(0.985, Math.max(0.015, marker.x)))
@@ -348,31 +369,6 @@ const MapMarkers = React.memo(function MapMarkers() {
               )}
             </div>
             
-            {/* Deep-sea vendor label — shown ONCE for the cluster as plain
-                text (no background / border) so a stack of offshore shops isn't
-                buried under a pile of overlapping tags. */}
-            {isDeepSea && marker.id === firstDeepSeaId && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  color: DEEP_SEA_COLOR,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 6,
-                  fontWeight: 800,
-                  letterSpacing: '0.8px',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                  textShadow: '0 1px 2px rgba(0,0,0,1), 0 0 3px rgba(0,0,0,1)',
-                  pointerEvents: 'none',
-                }}
-              >
-                DEEP SEA
-              </div>
-            )}
-
             {/* Label / Tooltip */}
             {(((isSelected && marker.type !== 'vending_machine') || marker.type === 'player' || marker.type === 'death')) && (
               <div 
@@ -385,6 +381,30 @@ const MapMarkers = React.memo(function MapMarkers() {
           </div>
         );
       })}
+
+      {/* ── Single DEEP SEA label, anchored clear above the offshore cluster ── */}
+      {deepLabelPos && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${deepLabelPos.x * 100}%`,
+            top: `${deepLabelPos.y * 100}%`,
+            transform: 'translate(-50%, -50%)',
+            color: DEEP_SEA_COLOR,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 7,
+            fontWeight: 800,
+            letterSpacing: '1px',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+            textShadow: '0 1px 2px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1)',
+            pointerEvents: 'none',
+            zIndex: 23,
+          }}
+        >
+          DEEP SEA
+        </div>
+      )}
 
       {/* ── Persistent Death Log ── */}
       <DeathLogMarkers deaths={deathLog} showDeathMarkers={showDeathMarkers} />

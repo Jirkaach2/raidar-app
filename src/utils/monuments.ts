@@ -946,6 +946,23 @@ export const MONUMENT_FEATURES: Record<string, Set<string>> = {
 /** Resource keys that are placed on specific monuments via MONUMENT_FEATURES. */
 export const MONUMENT_PLACED_RESOURCES = new Set<string>(Object.keys(MONUMENT_FEATURES));
 
+/**
+ * Monuments RustMaps actually provides an interactive 3D model for. The "View
+ * in 3D" button is only offered for these — every other monument shows a
+ * "no 3D model" note instead of opening a broken/empty RustMaps page.
+ */
+export const MONUMENTS_WITH_3D = new Set<string>([
+  'launch_site', 'military_tunnel', 'power_plant', 'water_treatment', 'train_yard',
+  'airfield', 'dome', 'sewer_branch', 'satellite_dish', 'harbor', 'supermarket',
+  'gas_station', 'mining_outpost', 'junkyard', 'lighthouse', 'arctic_research_base',
+  'giant_excavator', 'oil_rig_small', 'oil_rig_large', 'missile_silo',
+]);
+
+/** True when a RustMaps interactive 3D model exists for this monument key. */
+export function monumentHas3dModel(key: string): boolean {
+  return MONUMENTS_WITH_3D.has(key);
+}
+
 /** True if the given monument token provides the given monument-feature resource. */
 export function monumentHasFeature(token: string, feature: string): boolean {
   // Resolve to the canonical DB key via alias matching so tokens like
