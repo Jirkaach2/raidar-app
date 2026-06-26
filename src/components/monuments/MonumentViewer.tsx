@@ -698,8 +698,19 @@ function Monument3dModal({
   onClose: () => void;
 }) {
   // Tracks the iframe load so we can swap our themed loading overlay for the
-  // live 3D viewport once RustMaps' page has finished loading.
-  const [loaded, setLoaded] = useState(false);
+  // live 3D viewport once RustMaps' page has finished loading. The iframe's
+  // `onLoad` only fires when the PAGE loads — RustMaps then runs its OWN
+  // internal 3D-model loader (the red-dot spinner) for a few more seconds. To
+  // hide that cross-origin loader behind our own branded screen, we keep our
+  // overlay up until BOTH the page has loaded AND a minimum dwell has elapsed.
+  const [frameLoaded, setFrameLoaded] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
+  const loaded = frameLoaded && minElapsed;
+
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
 
   // Close on Escape — listener lives on window so it works even after the
   // iframe has captured mouse/keyboard focus.
@@ -742,7 +753,7 @@ function Monument3dModal({
             className="mon-3d-modal-frame"
             src={src}
             title={`RustMaps 3D model — ${name}`}
-            onLoad={() => setLoaded(true)}
+            onLoad={() => setFrameLoaded(true)}
           />
           {/* Our own themed controls hint. The cross-origin RustMaps embed
               renders its own controls panel which our crop hides, so we

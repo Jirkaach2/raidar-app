@@ -1080,8 +1080,8 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: linear-gradient(135deg, rgba(15, 17, 23, 0.98), rgba(9, 10, 15, 0.99));
-  transition: opacity 0.3s ease;
+  background: linear-gradient(135deg, #0f1117 0%, #090a0f 100%);
+  transition: opacity 0.45s ease;
 }
 .mon-3d-loading--done {
   opacity: 0;

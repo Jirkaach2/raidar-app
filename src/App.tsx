@@ -218,28 +218,50 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
   //      chinook had been airborne for minutes before passing a rig). Detection
   //      below is therefore gated strictly to oil-rig proximity.
   if (settings.autoOilRigCrates) {
+    // Vanilla oil-rig locked crate hack time is a FIXED 15 minutes — it is NOT
+    // the user's generic `defaultCrateSeconds` (that default is for crates the
+    // user times manually and may be set lower). Tying the rig auto-timer to the
+    // generic default is what produced bogus short readings like "unlocks in 6m".
+    const OIL_RIG_HACK_SECONDS = 15 * 60;
+    // A real oil-rig CH47 flies in and HOVERS over the rig to drop the crate. A
+    // normal map-crossing CH47 only passes through, so it keeps moving fast. We
+    // discriminate the two by requiring the chinook to be both (a) close to the
+    // rig and (b) nearly stationary for several consecutive polls. This is the
+    // single biggest source of false positives, so the gate is deliberately strict.
+    const NEAR_RIG = 0.045;          // must be this close (normalized) to the rig
+    const STATIONARY_STEP = 0.012;   // max movement between polls to count as "hovering"
+    const REQUIRED_HOVER_POLLS = 3;  // consecutive stationary-near polls before firing
+    const CRATE_NEAR_RIG = 0.03;     // a dropped crate this close to a rig is a strong signal
+
     const chinook = markers.find((m) => m.type === 'chinook');
     const crates = markers.filter((m) => m.type === 'crate');
     persisted.chinookRigPolls = persisted.chinookRigPolls || {};
+    persisted.chinookRigPrev = persisted.chinookRigPrev || {};
 
     for (const rigKey of ['oil_rig_small', 'oil_rig_large']) {
       const rig = monPos(rigKey);
       if (!rig) continue;
 
-      // 1. Direct type-6 crate marker proximity check (< 0.04)
-      const crateNearRig = crates.find((c) => dist(c, rig) < 0.04);
+      // 1. Direct crate-marker proximity — a locked crate sitting right on the rig.
+      const crateNearRig = crates.find((c) => dist(c, rig) < CRATE_NEAR_RIG);
 
-      // 2. Chinook hover filter: Chinook near rig (< 0.06) for at least 2 consecutive polls
-      const chinookNearRig = chinook && dist(chinook, rig) < 0.06;
-      if (chinookNearRig) {
+      // 2. Stationary-hover filter. Count a poll only when the chinook is near the
+      //    rig AND barely moved since the previous poll (i.e. it's hovering to drop,
+      //    not transiting). Any fast movement or leaving the radius resets the count.
+      const prev = persisted.chinookRigPrev[rigKey];
+      const chinookNearRig = !!chinook && dist(chinook, rig) < NEAR_RIG;
+      const movedSincePrev = chinook && prev ? Math.hypot(chinook.x - prev.x, chinook.y - prev.y) : Infinity;
+      const isStationary = chinookNearRig && movedSincePrev < STATIONARY_STEP;
+      if (isStationary) {
         persisted.chinookRigPolls[rigKey] = (persisted.chinookRigPolls[rigKey] || 0) + 1;
       } else {
         persisted.chinookRigPolls[rigKey] = 0;
       }
-      const chinookIsHovering = persisted.chinookRigPolls[rigKey] >= 2;
+      persisted.chinookRigPrev[rigKey] = chinook ? { x: chinook.x, y: chinook.y } : undefined;
+      const chinookIsHovering = persisted.chinookRigPolls[rigKey] >= REQUIRED_HOVER_POLLS;
 
       const triggered = !!crateNearRig || chinookIsHovering;
-      const triggerSource = crateNearRig ? 'Crate proximity' : 'Chinook hover';
+      const triggerSource = crateNearRig ? 'Crate on rig' : 'Chinook hovering rig';
 
       const firedKey = `oilcrate_${rigKey}`;
       const alreadyFired = persisted[firedKey] && Date.now() - persisted[firedKey] < 20 * 60_000;
@@ -255,13 +277,11 @@ function detectWorldEvents(markers: any[], mapSize: number, rawMarkers?: any[]) 
         const now = Date.now();
         const name = getMonumentInfo(rigKey)?.name || 'Oil Rig';
         const srv = getCurrentServer();
-        // Oil-rig locked crate ALWAYS uses the full hack timer. Start the
-        // countdown at the configured default (defaultCrateSeconds, ~15m) from
-        // the exact moment of detection so the timer reads 15:00. The baseline
-        // is fixed here as `now + dur`; the per-second tick only reads this
-        // fixed `unlocksAt` and never re-derives it (which previously caused the
-        // timer to jump around).
-        const dur = (useSettingsStore.getState().defaultCrateSeconds || 900) * 1000;
+        // Always the FULL vanilla hack time from the moment of detection, so the
+        // notification & on-map countdown always read ~15:00 (never a partial
+        // value). The baseline `unlocksAt` is fixed here; the per-second tick only
+        // reads it back and never re-derives it.
+        const dur = OIL_RIG_HACK_SECONDS * 1000;
 
         const triggerX = crateNearRig ? crateNearRig.x : rig.x;
         const triggerY = crateNearRig ? crateNearRig.y : rig.y;
@@ -1015,20 +1035,11 @@ function App() {
             };
           }).filter(m => {
             if (m.type === null) return false;
-            if (m.type === 'vending_machine') {
-              // Remove Deep Sea event shops by name (Medical shop, etc.).
-              const n = (m.label || '').toLowerCase();
-              if (DEEP_SEA_SHOP_NAMES.some((d) => d && n.includes(d))) return false;
-              // Remove shops whose world position is off the playable map (out
-              // in the ocean) — the Deep Sea event spawns its stalls there, and
-              // a legit vending machine is always inside the island bounds.
-              const wx = m.raw?.x ?? 0;
-              const wy = m.raw?.y ?? 0;
-              const margin = mapSize * 0.04; // small tolerance for shoreline shops
-              if (wx < -margin || wy < -margin || wx > mapSize + margin || wy > mapSize + margin) {
-                return false;
-              }
-            }
+            // NOTE: Deep Sea event shops are intentionally KEPT here. They are
+            // detected (by name or off-grid position) in `isDeepSeaShop` and
+            // rendered with a distinct blue marker + "DEEP SEA" badge by
+            // MapMarkers, so the user can see & click them. We no longer strip
+            // them from the marker set.
             return true;
           }) as any[];
           
