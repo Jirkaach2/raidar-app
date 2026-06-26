@@ -692,47 +692,120 @@ function RustMapsExtras() {
     };
 
     // ── Auto-calibrate the RustMaps coordinate frame onto the LIVE Rust+ frame ──
-    // RustMaps and Rust+ disagree on coordinate origin/scale, which is why caves
-    // & the water well landed in the wrong place. Rather than guess the
-    // convention, we calibrate empirically: the STANDARD monuments (Launch Site,
-    // Harbor, …) appear in BOTH feeds, so the min/max extent of those shared
-    // monuments must describe the same physical span. We map RustMaps' standard-
-    // monument extent onto the live monuments' world extent (which already
-    // projects correctly), then place caves/wells through that same transform.
-    let rmMinX = Infinity, rmMaxX = -Infinity, rmMinY = Infinity, rmMaxY = -Infinity;
+    // RustMaps and Rust+ disagree on coordinate origin, scale AND axis direction,
+    // which is why caves / the water well were placed wrong. Rather than guess the
+    // convention, we recover it empirically. The STANDARD monuments (Launch Site,
+    // Harbor, …) appear in BOTH feeds at the same physical spots, so the two point
+    // clouds are related by an axis-aligned affine:  live = s·rm + o  (per axis,
+    // where s may be NEGATIVE if RustMaps flips that axis). We:
+    //   1. derive |s| and o per axis from the clouds' mean & std (correspondence-
+    //      free, so it doesn't matter which feed lists which monuments), then
+    //   2. sign-test all 4 axis-flip combos and keep whichever best overlays the
+    //      RustMaps standard monuments onto the live monuments (nearest-neighbour
+    //      distance). This auto-detects any X/Y inversion.
+    // Caves/wells are then pushed through that same transform.
+    const rmStd: { x: number; y: number }[] = [];
     for (const m of raw) {
-      if (isExtraType(m.type)) continue; // standard monuments only
-      if (m.wx < rmMinX) rmMinX = m.wx;
-      if (m.wx > rmMaxX) rmMaxX = m.wx;
-      if (m.wy < rmMinY) rmMinY = m.wy;
-      if (m.wy > rmMaxY) rmMaxY = m.wy;
+      if (isExtraType(m.type)) continue;
+      rmStd.push({ x: m.wx, y: m.wy });
     }
-    let lvMinX = Infinity, lvMaxX = -Infinity, lvMinY = Infinity, lvMaxY = -Infinity;
-    let lvCount = 0;
+    const live: { x: number; y: number }[] = [];
     for (const m of liveMonuments) {
       if (m.x == null || m.y == null) continue;
-      if (m.x < lvMinX) lvMinX = m.x;
-      if (m.x > lvMaxX) lvMaxX = m.x;
-      if (m.y < lvMinY) lvMinY = m.y;
-      if (m.y > lvMaxY) lvMaxY = m.y;
-      lvCount++;
+      live.push({ x: m.x, y: m.y });
     }
-    const canCalibrate =
-      lvCount >= 3 &&
-      isFinite(rmMinX) && rmMaxX - rmMinX > 1 && rmMaxY - rmMinY > 1 &&
-      lvMaxX - lvMinX > 1 && lvMaxY - lvMinY > 1;
+
+    const moments = (arr: { x: number; y: number }[], key: 'x' | 'y') => {
+      const n = arr.length;
+      let sum = 0;
+      for (const p of arr) sum += p[key];
+      const mean = sum / n;
+      let v = 0;
+      for (const p of arr) { const d = p[key] - mean; v += d * d; }
+      return { mean, std: Math.sqrt(v / n) };
+    };
+
+    type Affine = { sx: number; ox: number; sy: number; oy: number };
+    let transform: Affine | null = null;
+
+    if (rmStd.length >= 4 && live.length >= 4) {
+      const rmX = moments(rmStd, 'x'), rmY = moments(rmStd, 'y');
+      const lvX = moments(live, 'x'), lvY = moments(live, 'y');
+      if (rmX.std > 1 && rmY.std > 1 && lvX.std > 1 && lvY.std > 1) {
+        const magX = lvX.std / rmX.std;
+        const magY = lvY.std / rmY.std;
+        let bestErr = Infinity;
+        for (const sgnX of [1, -1]) {
+          for (const sgnY of [1, -1]) {
+            const sx = sgnX * magX;
+            const sy = sgnY * magY;
+            const ox = lvX.mean - sx * rmX.mean;
+            const oy = lvY.mean - sy * rmY.mean;
+            // Total nearest-neighbour error of the transformed standard monuments.
+            let err = 0;
+            for (const p of rmStd) {
+              const tx = sx * p.x + ox;
+              const ty = sy * p.y + oy;
+              let md = Infinity;
+              for (const q of live) {
+                const dx = tx - q.x, dy = ty - q.y;
+                const d = dx * dx + dy * dy;
+                if (d < md) md = d;
+              }
+              err += md;
+            }
+            if (err < bestErr) { bestErr = err; transform = { sx, ox, sy, oy }; }
+          }
+        }
+
+        // Refine the chosen orientation with two ICP iterations: match each
+        // RustMaps standard monument to its nearest live monument, then re-fit
+        // scale+offset per axis by least squares. This corrects any residual
+        // from the two feeds not listing exactly the same monument set.
+        if (transform) {
+          for (let iter = 0; iter < 2; iter++) {
+            const rxs: number[] = [], rys: number[] = [], lxs: number[] = [], lys: number[] = [];
+            for (const p of rmStd) {
+              const tx = transform.sx * p.x + transform.ox;
+              const ty = transform.sy * p.y + transform.oy;
+              let md = Infinity, bx = 0, by = 0;
+              for (const q of live) {
+                const dx = tx - q.x, dy = ty - q.y;
+                const d = dx * dx + dy * dy;
+                if (d < md) { md = d; bx = q.x; by = q.y; }
+              }
+              rxs.push(p.x); rys.push(p.y); lxs.push(bx); lys.push(by);
+            }
+            const fit = (rs: number[], ls: number[]) => {
+              const n = rs.length;
+              let mr = 0, ml = 0;
+              for (let i = 0; i < n; i++) { mr += rs[i]; ml += ls[i]; }
+              mr /= n; ml /= n;
+              let num = 0, den = 0;
+              for (let i = 0; i < n; i++) { const dr = rs[i] - mr; num += dr * (ls[i] - ml); den += dr * dr; }
+              const s = Math.abs(den) > 1e-6 ? num / den : 1;
+              return { s, o: ml - s * mr };
+            };
+            const fx = fit(rxs, lxs), fy = fit(rys, lys);
+            if (isFinite(fx.s) && isFinite(fy.s) && fx.s !== 0 && fy.s !== 0) {
+              transform = { sx: fx.s, ox: fx.o, sy: fy.s, oy: fy.o };
+            } else break;
+          }
+        }
+      }
+    }
 
     /** RustMaps world coord → Rust+ world coord that getNormalizedCoordinates expects. */
     const toRustWorld = (wx: number, wy: number): { x: number; y: number } => {
-      if (canCalibrate) {
-        return {
-          x: lvMinX + ((wx - rmMinX) / (rmMaxX - rmMinX)) * (lvMaxX - lvMinX),
-          y: lvMinY + ((wy - rmMinY) / (rmMaxY - rmMinY)) * (lvMaxY - lvMinY),
-        };
+      if (transform) {
+        return { x: transform.sx * wx + transform.ox, y: transform.sy * wy + transform.oy };
       }
       // Fallback (no live monuments yet): assume centre-origin if any negative.
-      const shift = (rmMinX < 0 || rmMinY < 0) ? mapSize / 2 : 0;
+      let anyNeg = false;
+      for (const m of raw) { if (m.wx < 0 || m.wy < 0) { anyNeg = true; break; } }
+      const shift = anyNeg ? mapSize / 2 : 0;
       return { x: wx + shift, y: wy + shift };
+
     };
 
     if (raw.length === 0) return out;
@@ -887,7 +960,7 @@ function WaterWellPanel({ onClose }: { onClose: () => void }) {
           </button>
           <h2 style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: '0.8px', color: C }}>WATER WELL SHOPKEEPER</h2>
           <div style={{ marginTop: 3, display: 'flex', gap: 7, alignItems: 'center' }}>
-            <span style={{ fontSize: 9.5, color: '#9aa0a6' }}>Jungle NPC · trades for scrap</span>
+            <span style={{ fontSize: 9.5, color: '#9aa0a6' }}>Water Well NPC · trades for scrap</span>
             <span style={{ fontSize: 8.5, fontWeight: 700, color: C, background: `${C}22`, border: `1px solid ${C}55`, padding: '1px 5px', borderRadius: 3 }}>7 ACTIVE</span>
           </div>
         </div>
