@@ -1,0 +1,1167 @@
+import os
+import subprocess
+
+html_slides = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Raidar — Company Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  @page {
+    size: 1920px 1080px;
+    margin: 0;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    width: 1920px;
+    margin: 0;
+    padding: 0;
+    background: #070a11;
+    color: #f1f5f9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    overflow-x: hidden;
+  }
+
+  /* Slide Base */
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+    padding: 70px 90px 60px 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: radial-gradient(circle at 85% 15%, rgba(244, 98, 46, 0.08) 0%, rgba(7, 10, 17, 1) 70%),
+                radial-gradient(circle at 10% 90%, rgba(14, 165, 233, 0.05) 0%, rgba(7, 10, 17, 1) 60%),
+                #070a11;
+    overflow: hidden;
+  }
+
+  /* Grid lines background decoration */
+  .slide::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 80px 80px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .slide-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header styles */
+  .slide-header {
+    margin-bottom: 35px;
+  }
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #f4622e;
+    background: rgba(244, 98, 46, 0.12);
+    border: 1px solid rgba(244, 98, 46, 0.3);
+    padding: 6px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .kicker .dot {
+    width: 6px;
+    height: 6px;
+    background: #f4622e;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #f4622e;
+  }
+  .slide-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 46px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .slide-title span {
+    color: #f4622e;
+    background: linear-gradient(135deg, #f4622e 0%, #ff8a50 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .slide-subtitle {
+    font-size: 19px;
+    color: #94a3b8;
+    margin-top: 8px;
+    font-weight: 400;
+    max-width: 1200px;
+    line-height: 1.4;
+  }
+
+  /* Footer bar */
+  .slide-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #64748b;
+    position: relative;
+    z-index: 1;
+  }
+  .slide-footer .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #cbd5e1;
+    font-weight: 600;
+  }
+  .slide-footer .page-num {
+    color: #f4622e;
+    font-weight: 700;
+  }
+
+  /* Cards & Grids */
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    flex: 1;
+    align-items: stretch;
+  }
+  .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+    flex: 1;
+    align-items: stretch;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+    flex: 1;
+    align-items: stretch;
+  }
+
+  .card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    backdrop-filter: blur(10px);
+  }
+  .card--highlight {
+    background: linear-gradient(180deg, rgba(244, 98, 46, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border-color: rgba(244, 98, 46, 0.35);
+  }
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: rgba(244, 98, 46, 0.15);
+    border: 1px solid rgba(244, 98, 46, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: #f4622e;
+  }
+  .card-icon.blue {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.3);
+    color: #38bdf8;
+  }
+  .card-icon.green {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+  }
+  .card-icon.purple {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.3);
+    color: #c084fc;
+  }
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 12px;
+  }
+  .card-desc {
+    font-size: 15px;
+    color: #94a3b8;
+    line-height: 1.55;
+  }
+
+  /* Metric Card */
+  .metric-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 4px solid #f4622e;
+  }
+  .metric-value {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 46px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .metric-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f4622e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .metric-sub {
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  /* Callout banner */
+  .callout-banner {
+    background: rgba(244, 98, 46, 0.1);
+    border: 1px solid rgba(244, 98, 46, 0.25);
+    border-radius: 10px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    font-size: 16px;
+    color: #fdba74;
+  }
+
+  /* Cover Slide Custom */
+  .cover-slide {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 100px;
+    background: 
+      radial-gradient(circle at 80% 20%, rgba(244, 98, 46, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 20% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+      #060910;
+  }
+  .cover-brand {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .brand-logo-svg {
+    width: 64px;
+    height: 64px;
+  }
+  .brand-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+  }
+  .cover-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    max-width: 1300px;
+    margin: 40px 0 20px 0;
+  }
+  .cover-title span {
+    background: linear-gradient(135deg, #f4622e 0%, #ff8a50 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .cover-sub {
+    font-size: 26px;
+    color: #94a3b8;
+    max-width: 1000px;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+  .cover-tags {
+    display: flex;
+    gap: 14px;
+    margin-top: 36px;
+  }
+  .cover-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+  }
+  .cover-tag.accent {
+    background: rgba(244, 98, 46, 0.12);
+    border-color: rgba(244, 98, 46, 0.4);
+    color: #ff8a50;
+  }
+
+  /* Table Style */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  .comp-table th {
+    text-align: left;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  .comp-table td {
+    padding: 16px 20px;
+    font-size: 15px;
+    color: #cbd5e1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .comp-table tr.highlight {
+    background: rgba(244, 98, 46, 0.08);
+    font-weight: 600;
+  }
+  .comp-table tr.highlight td {
+    color: #ffffff;
+    border-color: rgba(244, 98, 46, 0.3);
+  }
+  .badge-yes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #34d399;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .badge-no {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .badge-partial {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  /* Pricing Cards */
+  .price-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 30px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .price-card.popular {
+    border-color: #f4622e;
+    background: linear-gradient(180deg, rgba(244, 98, 46, 0.12) 0%, rgba(15, 23, 42, 0.85) 100%);
+    box-shadow: 0 0 30px rgba(244, 98, 46, 0.15);
+  }
+  .price-header {
+    margin-bottom: 20px;
+  }
+  .price-tier {
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #f4622e;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .price-num {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+  .price-num span {
+    font-size: 16px;
+    font-weight: 400;
+    color: #94a3b8;
+  }
+  .price-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 6px;
+  }
+  .price-features {
+    list-style: none;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .price-features li {
+    font-size: 14px;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Roadmap Timeline */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    position: relative;
+    margin-top: 15px;
+  }
+  .timeline-phase {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 30px;
+    position: relative;
+  }
+  .timeline-phase.active {
+    border-color: #f4622e;
+    background: linear-gradient(180deg, rgba(244, 98, 46, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+  }
+  .phase-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .phase-badge.completed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+  }
+  .phase-badge.current {
+    background: rgba(244, 98, 46, 0.2);
+    color: #ff8a50;
+    border: 1px solid rgba(244, 98, 46, 0.4);
+  }
+  .phase-badge.next {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+  }
+  .phase-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 16px;
+  }
+  .phase-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .phase-list li {
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.45;
+    padding-left: 18px;
+    position: relative;
+  }
+  .phase-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #f4622e;
+    font-weight: bold;
+    font-size: 18px;
+    line-height: 14px;
+  }
+
+  /* List with checks */
+  .check-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .check-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.4;
+  }
+  .check-list li svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #34d399;
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- SLIDE 1: COVER -->
+  <div class="slide cover-slide">
+    <div class="cover-brand">
+      <svg class="brand-logo-svg" viewBox="0 0 512 512">
+        <defs>
+          <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#F4622E"/>
+            <stop offset="1" stop-color="#C7361B"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="116" fill="url(#brandGrad)"/>
+        <g fill="none" stroke="#ffffff" stroke-width="28" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M256 106 L385.9 181 L385.9 331 L256 406 L126.1 331 L126.1 181 Z"/>
+          <line x1="256" y1="256" x2="343.7" y2="168.3"/>
+        </g>
+        <circle cx="256" cy="256" r="26" fill="#ffffff"/>
+        <circle cx="343.7" cy="168.3" r="20" fill="#ffffff"/>
+      </svg>
+      <div class="brand-text">RAIDAR</div>
+    </div>
+
+    <div>
+      <div class="cover-title">
+        Tactical Intelligence &amp; Real-Time Automation for <span>Survival Gaming</span>
+      </div>
+      <div class="cover-sub">
+        Empowering 16M+ competitive gamers with zero-latency desktop HUD overlays, Discord companion automation, and edge AI threat prediction.
+      </div>
+      <div class="cover-tags">
+        <div class="cover-tag accent">NVIDIA Inception Candidate</div>
+        <div class="cover-tag">Rust+ Telemetry Ingestion</div>
+        <div class="cover-tag">Tauri + Rust + React Desktop Native</div>
+        <div class="cover-tag">100% Game TOS Compliant</div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR TECHNOLOGIES INC. · SEED / GROWTH PITCH DECK</div>
+      <div class="page-num">CONFIDENTIAL · 2026</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>The Problem</div>
+        <div class="slide-title">The Brutal Reality of <span>24/7 Competitive Survival</span></div>
+        <div class="slide-subtitle">Hardcore survival titles like Rust operate round-the-clock where a single moment of unawareness obliterates hundreds of hours of team investment.</div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+          </div>
+          <div class="card-title">1. Offline Raiding Blindspots</div>
+          <div class="card-desc">
+            Players spend 40–80 hours each wipe fortifying complex compounds. Raids happen when teams are asleep or at work. Without immediate, actionable alerts, defense is impossible.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon blue">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          </div>
+          <div class="card-title">2. Fragmented &amp; Clunky Tools</div>
+          <div class="card-desc">
+            Official companion mobile apps are disconnected from team communication (Discord), suffer from notification delays, and cannot be accessed inside the game during active combat.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon purple">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="card-title">3. Dangerous Illicit Cheats</div>
+          <div class="card-desc">
+            Desperate for tactical awareness, players often turn to intrusive third-party hacks that tamper with game memory, resulting in instant hardware/VAC bans and security risks.
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-banner">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span><strong>Key Pain Point:</strong> Competitive clans currently manage 4+ disconnected tools, missing critical alarms and losing entire wipe cycles due to lack of synchronized, real-time tactical intelligence.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">02 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: THE SOLUTION -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>The Solution</div>
+        <div class="slide-title">Raidar: <span>Unified Tactical Intelligence Ecosystem</span></div>
+        <div class="slide-subtitle">A legal, high-performance desktop HUD overlay and synchronized Discord companion bot built on official server telemetry.</div>
+      </div>
+
+      <div class="grid-4">
+        <div class="card card--highlight">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+          </div>
+          <div class="card-title">Live Tactical Map</div>
+          <div class="card-desc">
+            Real-time tracking of squad positions, monument events, cargo ship trajectories, locked crates, and traveling vendors directly on an in-game HUD overlay.
+          </div>
+        </div>
+
+        <div class="card card--highlight">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </div>
+          <div class="card-title">Instant Base Alarms</div>
+          <div class="card-desc">
+            Sub-second smart alarm triggers sent simultaneously to in-game screen HUD and Discord mobile push notifications the exact millisecond base defenses trip.
+          </div>
+        </div>
+
+        <div class="card card--highlight">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <div class="card-title">Smart IoT Automation</div>
+          <div class="card-desc">
+            Programmable conditional logic for smart switches: trigger automated trap circuits, emergency airlock closures, night-lighting, and upkeep monitoring.
+          </div>
+        </div>
+
+        <div class="card card--highlight">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="6" x2="12" y2="12"></line><line x1="12" y1="12" x2="16" y2="14"></line></svg>
+          </div>
+          <div class="card-title">Arbitrage &amp; Raid Intel</div>
+          <div class="card-desc">
+            Real-time vending machine stock intelligence, profit scanner, recycling math, and optimal explosive raid cost calculators for tactical squad decision-making.
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-banner" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7;">
+        <svg width="24" height="24" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span><strong>100% Anti-Cheat &amp; TOS Compliant:</strong> Raidar connects exclusively via the official Rust+ WebSocket protocol. Zero game memory injection, zero file modifications, zero ban risk.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">03 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: PRODUCT ARCHITECTURE -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>Product Architecture</div>
+        <div class="slide-title">Dual-Surface <span>Synchronized Engine</span></div>
+        <div class="slide-subtitle">Engineered for competitive players who demand sub-millisecond execution and seamless squad-level synchronization.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="card-title" style="margin: 0; font-size: 24px; color: #ff8a50;">🖥️ Desktop HUD Overlay</div>
+            <span style="font-family: 'JetBrains Mono'; font-size: 12px; background: rgba(244, 98, 46, 0.2); color: #ff8a50; padding: 4px 10px; border-radius: 4px;">Tauri v2 + Rust Core</span>
+          </div>
+          <div class="card-desc">
+            Ultra-lightweight borderless overlay rendering directly over the active game viewport.
+          </div>
+          <ul class="check-list">
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Zero FPS Degradation:</strong> Hardware-accelerated lightweight WebView footprint (&lt;45MB RAM).</li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Direct Rust+ Token Interception:</strong> Instant pairing without manual credential sharing.</li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Rich Tactical Toolset:</strong> Cargo ship crate countdowns, SteamID ban scanner &amp; profit matrices.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="card-title" style="margin: 0; font-size: 24px; color: #38bdf8;">🤖 Companion Discord Bot</div>
+            <span style="font-family: 'JetBrains Mono'; font-size: 12px; background: rgba(14, 165, 233, 0.2); color: #38bdf8; padding: 4px 10px; border-radius: 4px;">Node.js + Appwrite Cloud</span>
+          </div>
+          <div class="card-desc">
+            24/7 cloud watchtower keeping the entire team in sync, even when PCs are powered off.
+          </div>
+          <ul class="check-list">
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Instant Server Provisioning:</strong> Single <code>/link</code> command creates automated dedicated channels.</li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Interactive Device Control:</strong> Flip smart switches and read upkeep directly from Discord buttons.</li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Granular Whitelisting:</strong> Clan leaders control per-member permissions for security.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;">
+        <div class="metric-card" style="padding: 16px 20px;">
+          <div class="metric-value" style="font-size: 32px;">&lt;50ms</div>
+          <div class="metric-label" style="font-size: 12px;">Alert Latency</div>
+        </div>
+        <div class="metric-card" style="padding: 16px 20px; border-left-color: #38bdf8;">
+          <div class="metric-value" style="font-size: 32px; color: #38bdf8;">0%</div>
+          <div class="metric-label" style="font-size: 12px; color: #38bdf8;">Frame Rate Drop</div>
+        </div>
+        <div class="metric-card" style="padding: 16px 20px; border-left-color: #34d399;">
+          <div class="metric-value" style="font-size: 32px; color: #34d399;">100%</div>
+          <div class="metric-label" style="font-size: 12px; color: #34d399;">TOS Compliant</div>
+        </div>
+        <div class="metric-card" style="padding: 16px 20px; border-left-color: #c084fc;">
+          <div class="metric-value" style="font-size: 32px; color: #c084fc;">24 / 7</div>
+          <div class="metric-label" style="font-size: 12px; color: #c084fc;">Base Uptime Watch</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">04 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: MARKET OPPORTUNITY -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>Market Opportunity</div>
+        <div class="slide-title">A Massive, Passionate &amp; <span>Underserved Economy</span></div>
+        <div class="slide-subtitle">Survival and extraction games represent one of the highest-retention, highest-monetization genres in modern gaming.</div>
+      </div>
+
+      <div class="grid-4" style="margin-bottom: 24px;">
+        <div class="metric-card">
+          <div class="metric-label">Rust Units Sold</div>
+          <div class="metric-value">16M+</div>
+          <div class="metric-sub">Global Steam player base</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #38bdf8;">
+          <div class="metric-label" style="color: #38bdf8;">Daily Concurrent</div>
+          <div class="metric-value" style="color: #38bdf8;">150K+</div>
+          <div class="metric-sub">Consistent Top-10 Steam game</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #34d399;">
+          <div class="metric-label" style="color: #34d399;">Average Playtime</div>
+          <div class="metric-value" style="color: #34d399;">1,200h</div>
+          <div class="metric-sub">Exceptional community longevity</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #c084fc;">
+          <div class="metric-label" style="color: #c084fc;">Total TAM</div>
+          <div class="metric-value" style="color: #c084fc;">$20B+</div>
+          <div class="metric-sub">Survival &amp; Extraction genre</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">High Willingness to Pay</div>
+          <div class="card-desc">
+            Competitive survival clans routinely spend hundreds of dollars monthly on dedicated gaming servers, VIP queue skips, skins, and team management tools. Raidar directly protects that investment.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Universal Genre Expansion</div>
+          <div class="card-desc">
+            The core architecture of Raidar (real-time telemetry ingestion + synchronized overlay + bot companion) expands naturally into adjacent mega-titles: <em>ARK: Survival Ascended, DayZ, Escape from Tarkov, and Dune: Awakening</em>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">05 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: BUSINESS MODEL -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>Business Model</div>
+        <div class="slide-title">Recurring SaaS with <span>Clan-Scale Expansion</span></div>
+        <div class="slide-subtitle">A high-conversion freemium funnel feeding sticky, team-wide monthly subscriptions.</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom: 20px;">
+        <div class="price-card">
+          <div class="price-header">
+            <div class="price-tier">Scout</div>
+            <div class="price-num">$0 <span>/ month</span></div>
+            <div class="price-desc">Solo players getting started</div>
+          </div>
+          <ul class="price-features">
+            <li>✓ Live tactical map overlay</li>
+            <li>✓ 1 linked game server</li>
+            <li>✓ Real-time raid alarms</li>
+            <li>✓ Discord bot (single channel)</li>
+          </ul>
+          <div style="font-size: 12px; color: #64748b; font-family: 'JetBrains Mono';">VIRAL ADOPTION ENGINE</div>
+        </div>
+
+        <div class="price-card popular">
+          <div class="price-header">
+            <div style="display: flex; justify-content: space-between;">
+              <div class="price-tier">Raider</div>
+              <span style="font-family: 'JetBrains Mono'; font-size: 11px; background: #f4622e; color: #fff; padding: 2px 8px; border-radius: 3px; font-weight: 700;">MOST POPULAR</span>
+            </div>
+            <div class="price-num">$5 <span>/ month</span></div>
+            <div class="price-desc">For active squads &amp; trios</div>
+          </div>
+          <ul class="price-features">
+            <li>✓ Everything in Scout</li>
+            <li>✓ Up to 3 linked servers</li>
+            <li>✓ Smart Switch automation engine</li>
+            <li>✓ Multi-channel Discord routing</li>
+            <li>✓ Vending market &amp; profit scanner</li>
+          </ul>
+          <div style="font-size: 12px; color: #f4622e; font-family: 'JetBrains Mono';">CORE REVENUE DRIVER</div>
+        </div>
+
+        <div class="price-card">
+          <div class="price-header">
+            <div class="price-tier">Clan</div>
+            <div class="price-num">$12 <span>/ month</span></div>
+            <div class="price-desc">For competitive clans &amp; zerg groups</div>
+          </div>
+          <ul class="price-features">
+            <li>✓ Everything in Raider</li>
+            <li>✓ Unlimited linked servers</li>
+            <li>✓ Granular device whitelist controls</li>
+            <li>✓ Priority real-time event pipeline</li>
+            <li>✓ VIP clan support &amp; custom webhooks</li>
+          </ul>
+          <div style="font-size: 12px; color: #64748b; font-family: 'JetBrains Mono';">HIGH LTV CLAN TIERS</div>
+        </div>
+      </div>
+
+      <div class="callout-banner">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        <span><strong>Additional Monetization Channels:</strong> Verified Server Partner promotions, tournament broadcast telemetry licenses, and developer API access for clan automation.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">06 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: NVIDIA TECH SYNERGY -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>NVIDIA Synergy</div>
+        <div class="slide-title">Supercharging Intelligence with <span>NVIDIA Edge AI</span></div>
+        <div class="slide-subtitle">Leveraging NVIDIA’s cutting-edge AI and low-latency graphics technologies to build the world’s first intelligent gaming co-pilot.</div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card card--highlight">
+          <div class="card-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+          </div>
+          <div class="card-title">1. TensorRT Threat Prediction</div>
+          <div class="card-desc">
+            Deploying lightweight edge AI models optimized via <strong>NVIDIA TensorRT</strong> to analyze historical raid patterns, acoustic breach signatures, and trigger predictive automated base defenses before core loot is breached.
+          </div>
+        </div>
+
+        <div class="card card--highlight">
+          <div class="card-icon blue">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+          </div>
+          <div class="card-title">2. NVIDIA Reflex &amp; Low Latency</div>
+          <div class="card-desc">
+            Implementing <strong>NVIDIA Reflex SDK</strong> and optimized DirectX/Vulkan presentation pipelines to ensure zero-latency overlay rendering without stealing GPU cycles from high-framerate competitive gaming.
+          </div>
+        </div>
+
+        <div class="card card--highlight">
+          <div class="card-icon green">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="card-title">3. Multimodal Tactical Co-Pilot</div>
+          <div class="card-desc">
+            Utilizing on-device vision models (powered by GeForce RTX Tensor Cores) to parse in-game HUDs, inventory states, and provide real-time synthesized voice callouts to squads during high-stress battles.
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-banner" style="background: rgba(118, 185, 0, 0.1); border-color: rgba(118, 185, 0, 0.3); color: #a3e635;">
+        <svg width="24" height="24" fill="none" stroke="#a3e635" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span><strong>NVIDIA Inception Value Add:</strong> Access to NVIDIA developer relations, TensorRT optimization toolchains, GPU cloud infrastructure, and joint gaming ecosystem positioning.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">07 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: COMPETITIVE ADVANTAGE -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>Competitive Advantage</div>
+        <div class="slide-title">Defensible Moat &amp; <span>Market Positioning</span></div>
+        <div class="slide-subtitle">How Raidar outperforms legacy mobile apps, standalone bots, and risky illicit alternatives.</div>
+      </div>
+
+      <div class="card" style="padding: 10px 24px; flex: 1;">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Feature / Capability</th>
+              <th style="color: #ff8a50;">Raidar Ecosystem</th>
+              <th>Official Rust+ App</th>
+              <th>Generic Discord Bots</th>
+              <th>Illicit Cheats / ESP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="highlight">
+              <td><strong>100% TOS Compliant (Zero Ban Risk)</strong></td>
+              <td><span class="badge-yes">✓ 100% Safe</span></td>
+              <td><span class="badge-yes">✓ Safe</span></td>
+              <td><span class="badge-yes">✓ Safe</span></td>
+              <td><span class="badge-no">✕ Permanent Bans</span></td>
+            </tr>
+            <tr>
+              <td><strong>In-Game Real-Time HUD Overlay</strong></td>
+              <td><span class="badge-yes">✓ Zero-Latency HUD</span></td>
+              <td><span class="badge-no">✕ Phone Only</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+              <td><span class="badge-yes">✓ Yes (Illegal)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Automated Discord Companion Bot</strong></td>
+              <td><span class="badge-yes">✓ 1-Click Provisioning</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+              <td><span class="badge-partial">▲ Manual / Slow</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+            </tr>
+            <tr>
+              <td><strong>Programmable IoT Base Defense</strong></td>
+              <td><span class="badge-yes">✓ Conditional Triggers</span></td>
+              <td><span class="badge-no">✕ Manual Only</span></td>
+              <td><span class="badge-partial">▲ Basic Toggle</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+            </tr>
+            <tr>
+              <td><strong>Market Arbitrage &amp; Raid Calculator</strong></td>
+              <td><span class="badge-yes">✓ Built-In Intelligence</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Server Clan Permissions</strong></td>
+              <td><span class="badge-yes">✓ Enterprise Roles</span></td>
+              <td><span class="badge-no">✕ 1 Account Only</span></td>
+              <td><span class="badge-partial">▲ Primitive</span></td>
+              <td><span class="badge-no">✕ None</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-banner">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span><strong>Core Moat:</strong> Proprietary low-latency WebSocket routing layer + dual-surface HUD &amp; Discord engine that creates unbreakable team workflow lock-in.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">08 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: ROADMAP -->
+  <div class="slide">
+    <div class="slide-content">
+      <div class="slide-header">
+        <div class="kicker"><span class="dot"></span>Execution Plan</div>
+        <div class="slide-title">Product Roadmap &amp; <span>Milestones</span></div>
+        <div class="slide-subtitle">A focused trajectory from dominant Rust intelligence tool to universal competitive gaming platform.</div>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-phase">
+          <div class="phase-badge completed">PHASE 1 · COMPLETED</div>
+          <div class="phase-title">Foundation &amp; Core HUD</div>
+          <ul class="phase-list">
+            <li>Tauri native desktop overlay build</li>
+            <li>Rust+ token interception &amp; telemetry link</li>
+            <li>Live interactive tactical map &amp; world events</li>
+            <li>Discord companion bot with automated channel creation</li>
+            <li>Vending machine stock scanner &amp; profit calculations</li>
+          </ul>
+        </div>
+
+        <div class="timeline-phase active">
+          <div class="phase-badge current">PHASE 2 · IN PROGRESS</div>
+          <div class="phase-title">Clan Scaling &amp; Defense IoT</div>
+          <ul class="phase-list">
+            <li>Multi-server clan subscription tiers</li>
+            <li>Autonomous Smart Switch condition engine</li>
+            <li>Cargo ship crate spawn prediction &amp; deck mapping</li>
+            <li>SteamID API ban correlation &amp; hacker detection</li>
+            <li>Mobile web dashboard &amp; notification sidecars</li>
+          </ul>
+        </div>
+
+        <div class="timeline-phase">
+          <div class="phase-badge next">PHASE 3 · FUTURE HORIZON</div>
+          <div class="phase-title">NVIDIA AI &amp; Multi-Game</div>
+          <ul class="phase-list">
+            <li>TensorRT edge AI predictive raid breach alarms</li>
+            <li>Real-time voice tactical co-pilot for squads</li>
+            <li>Expansion into ARK: Survival Ascended &amp; Dune</li>
+            <li>Tournament broadcast spectator telemetry HUD</li>
+            <li>B2B Server Host automated telemetry SDK</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout-banner">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        <span><strong>Current Momentum:</strong> Active production desktop client, live Discord bot servicing competitive clans, and proven viral referral loops.</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="brand-mark">RAIDAR · Tactical Intelligence</div>
+      <div class="page-num">09 / 10</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: THE ASK & VISION -->
+  <div class="slide cover-slide" style="justify-content: space-between;">
+    <div>
+      <div class="kicker"><span class="dot"></span>Join the Mission</div>
+      <div class="cover-title" style="margin: 20px 0 10px 0; font-size: 64px;">
+        Building the Future of <span>Competitive Gaming AI</span>
+      </div>
+      <div class="cover-sub" style="font-size: 22px;">
+        We are pioneering zero-latency tactical telemetry and on-device edge AI to give competitive players and esports squads the ultimate operational advantage.
+      </div>
+    </div>
+
+    <div class="grid-3" style="max-height: 280px;">
+      <div class="card">
+        <div class="card-title" style="color: #ff8a50;">🤝 NVIDIA Partnership</div>
+        <div class="card-desc">
+          Seeking GPU compute credits, technical mentorship on TensorRT model quantization, and co-marketing via the NVIDIA Inception network.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: #38bdf8;">⚡ Accelerated Scaling</div>
+        <div class="card-desc">
+          Expanding engineering throughput to deploy edge AI threat prediction and onboard top competitive survival clans globally.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: #34d399;">🌐 Multi-Title Expansion</div>
+        <div class="card-desc">
+          Standardizing the telemetry and HUD overlay SDK for extraction and survival titles across the entire $20B+ market.
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div>
+        <div style="font-size: 14px; font-family: 'JetBrains Mono'; color: #f4622e; font-weight: 700; margin-bottom: 6px;">CONTACT &amp; REPOSITORY</div>
+        <div style="font-size: 18px; color: #ffffff; font-weight: 600;">team@raidar.app · https://github.com/JirkaachS/raidar-app</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-family: 'Plus Jakarta Sans'; font-size: 24px; font-weight: 800; color: #ffffff;">RAIDAR</div>
+        <div style="font-size: 14px; color: #94a3b8;">Tactical Intelligence for Modern Gaming</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+"""
+
+html_path = os.path.abspath("pitch_deck.html")
+pdf_path = os.path.abspath("Raidar_Company_Pitch_Deck.pdf")
+
+with open(html_path, "w", encoding="utf-8") as f:
+    f.write(html_slides)
+
+chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+cmd = [
+    chrome_path,
+    "--headless=new",
+    "--disable-gpu",
+    "--no-pdf-header-footer",
+    f"--print-to-pdf={pdf_path}",
+    html_path
+]
+
+print("Rendering Pitch Deck PDF via Headless Chrome...")
+res = subprocess.run(cmd, capture_output=True, text=True)
+print("Return code:", res.returncode)
+
+if os.path.exists(pdf_path):
+    size_kb = os.path.getsize(pdf_path) / 1024
+    print(f"SUCCESS: Generated {pdf_path} ({size_kb:.2f} KB)")
+else:
+    print("FAILED: PDF not generated")
